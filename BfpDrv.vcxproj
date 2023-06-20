@@ -16,12 +16,13 @@
   <ItemGroup>
     <ClCompile Include="Driver.cpp" />
     <ClCompile Include="MiniFilter.cpp" />
-    <ClCompile Include="Shared.cpp" />
+    <ClCompile Include="Utility\Shared.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MiniFilter.h" />
-    <ClInclude Include="Shared.h" />
     <ClInclude Include="Trace.h" />
+    <ClInclude Include="Utility\C++\memory.h" />
+    <ClInclude Include="Utility\Shared.h" />
   </ItemGroup>
   <ItemGroup>
     <Inf Include="BfpDrv.inf" />
@@ -78,6 +79,7 @@
       <WppRecorderEnabled>true</WppRecorderEnabled>
       <WppScanConfigurationData Condition="'%(ClCompile.ScanConfigurationData)' == ''">trace.h</WppScanConfigurationData>
       <WppKernelMode>true</WppKernelMode>
+      <AdditionalIncludeDirectories>$(ProjectDir)Utility;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <DriverSign>
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
@@ -92,6 +94,7 @@
       <WppRecorderEnabled>true</WppRecorderEnabled>
       <WppScanConfigurationData Condition="'%(ClCompile.ScanConfigurationData)' == ''">trace.h</WppScanConfigurationData>
       <WppKernelMode>true</WppKernelMode>
+      <AdditionalIncludeDirectories>$(ProjectDir)Utility;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <DriverSign>
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>

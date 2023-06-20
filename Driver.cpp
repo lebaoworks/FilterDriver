@@ -1,5 +1,5 @@
 #include <wdm.h>
-#include "Shared.h"
+#include <Shared.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -17,6 +17,10 @@ extern "C" {
 #pragma alloc_text (INIT, DriverEntry)
 #endif
 
+struct dummy
+{
+    int x;
+};
 NTSTATUS DriverEntry(
     _In_ DRIVER_OBJECT* DriverObject,
     _In_ UNICODE_STRING* RegistryPath)
@@ -26,6 +30,10 @@ NTSTATUS DriverEntry(
 
     Log(__FUNCTION__"() Hello");
     DriverObject->DriverUnload = DriverUnload;
+
+    auto p = new dummy();
+    new (p) dummy();
+    delete p;
 
     return STATUS_SUCCESS;
 }

@@ -17,6 +17,9 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
     </Filter>
+    <Filter Include="Utility\C++">
+      <UniqueIdentifier>{ff97a810-3181-49b5-8909-efb351957192}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="ReadMe.txt" />
@@ -27,14 +30,17 @@
     </Inf>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Trace.h">
-      <Filter>Utility</Filter>
-    </ClInclude>
-    <ClInclude Include="Shared.h">
-      <Filter>Utility</Filter>
-    </ClInclude>
     <ClInclude Include="MiniFilter.h">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\Shared.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Trace.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\C++\memory.h">
+      <Filter>Utility\C++</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -44,7 +50,7 @@
     <ClCompile Include="MiniFilter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Shared.cpp">
+    <ClCompile Include="Utility\Shared.cpp">
       <Filter>Utility</Filter>
     </ClCompile>
   </ItemGroup>
