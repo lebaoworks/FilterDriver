@@ -19,7 +19,7 @@ extern "C" {
 
 struct dummy
 {
-    int x;
+    int x = 1;
 };
 NTSTATUS DriverEntry(
     _In_ DRIVER_OBJECT* DriverObject,
@@ -34,6 +34,11 @@ NTSTATUS DriverEntry(
     auto p = new dummy();
     new (p) dummy();
     delete p;
+
+    auto a = new dummy[12];
+    delete[] a;
+
+    auto c = std::make_unique<dummy>();
 
     return STATUS_SUCCESS;
 }

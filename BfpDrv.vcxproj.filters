@@ -42,6 +42,9 @@
     <ClInclude Include="Utility\C++\memory.h">
       <Filter>Utility\C++</Filter>
     </ClInclude>
+    <ClInclude Include="Utility\C++\queue.h">
+      <Filter>Utility\C++</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Driver.cpp">

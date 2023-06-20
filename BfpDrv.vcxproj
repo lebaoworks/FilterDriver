@@ -22,6 +22,7 @@
     <ClInclude Include="MiniFilter.h" />
     <ClInclude Include="Trace.h" />
     <ClInclude Include="Utility\C++\memory.h" />
+    <ClInclude Include="Utility\C++\queue.h" />
     <ClInclude Include="Utility\Shared.h" />
   </ItemGroup>
   <ItemGroup>

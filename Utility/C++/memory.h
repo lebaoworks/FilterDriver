@@ -12,7 +12,8 @@ namespace std {
     // Swap objects' value
     template<typename T>
     inline void swap(T& a, T& b) { auto x = move(a); a = move(b); b = move(x); }
-
+    
+    // [Warning] Only for single object
     template<typename T>
     class unique_ptr
     {
@@ -27,24 +28,34 @@ namespace std {
         ~unique_ptr() { if (_ptr != nullptr) delete _ptr; }
         
         // Assignments
-        unique_ptr<T>& operator=(unique_ptr<T>&& uptr) { swap(_ptr, uptr._ptr); return *this; }
+        inline unique_ptr<T>& operator=(unique_ptr<T>&& uptr) { swap(_ptr, uptr._ptr); return *this; }
         unique_ptr<T>& operator=(const unique_ptr<T>& uptr) = delete;
 
         // Modifiers
-        T* release() { auto p = _ptr; _ptr = nullptr; return p; }
-        void reset(T* p) { if (_ptr != nullptr) delete _ptr; _ptr = p; }
-        void swap(unique_ptr<T>& other) { swap(_ptr, other._ptr); }
+        inline T* release() { auto p = _ptr; _ptr = nullptr; return p; }
+        inline void reset(T* p) { if (_ptr != nullptr) delete _ptr; _ptr = p; }
+        inline void swap(unique_ptr<T>& other) { swap(_ptr, other._ptr); }
 
         // Observers
-        T* get() const { return _ptr; }
-        operator bool() const { return _ptr != nullptr; }
+        inline T* get() const { return _ptr; }
+        inline operator bool() const { return _ptr != nullptr; }
 
-        // Deference
-        T& operator*() const { return *_ptr; }
-        T* operator->() const { return _ptr; }
+        // Dereference
+        inline T& operator*() const { return *_ptr; }
+        inline T* operator->() const { return _ptr; }
+
+        // Comparisons
+        inline bool operator==(const unique_ptr& other) const { return _ptr == other._ptr; }
+        inline bool operator!=(const unique_ptr& other) const { return _ptr != other._ptr; }
+        inline bool operator<(const unique_ptr& other) const { return _ptr < other._ptr; }
+        inline bool operator>(const unique_ptr& other) const { return _ptr > other._ptr; }
+        inline bool operator<=(const unique_ptr& other) const { return _ptr <= other._ptr; }
+        inline bool operator>=(const unique_ptr& other) const { return _ptr >= other._ptr; }
     };
+
+    // [Warning] Only for single object
     template<typename T, typename... Args>
-    unique_ptr<T> make_unique(Args... args)
+    inline unique_ptr<T> make_unique(Args... args)
     {
         return unique_ptr<T>(new T(args...));
     }
