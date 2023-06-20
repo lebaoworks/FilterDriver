@@ -1,0 +1,78 @@
+;
+; BfpDrv.inf
+;
+
+;https://learn.microsoft.com/en-us/windows-hardware/drivers/ifs/file-system-filter-driver-classes-and-class-guids
+[Version]
+Signature="$WINDOWS NT$"
+Class=System ; TODO: specify appropriate Class
+ClassGuid={4d36e97d-e325-11ce-bfc1-08002be10318} ; TODO: specify appropriate ClassGuid
+Provider=%ManufacturerName%
+CatalogFile=BfpDrv.cat
+DriverVer= ; TODO: set DriverVer in stampinf property pages
+PnpLockdown=1
+
+[DestinationDirs]
+DefaultDestDir = 12
+BfpDrv_Device_CoInstaller_CopyFiles = 11
+
+[SourceDisksNames]
+1 = %DiskName%,,,""
+
+[SourceDisksFiles]
+BfpDrv.sys  = 1,,
+WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll=1 ; make sure the number matches with SourceDisksNames
+
+;*****************************************
+; Install Section
+;*****************************************
+
+[Manufacturer]
+%ManufacturerName%=Standard,NT$ARCH$
+
+[Standard.NT$ARCH$]
+%BfpDrv.DeviceDesc%=BfpDrv_Device, Root\BfpDrv ; TODO: edit hw-id
+
+[BfpDrv_Device.NT]
+CopyFiles=Drivers_Dir
+
+[Drivers_Dir]
+BfpDrv.sys
+
+;-------------- Service installation
+[BfpDrv_Device.NT.Services]
+AddService = BfpDrv,%SPSVCINST_ASSOCSERVICE%, BfpDrv_Service_Inst
+
+; -------------- BfpDrv driver install sections
+[BfpDrv_Service_Inst]
+DisplayName    = %BfpDrv.SVCDESC%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %12%\BfpDrv.sys
+
+;
+;--- BfpDrv_Device Coinstaller installation ------
+;
+
+[BfpDrv_Device.NT.CoInstallers]
+AddReg=BfpDrv_Device_CoInstaller_AddReg
+CopyFiles=BfpDrv_Device_CoInstaller_CopyFiles
+
+[BfpDrv_Device_CoInstaller_AddReg]
+HKR,,CoInstallers32,0x00010000, "WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll,WdfCoInstaller"
+
+[BfpDrv_Device_CoInstaller_CopyFiles]
+WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll
+
+[BfpDrv_Device.NT.Wdf]
+KmdfService =  BfpDrv, BfpDrv_wdfsect
+[BfpDrv_wdfsect]
+KmdfLibraryVersion = $KMDFVERSION$
+
+[Strings]
+SPSVCINST_ASSOCSERVICE= 0x00000002
+ManufacturerName="<Your manufacturer name>" ;TODO: Replace with your manufacturer name
+DiskName = "BfpDrv Installation Disk"
+BfpDrv.DeviceDesc = "BfpDrv Device"
+BfpDrv.SVCDESC = "BfpDrv Service"
