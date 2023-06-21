@@ -3,15 +3,15 @@
 namespace std {
     // Convert object to rvalue
     template<typename T>
-    inline T&& move(T& obj) { return static_cast<T&&>(obj); }
+    inline T&& move(T& obj) noexcept { return static_cast<T&&>(obj); }
 
     // Convert object to rvalue
     template<typename T>
-    inline T&& move(T&& obj) { return static_cast<T&&>(obj); }
+    inline T&& move(T&& obj) noexcept { return static_cast<T&&>(obj); }
 
     // Swap objects' value
     template<typename T>
-    inline void swap(T& a, T& b) { auto x = move(a); a = move(b); b = move(x); }
+    inline void swap(T& a, T& b) noexcept { auto x = move(a); a = move(b); b = move(x); }
     
     // [Warning] Only for single object
     template<typename T>

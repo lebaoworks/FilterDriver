@@ -27,6 +27,12 @@ NTSTATUS DriverEntry(
     Log(__FUNCTION__"() Hello");
     DriverObject->DriverUnload = DriverUnload;
 
+    std::queue<int> q;
+    for (int i = 0; i < 10; i++)
+        q.push(1);
+    for (auto& i : q)
+        Log("i = %d", i);
+
     return STATUS_SUCCESS;
 }
 

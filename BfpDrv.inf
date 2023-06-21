@@ -4,75 +4,91 @@
 
 ;https://learn.microsoft.com/en-us/windows-hardware/drivers/ifs/file-system-filter-driver-classes-and-class-guids
 [Version]
-Signature="$WINDOWS NT$"
-Class=System ; TODO: specify appropriate Class
-ClassGuid={4d36e97d-e325-11ce-bfc1-08002be10318} ; TODO: specify appropriate ClassGuid
-Provider=%ManufacturerName%
-CatalogFile=BfpDrv.cat
-DriverVer= ; TODO: set DriverVer in stampinf property pages
-PnpLockdown=1
+Signature   = "$Windows NT$"
+Class       = "ActivityMonitor"
+ClassGuid   = {b86dff51-a31e-4bac-b3cf-e8cfe75c9fc2}
+Provider    = %ProviderString%
+DriverVer   = 06/01/2023,1.0.0.0
+CatalogFile = BfpDrv.cat
+;PnpLockDown = 1
 
 [DestinationDirs]
-DefaultDestDir = 12
-BfpDrv_Device_CoInstaller_CopyFiles = 11
+DefaultDestDir      = 12
+BfpDrv.DriverFiles  = 12            ;%windir%\system32\drivers
 
-[SourceDisksNames]
-1 = %DiskName%,,,""
+;;
+;; Default install sections
+;;
+
+[DefaultInstall.NTamd64]
+OptionDesc          = %ServiceDescription%
+CopyFiles           = BfpDrv.DriverFiles
+
+[DefaultInstall.NTamd64.Services]
+AddService          = %ServiceName%,,BfpDrv.Service
+
+;;
+;; Default uninstall sections
+;;
+
+[DefaultUninstall.NTamd64]
+DelFiles   = BfpDrv.DriverFiles
+LegacyUninstall = 1
+
+[DefaultUninstall.NTamd64.Services]
+DelService = %ServiceName%,0x200      ;Ensure service is stopped before deleting
+
+;
+; Services Section
+;
+
+[BfpDrv.Service]
+DisplayName      = %ServiceName%
+Description      = %ServiceDescription%
+ServiceBinary    = %12%\%DriverName%.sys        ;%windir%\system32\drivers\
+Dependencies     = "FltMgr"
+ServiceType      = 2                            ;SERVICE_FILE_SYSTEM_DRIVER
+StartType        = 3                            ;SERVICE_DEMAND_START
+ErrorControl     = 1                            ;SERVICE_ERROR_NORMAL
+LoadOrderGroup   = "FSFilter Activity Monitor"
+AddReg           = BfpDrv.AddRegistry
+
+;
+; Registry Modifications
+;
+
+[BfpDrv.AddRegistry]
+HKR,,"DebugFlags",0x00010001 ,0x0
+HKR,"Instances","DefaultInstance",0x00000000,%DefaultInstance%
+HKR,"Instances\"%Instance1.Name%,"Altitude",0x00000000,%Instance1.Altitude%
+HKR,"Instances\"%Instance1.Name%,"Flags",0x00010001,%Instance1.Flags%
+
+;
+; Copy Files
+;
+
+[BfpDrv.DriverFiles]
+%DriverName%.sys
 
 [SourceDisksFiles]
-BfpDrv.sys  = 1,,
-WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll=1 ; make sure the number matches with SourceDisksNames
+BfpDrv.sys = 1,,
 
-;*****************************************
-; Install Section
-;*****************************************
+[SourceDisksNames]
+1 = %DiskId1%,,,
 
-[Manufacturer]
-%ManufacturerName%=Standard,NT$ARCH$
-
-[Standard.NT$ARCH$]
-%BfpDrv.DeviceDesc%=BfpDrv_Device, Root\BfpDrv ; TODO: edit hw-id
-
-[BfpDrv_Device.NT]
-CopyFiles=Drivers_Dir
-
-[Drivers_Dir]
-BfpDrv.sys
-
-;-------------- Service installation
-[BfpDrv_Device.NT.Services]
-AddService = BfpDrv,%SPSVCINST_ASSOCSERVICE%, BfpDrv_Service_Inst
-
-; -------------- BfpDrv driver install sections
-[BfpDrv_Service_Inst]
-DisplayName    = %BfpDrv.SVCDESC%
-ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
-StartType      = 3               ; SERVICE_DEMAND_START
-ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
-ServiceBinary  = %12%\BfpDrv.sys
-
-;
-;--- BfpDrv_Device Coinstaller installation ------
-;
-
-[BfpDrv_Device.NT.CoInstallers]
-AddReg=BfpDrv_Device_CoInstaller_AddReg
-CopyFiles=BfpDrv_Device_CoInstaller_CopyFiles
-
-[BfpDrv_Device_CoInstaller_AddReg]
-HKR,,CoInstallers32,0x00010000, "WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll,WdfCoInstaller"
-
-[BfpDrv_Device_CoInstaller_CopyFiles]
-WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll
-
-[BfpDrv_Device.NT.Wdf]
-KmdfService =  BfpDrv, BfpDrv_wdfsect
-[BfpDrv_wdfsect]
-KmdfLibraryVersion = $KMDFVERSION$
+;;
+;; String Section
+;;
 
 [Strings]
-SPSVCINST_ASSOCSERVICE= 0x00000002
-ManufacturerName="<Your manufacturer name>" ;TODO: Replace with your manufacturer name
-DiskName = "BfpDrv Installation Disk"
-BfpDrv.DeviceDesc = "BfpDrv Device"
-BfpDrv.SVCDESC = "BfpDrv Service"
+ProviderString          = "lebaoworks@gmail.com"
+ServiceDescription      = "Monitoring Mini-Filter Driver"
+ServiceName             = "BfpDrv"
+DriverName              = "BfpDrv"
+DiskId1                 = "Monitoring Device Installation Disk"
+
+;Instances specific information.
+DefaultInstance         = "BfpDrv Instance"
+Instance1.Name          = "BfpDrv Instance"
+Instance1.Altitude      = "370160"
+Instance1.Flags         = 0x0              ; Allow all attachments

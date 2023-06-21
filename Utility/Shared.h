@@ -28,11 +28,11 @@ namespace shared {
     template<typename... T>
     void log(_In_ unsigned int level, _In_z_ char* format, T... args)
     {
-        log(level, format);
+        DbgPrintEx(DPFLTR_IHVDRIVER_ID, level, format, args...);
     }
 }
 
-#define Log(...) shared::log(1, __VA_ARGS__)
+#define Log(format, ...) shared::log(DPFLTR_ERROR_LEVEL, format"\n", __VA_ARGS__)
 
 
 /*********************
