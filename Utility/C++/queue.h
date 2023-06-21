@@ -55,5 +55,22 @@ namespace std
         inline T& front() const { return _front->data; }
         inline T& back() const { return _rear->data; }
         inline size_t size() const { return _size; }
+
+        // Iterators
+        struct iterator
+        {
+            friend class queue<T>;
+        private:
+            node* n;
+            iterator(node* n) : n(n) {}
+        public:
+            inline iterator& operator++() { n = n->next; return *this; }
+            inline iterator operator++(int) { auto t = *this; n = n->next; return t; }
+            inline bool operator==(const iterator& i) const { return n == i.n; }
+            inline bool operator!=(const iterator& i) const { return n != i.n; }
+            inline T& operator*() const { return n->data; }
+        };
+        inline iterator begin() const { return iterator(_front); }
+        inline iterator end() const { return iterator(nullptr); }
     };
 }
