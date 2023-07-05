@@ -45,6 +45,9 @@
     <ClInclude Include="Utility\C++\queue.h">
       <Filter>Utility\C++</Filter>
     </ClInclude>
+    <ClInclude Include="MiniFilterUtils.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Driver.cpp">
@@ -55,6 +58,9 @@
     </ClCompile>
     <ClCompile Include="Utility\Shared.cpp">
       <Filter>Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="MiniFilterUtils.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

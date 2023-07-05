@@ -16,10 +16,12 @@
   <ItemGroup>
     <ClCompile Include="Driver.cpp" />
     <ClCompile Include="MiniFilter.cpp" />
+    <ClCompile Include="MiniFilterUtils.cpp" />
     <ClCompile Include="Utility\Shared.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MiniFilter.h" />
+    <ClInclude Include="MiniFilterUtils.h" />
     <ClInclude Include="Trace.h" />
     <ClInclude Include="Utility\C++\memory.h" />
     <ClInclude Include="Utility\C++\queue.h" />

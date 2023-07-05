@@ -1,5 +1,7 @@
-#include <wdm.h>
+#include <fltKernel.h>
 #include <Shared.h>
+
+#include "MiniFilter.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,24 +23,29 @@ NTSTATUS DriverEntry(
     _In_ DRIVER_OBJECT* DriverObject,
     _In_ UNICODE_STRING* RegistryPath)
 {
-    UNREFERENCED_PARAMETER(DriverObject);
     UNREFERENCED_PARAMETER(RegistryPath);
 
-    Log(__FUNCTION__"() Hello");
+    Log("Initializing...");
+
+    // Set up the unload routine
     DriverObject->DriverUnload = DriverUnload;
 
-    std::queue<int> q;
-    for (int i = 0; i < 10; i++)
-        q.push(1);
-    for (auto& i : q)
-        Log("i = %d", i);
+    // Install the mini-filter
+    auto status = MiniFilter::Install(DriverObject);
+    Log("Install MiniFilter -> Status: %X", status);
 
-    return STATUS_SUCCESS;
+    return status;
 }
 
 _Function_class_(DRIVER_UNLOAD)
 VOID DriverUnload(_In_ DRIVER_OBJECT* DriverObject)
 {
     UNREFERENCED_PARAMETER(DriverObject);
-    Log(__FUNCTION__"() Bye");
+
+    Log("Uninstalling");
+
+    // Uninstall the mini-filter
+    MiniFilter::Uninstall();
+    
+    Log("Done");
 }

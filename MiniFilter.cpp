@@ -1,9 +1,10 @@
+#include "MiniFilter.h"
 #include <fltKernel.h>
 
-#include "Shared.h"
-#include "MiniFilter.h"
-#include "Trace.h"
-#include "driver.tmh"
+#include <Shared.h>
+
+#include "MiniFilterUtils.h"
+using namespace MiniFilterUtils;
 
 
 /* Forward declarations */
@@ -12,7 +13,6 @@ NTSTATUS FLTAPI FilterQueryTeardown(_In_ PCFLT_RELATED_OBJECTS FltObjects, _In_ 
 VOID     FLTAPI FilterContextCleanup(_In_ PFLT_CONTEXT Context, _In_ FLT_CONTEXT_TYPE ContextType);
 FLT_PREOP_CALLBACK_STATUS  FLTAPI FilterOperation_Pre_Create(_Inout_ PFLT_CALLBACK_DATA Data, _In_ PCFLT_RELATED_OBJECTS FltObjects, _In_ PVOID* CompletionContext);
 FLT_POSTOP_CALLBACK_STATUS FLTAPI FilterOperation_Post_Create(_Inout_ PFLT_CALLBACK_DATA Data, _In_ PCFLT_RELATED_OBJECTS FltObjects, _In_opt_ PVOID CompletionContext, _In_ FLT_POST_OPERATION_FLAGS Flags);
-
 
 /* Structures */
 struct FILE_CONTEXT
@@ -71,35 +71,36 @@ static const FLT_REGISTRATION FilterRegistration = {
     NULL,                               //  SectionNotificationCallback
 };
 
-bool MiniFilter::Install(_In_ DRIVER_OBJECT* DriverObject)
+NTSTATUS MiniFilter::Install(_In_ DRIVER_OBJECT* DriverObject)
 {
     if (FilterHandle != NULL)
     {
-        //TraceLog(TRACE_LEVEL_ERROR, "%!FUNC! Filter already installed");
-        return false;
+        Log("Filter already installed");
+        return STATUS_ALREADY_INITIALIZED;
     }
 
     auto status = FltRegisterFilter(DriverObject, &FilterRegistration, &FilterHandle);
     if (status != STATUS_SUCCESS)
     {
-        //TraceLog(TRACE_LEVEL_ERROR, "%!FUNC! Filter installing failed %X", status);
-        return false;
+        Log("Register filter failed: %X", status);
+        return status;
     }
     status = FltStartFiltering(FilterHandle);
     if (status != STATUS_SUCCESS)
     {
-        //TraceLog(TRACE_LEVEL_ERROR, "%!FUNC! Filter starting failed %X", status);
+        Log("Start filter failed: %X", status);
         FltUnregisterFilter(FilterHandle);
-        return false;
+        FilterHandle = NULL;
+        return status;
     }
-    return true;
+    return STATUS_SUCCESS;
 }
 
 void MiniFilter::Uninstall()
 {
     if (FilterHandle == NULL)
     {
-        //TraceLog(TRACE_LEVEL_ERROR, "%!FUNC! Filter is not installed");
+        Log("Filter is not installed");
         return;
     }
     FltUnregisterFilter(FilterHandle);
@@ -108,6 +109,7 @@ void MiniFilter::Uninstall()
 
 NTSTATUS FLTAPI FilterUnload(_In_ FLT_FILTER_UNLOAD_FLAGS Flags)
 {
+    Log("Uninstalling");
     UNREFERENCED_PARAMETER(Flags);
     return STATUS_SUCCESS;
 }
@@ -116,6 +118,7 @@ NTSTATUS FLTAPI FilterQueryTeardown(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_QUERY_TEARDOWN_FLAGS Flags)
 {
+    Log("");
     UNREFERENCED_PARAMETER(FltObjects);
     UNREFERENCED_PARAMETER(Flags);
     return STATUS_SUCCESS;
@@ -137,7 +140,7 @@ FLT_PREOP_CALLBACK_STATUS FLTAPI FilterOperation_Pre_Create(
     UNREFERENCED_PARAMETER(Data);
     UNREFERENCED_PARAMETER(FltObjects);
     UNREFERENCED_PARAMETER(CompletionContext);
-    return FLT_PREOP_SUCCESS_NO_CALLBACK;
+    return FLT_PREOP_SUCCESS_WITH_CALLBACK;
 }
 
 FLT_POSTOP_CALLBACK_STATUS FLTAPI FilterOperation_Post_Create(
@@ -150,5 +153,22 @@ FLT_POSTOP_CALLBACK_STATUS FLTAPI FilterOperation_Post_Create(
     UNREFERENCED_PARAMETER(FltObjects);
     UNREFERENCED_PARAMETER(CompletionContext);
     UNREFERENCED_PARAMETER(Flags);
+
+    PFLT_FILE_NAME_INFORMATION file_name_info;
+    auto status = FltGetFileNameInformation(
+        Data,
+        FLT_FILE_NAME_NORMALIZED | FLT_FILE_NAME_QUERY_DEFAULT,
+        &file_name_info);
+    if (NT_SUCCESS(status))
+    {
+        defer{ FltReleaseFileNameInformation(file_name_info); };
+        
+        FILE_ID fileId;
+        status = GetFileId(Data->Iopb->TargetInstance, Data->Iopb->TargetFileObject, fileId);
+        if (status == STATUS_SUCCESS)
+            Log("[FileId: %I64X] FileName: %wZ", fileId.FileId64.Value, file_name_info->Name);
+        else
+            Log("[FileId: ERROR: %X] FileName: %wZ", status, file_name_info->Name);
+    }
     return FLT_POSTOP_FINISHED_PROCESSING;
 }
