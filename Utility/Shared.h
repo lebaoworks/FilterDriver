@@ -32,7 +32,7 @@ namespace shared {
     }
 }
 
-#define Log(format, ...) shared::log(DPFLTR_ERROR_LEVEL, format"\n", __VA_ARGS__)
+#define Log(format, ...) shared::log(DPFLTR_ERROR_LEVEL, __FUNCTION__"() "##format"\n", __VA_ARGS__)
 
 
 /*********************
@@ -43,14 +43,14 @@ namespace shared {
 // Modified for rvalue
 struct defer_dummy {};
 template<class F>
-struct deferrer
+struct deferer
 {
     F _f;
-    deferrer(F&& f) : _f(f) {}
-    ~deferrer() { _f(); }
+    deferer(F&& f) : _f(f) {}
+    ~deferer() { _f(); }
 };
 template<class F>
-inline deferrer<F> operator*(defer_dummy, F&& f)
+inline deferer<F> operator*(defer_dummy, F&& f)
 {
     return deferer<F>(std::move(f));
 }
