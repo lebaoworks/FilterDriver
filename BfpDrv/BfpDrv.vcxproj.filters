@@ -48,6 +48,9 @@
     <ClInclude Include="MiniFilterUtils.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="Device.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Driver.cpp">
@@ -60,6 +63,9 @@
       <Filter>Utility</Filter>
     </ClCompile>
     <ClCompile Include="MiniFilterUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Device.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

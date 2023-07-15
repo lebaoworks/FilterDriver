@@ -14,12 +14,14 @@
     <None Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Device.cpp" />
     <ClCompile Include="Driver.cpp" />
     <ClCompile Include="MiniFilter.cpp" />
     <ClCompile Include="MiniFilterUtils.cpp" />
     <ClCompile Include="Utility\Shared.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Device.h" />
     <ClInclude Include="MiniFilter.h" />
     <ClInclude Include="MiniFilterUtils.h" />
     <ClInclude Include="Trace.h" />

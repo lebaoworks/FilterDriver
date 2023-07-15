@@ -1,3 +1,4 @@
+// References: https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/fltkernel/ns-fltkernel-_flt_parameters
 #include "MiniFilter.h"
 #include <fltKernel.h>
 
@@ -73,12 +74,6 @@ static const FLT_REGISTRATION FilterRegistration = {
 
 NTSTATUS MiniFilter::Install(_In_ DRIVER_OBJECT* DriverObject)
 {
-    if (FilterHandle != NULL)
-    {
-        Log("Filter already installed");
-        return STATUS_ALREADY_INITIALIZED;
-    }
-
     auto status = FltRegisterFilter(DriverObject, &FilterRegistration, &FilterHandle);
     if (status != STATUS_SUCCESS)
     {
@@ -90,7 +85,6 @@ NTSTATUS MiniFilter::Install(_In_ DRIVER_OBJECT* DriverObject)
     {
         Log("Start filter failed: %X", status);
         FltUnregisterFilter(FilterHandle);
-        FilterHandle = NULL;
         return status;
     }
     return STATUS_SUCCESS;
@@ -98,13 +92,7 @@ NTSTATUS MiniFilter::Install(_In_ DRIVER_OBJECT* DriverObject)
 
 void MiniFilter::Uninstall()
 {
-    if (FilterHandle == NULL)
-    {
-        Log("Filter is not installed");
-        return;
-    }
     FltUnregisterFilter(FilterHandle);
-    FilterHandle = NULL;
 }
 
 NTSTATUS FLTAPI FilterUnload(_In_ FLT_FILTER_UNLOAD_FLAGS Flags)
