@@ -4,7 +4,7 @@
 #include <Shared.h>
 
 /* Static data declarations */
-static UNICODE_STRING DeviceName = RTL_CONSTANT_STRING(L"\\Device\\BfpDevice");
+static UNICODE_STRING DeviceName = RTL_CONSTANT_STRING(L"\\DosDevices\\BfpDevice");
 static PDEVICE_OBJECT DeviceObject = NULL;
 
 _IRQL_requires_(PASSIVE_LEVEL)

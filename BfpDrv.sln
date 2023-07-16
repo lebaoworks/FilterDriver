@@ -5,6 +5,8 @@ VisualStudioVersion = 17.6.33801.468
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BfpDrv", "BfpDrv\BfpDrv.vcxproj", "{8EFB00CE-85B0-4E66-8378-4DD7A199470E}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ShellExtension", "ShellExtension\ShellExtension.vcxproj", "{89DD1364-76A5-452A-AAE7-A59A5926AF78}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -17,6 +19,10 @@ Global
 		{8EFB00CE-85B0-4E66-8378-4DD7A199470E}.Release|x64.ActiveCfg = Release|x64
 		{8EFB00CE-85B0-4E66-8378-4DD7A199470E}.Release|x64.Build.0 = Release|x64
 		{8EFB00CE-85B0-4E66-8378-4DD7A199470E}.Release|x64.Deploy.0 = Release|x64
+		{89DD1364-76A5-452A-AAE7-A59A5926AF78}.Debug|x64.ActiveCfg = Debug|x64
+		{89DD1364-76A5-452A-AAE7-A59A5926AF78}.Debug|x64.Build.0 = Debug|x64
+		{89DD1364-76A5-452A-AAE7-A59A5926AF78}.Release|x64.ActiveCfg = Release|x64
+		{89DD1364-76A5-452A-AAE7-A59A5926AF78}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

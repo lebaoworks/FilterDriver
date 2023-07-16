@@ -142,7 +142,7 @@ FLT_POSTOP_CALLBACK_STATUS FLTAPI FilterOperation_Post_Create(
     UNREFERENCED_PARAMETER(CompletionContext);
     UNREFERENCED_PARAMETER(Flags);
 
-    PFLT_FILE_NAME_INFORMATION file_name_info;
+    /*PFLT_FILE_NAME_INFORMATION file_name_info;
     auto status = FltGetFileNameInformation(
         Data,
         FLT_FILE_NAME_NORMALIZED | FLT_FILE_NAME_QUERY_DEFAULT,
@@ -157,6 +157,6 @@ FLT_POSTOP_CALLBACK_STATUS FLTAPI FilterOperation_Post_Create(
             Log("[FileId: %I64X] FileName: %wZ", fileId.FileId64.Value, file_name_info->Name);
         else
             Log("[FileId: ERROR: %X] FileName: %wZ", status, file_name_info->Name);
-    }
+    }*/
     return FLT_POSTOP_FINISHED_PROCESSING;
 }

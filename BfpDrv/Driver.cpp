@@ -29,8 +29,8 @@ NTSTATUS DriverEntry(
 
     // Set up the unload routine
     DriverObject->DriverUnload = DriverUnload;
-    for (auto i=0; i<IRP_MJ_MAXIMUM_FUNCTION; i++)
-        DriverObject->MajorFunction[i] = DefaultDispatch;
+    DriverObject->MajorFunction[IRP_MJ_CREATE] = DefaultDispatch;
+    DriverObject->MajorFunction[IRP_MJ_CLOSE] = DefaultDispatch;
     DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = DeviceControlDispatch;
 
     // Install device
@@ -78,7 +78,7 @@ NTSTATUS DefaultDispatch(
     _Inout_ struct _IRP* Irp)
 {
     UNREFERENCED_PARAMETER(DeviceObject);
-    Irp->IoStatus.Status = STATUS_NOT_IMPLEMENTED;
+    Irp->IoStatus.Status = STATUS_SUCCESS;
     Irp->IoStatus.Information = 0;
     IoCompleteRequest(Irp, IO_NO_INCREMENT);
     return STATUS_SUCCESS;
@@ -92,8 +92,6 @@ NTSTATUS DeviceControlDispatch(
     _Inout_ struct _IRP* Irp)
 {
     UNREFERENCED_PARAMETER(DeviceObject);
-    Log("DeviceControl");
-
     NTSTATUS status = STATUS_SUCCESS;
     PIO_STACK_LOCATION irpStack = IoGetCurrentIrpStackLocation(Irp);
 
@@ -112,7 +110,6 @@ NTSTATUS DeviceControlDispatch(
         break;
     }
     default:
-        Log("Default");
         status = STATUS_NOT_IMPLEMENTED;
         break;
     }
