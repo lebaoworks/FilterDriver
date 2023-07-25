@@ -36,9 +36,6 @@
     <ClInclude Include="Utility\Shared.h">
       <Filter>Utility</Filter>
     </ClInclude>
-    <ClInclude Include="Trace.h">
-      <Filter>Resource Files</Filter>
-    </ClInclude>
     <ClInclude Include="Utility\C++\memory.h">
       <Filter>Utility\C++</Filter>
     </ClInclude>
@@ -49,6 +46,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Device.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Control\Control.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -66,6 +66,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Device.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Control\Control.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

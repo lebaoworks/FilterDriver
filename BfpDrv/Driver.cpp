@@ -3,8 +3,8 @@
 
 #include "Device.h"
 #include "MiniFilter.h"
+#include <Control.h>
 
-#define IOCTL_BFP_CONTROL CTL_CODE(FILE_DEVICE_UNKNOWN, 0xba0, METHOD_BUFFERED, FILE_ANY_ACCESS)
 
 #ifdef __cplusplus
 extern "C" { DRIVER_INITIALIZE DriverEntry; }

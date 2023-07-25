@@ -1,21 +1,20 @@
 #include <Windows.h>
 
-#include "Controller.h"
+#include <Control.h>
 
 #ifdef _DEBUG
 #include <iostream>
 
 int main()
 {
-    std::wstring device = L"\\\\.\\BfpDevice";
-    Controller controller(device);
+    Control::Controller controller(CONTROL_POINT);
     auto status = controller.Connect();
     if (status != ERROR_SUCCESS)
     {
-        printf("Connect to %ws failed %X", device.c_str(), status);
+        printf("Connect to %ws failed %X", CONTROL_POINT, status);
         return 1;
     }
-    status = controller.Control();
+    status = controller.RequestProtect(L"C:\\Windows");
     printf("Control -> %X", status);
     return 0;
 }

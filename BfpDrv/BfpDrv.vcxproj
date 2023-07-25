@@ -14,6 +14,7 @@
     <None Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\Control\Control.cpp" />
     <ClCompile Include="Device.cpp" />
     <ClCompile Include="Driver.cpp" />
     <ClCompile Include="MiniFilter.cpp" />
@@ -21,10 +22,10 @@
     <ClCompile Include="Utility\Shared.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Control\Control.h" />
     <ClInclude Include="Device.h" />
     <ClInclude Include="MiniFilter.h" />
     <ClInclude Include="MiniFilterUtils.h" />
-    <ClInclude Include="Trace.h" />
     <ClInclude Include="Utility\C++\memory.h" />
     <ClInclude Include="Utility\C++\queue.h" />
     <ClInclude Include="Utility\Shared.h" />
@@ -84,7 +85,7 @@
       <WppRecorderEnabled>true</WppRecorderEnabled>
       <WppScanConfigurationData Condition="'%(ClCompile.ScanConfigurationData)' == ''">trace.h</WppScanConfigurationData>
       <WppKernelMode>true</WppKernelMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)Utility;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Utility;$(SolutionDir)Control;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WppMinimalRebuildFromTracking>false</WppMinimalRebuildFromTracking>
     </ClCompile>
     <DriverSign>
@@ -100,7 +101,7 @@
       <WppRecorderEnabled>true</WppRecorderEnabled>
       <WppScanConfigurationData Condition="'%(ClCompile.ScanConfigurationData)' == ''">trace.h</WppScanConfigurationData>
       <WppKernelMode>true</WppKernelMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)Utility;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Utility;$(SolutionDir)Control;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WppMinimalRebuildFromTracking>false</WppMinimalRebuildFromTracking>
     </ClCompile>
     <DriverSign>
