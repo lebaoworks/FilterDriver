@@ -50,7 +50,8 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(SolutionDir)Control;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Utility;$(SolutionDir)Control;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -65,7 +66,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Control;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Utility;$(SolutionDir)Control;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -76,14 +78,21 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\Control\Control.cpp" />
+    <ClCompile Include="ClassFactory.cpp" />
     <ClCompile Include="ContextMenu.cpp" />
-    <ClCompile Include="Controller.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Utility\Shared.cpp" />
+    <ClCompile Include="Utility\ShellExt.cpp" />
+    <ClCompile Include="Utility\Win32.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Control\Control.h" />
+    <ClInclude Include="ClassFactory.h" />
     <ClInclude Include="ContextMenu.h" />
-    <ClInclude Include="Controller.h" />
+    <ClInclude Include="Utility\main.h" />
+    <ClInclude Include="Utility\Shared.h" />
+    <ClInclude Include="Utility\ShellExt.h" />
+    <ClInclude Include="Utility\Win32.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

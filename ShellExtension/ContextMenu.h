@@ -4,38 +4,27 @@
 #include <ShlObj.h>
 
 class ContextMenu :
-    public IContextMenu,
     public IShellExtInit,
-    public IExplorerCommand,
-    public IEnumExplorerCommand
+    public IContextMenu
 {
+private:
+    ULONG _refCount;
+
 public:
-    // IShellExtInit
-    STDMETHOD(Initialize)(LPCITEMIDLIST pidlFolder, LPDATAOBJECT dataObject, HKEY hkeyProgID);
+    ContextMenu();
+    ~ContextMenu();
 
-    // IContextMenu
-    STDMETHOD(QueryContextMenu)(HMENU hmenu, UINT indexMenu, UINT idCmdFirst, UINT idCmdLast, UINT uFlags);
-    STDMETHOD(InvokeCommand)(LPCMINVOKECOMMANDINFO lpici);
-    STDMETHOD(GetCommandString)(UINT_PTR idCmd, UINT uType, UINT* pwReserved, LPSTR pszName, UINT cchMax);
+    //IUnknown interface
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID, LPVOID FAR*);
+    ULONG   STDMETHODCALLTYPE AddRef();
+    ULONG   STDMETHODCALLTYPE Release();
 
-    HRESULT InitContextMenu(const wchar_t* folder, const wchar_t* const* names, unsigned numFiles);
+    //IContextMenu interface
+    HRESULT STDMETHODCALLTYPE QueryContextMenu(HMENU hMenu, UINT menu_index, UINT first_command_id, UINT max_command_id, UINT flags);
+    HRESULT STDMETHODCALLTYPE InvokeCommand(LPCMINVOKECOMMANDINFO lpcmi);
+    HRESULT STDMETHODCALLTYPE GetCommandString(UINT_PTR command_id, UINT flags, UINT FAR* reserved, LPSTR pszName, UINT cchMax);
 
-    void LoadItems(IShellItemArray* psiItemArray);
-
-    // IExplorerCommand
-    STDMETHOD(GetTitle)   (IShellItemArray* psiItemArray, LPWSTR* ppszName);
-    STDMETHOD(GetIcon)    (IShellItemArray* psiItemArray, LPWSTR* ppszIcon);
-    STDMETHOD(GetToolTip) (IShellItemArray* psiItemArray, LPWSTR* ppszInfotip);
-    STDMETHOD(GetCanonicalName) (GUID* pguidCommandName);
-    STDMETHOD(GetState)   (IShellItemArray* psiItemArray, BOOL fOkToBeSlow, EXPCMDSTATE* pCmdState);
-    STDMETHOD(Invoke)     (IShellItemArray* psiItemArray, IBindCtx* pbc);
-    STDMETHOD(GetFlags)   (EXPCMDFLAGS* pFlags);
-    STDMETHOD(EnumSubCommands) (IEnumExplorerCommand** ppEnum);
-
-    // IEnumExplorerCommand
-    STDMETHOD(Next) (ULONG celt, IExplorerCommand** pUICommand, ULONG* pceltFetched);
-    STDMETHOD(Skip) (ULONG celt);
-    STDMETHOD(Reset) (void);
-    STDMETHOD(Clone) (IEnumExplorerCommand** ppenum);
+    //IShellExtInit interface
+    HRESULT STDMETHODCALLTYPE Initialize(LPCITEMIDLIST pIDFolder, LPDATAOBJECT pDataObj, HKEY hKeyID);
 };
 
