@@ -12,15 +12,15 @@
     <Filter Include="Utility">
       <UniqueIdentifier>{f23c4b44-63c7-46f4-8065-d6c20266adc9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shared">
+      <UniqueIdentifier>{1cd5199f-119a-4579-ab11-5fda6b423281}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ContextMenu.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Control\Control.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ClassFactory.cpp">
@@ -35,12 +35,12 @@
     <ClCompile Include="Utility\Win32.cpp">
       <Filter>Utility</Filter>
     </ClCompile>
+    <ClCompile Include="..\Control\Control.cpp">
+      <Filter>Shared</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ContextMenu.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Control\Control.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="ClassFactory.h">
@@ -57,6 +57,9 @@
     </ClInclude>
     <ClInclude Include="Utility\Win32.h">
       <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Control\Control.h">
+      <Filter>Shared</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

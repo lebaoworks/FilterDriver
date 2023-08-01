@@ -14,61 +14,49 @@
 #pragma pack(push, 1)
 namespace Control
 {
-    enum RequestType
-    {
-        Protect = 0,
-        Unprotect,
-    };
+    namespace Request{
+        struct Credential
+        {
+            UCHAR Password[256];
+        };
+        struct Header
+        {
+            UINT32 Signature = MESSAGE_SIGNATURE;   // 'B40z'
+            UINT32 Size;                            // Total size of request include header
+            UINT32 Type;                            // Type of request
+            Credential Credential = {};
+        };
 
-    struct RequestHeader
-    {
-        UINT32 Signature = MESSAGE_SIGNATURE;   // 'B40z'
-        UINT32 Size;                            // Total size of request include header
-        UINT32 Type;                            // Type of request
-        UCHAR  Password[32];                    // Password for authentication
-    };
-    struct ResponseHeader
-    {
-        NTSTATUS Status;
-    };
-
-    struct RequestProtect
-    {
-        RequestHeader Header = {};
-        USHORT DosPathLength;
-        WCHAR DosPath[1];
-    };
-    struct RequestUnprotect
-    {
-        RequestHeader Header;
-        USHORT DosPathLength;
-        WCHAR DosPath[1];
-    };
-
+        enum Type {
+            Init = 0,
+            Protect = 1,
+            Unprotect = 2,
+        };
+        struct Init
+        {
+            Header Header = {};
+        };
+        struct Protect
+        {
+            Header Header = {};
+            USHORT DosPathLength;
+            WCHAR DosPath[1];
+        };
+        struct Unprotect
+        {
+            Header Header = {};
+            USHORT DosPathLength;
+            WCHAR DosPath[1];
+        };
+    }
 
     class Authenticator
     {
         UCHAR _credential[32];
     public:
-        Authenticator(UCHAR credential[32]);
-        bool Verify(UCHAR password[32]) const;
+        Authenticator(const UINT8 credential[32]);
+        bool Verify(const Request::Credential& credential) const;
     };
-
-#ifndef _KERNEL_MODE
-    class Controller
-    {
-    private:
-        std::wstring _device;
-        HANDLE _handle = INVALID_HANDLE_VALUE;
-    public:
-        Controller(const std::wstring& device);
-        ~Controller();
-
-        DWORD Connect();
-        DWORD RequestProtect(const std::wstring& path) const;
-        DWORD ProtectUnprotect(const std::wstring& path) const;
-    };
-#endif
 }
 #pragma pack(pop)
 

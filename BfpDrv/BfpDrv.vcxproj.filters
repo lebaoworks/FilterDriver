@@ -20,6 +20,9 @@
     <Filter Include="Utility\C++">
       <UniqueIdentifier>{ff97a810-3181-49b5-8909-efb351957192}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shared">
+      <UniqueIdentifier>{c6eb89af-aa70-4855-b36a-c12a75869bde}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="ReadMe.txt" />
@@ -49,7 +52,7 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Control\Control.h">
-      <Filter>Source Files</Filter>
+      <Filter>Shared</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -69,7 +72,7 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\Control\Control.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Shared</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
