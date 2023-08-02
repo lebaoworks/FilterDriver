@@ -4,9 +4,9 @@
 /*********************
 *       Logging      *
 *********************/
-void shared::log(_In_ unsigned int level, _In_z_ char* szString)
+void shared::log(_In_z_ char* szString)
 {
-    DbgPrintEx(DPFLTR_IHVDRIVER_ID, level, "%s", szString);
+    DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0, "%s", szString);
 }
 
 

@@ -48,15 +48,15 @@
     <ClInclude Include="MiniFilterUtils.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Device.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Control\Control.h">
+    <ClInclude Include="..\Shared\Communication.h">
       <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="Driver.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Driver.cpp">
+    <ClCompile Include="Entry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MiniFilter.cpp">
@@ -68,11 +68,11 @@
     <ClCompile Include="MiniFilterUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Device.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Control\Control.cpp">
+    <ClCompile Include="..\Shared\Communication.cpp">
       <Filter>Shared</Filter>
+    </ClCompile>
+    <ClCompile Include="Driver.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

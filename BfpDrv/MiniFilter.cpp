@@ -1,28 +1,34 @@
 // References: https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/fltkernel/ns-fltkernel-_flt_parameters
 #include "MiniFilter.h"
 #include <fltKernel.h>
+#include <ntstrsafe.h>
 
 #include <Shared.h>
+#include <Communication.h>
 
-#include "MiniFilterUtils.h"
-using namespace MiniFilterUtils;
+//#include "MiniFilterUtils.h"
+//using namespace MiniFilterUtils;
 
 
 /* Forward declarations */
+
 NTSTATUS FLTAPI FilterUnload(_In_ FLT_FILTER_UNLOAD_FLAGS Flags);
 NTSTATUS FLTAPI FilterQueryTeardown(_In_ PCFLT_RELATED_OBJECTS FltObjects, _In_ FLT_INSTANCE_QUERY_TEARDOWN_FLAGS Flags);
 VOID     FLTAPI FilterContextCleanup(_In_ PFLT_CONTEXT Context, _In_ FLT_CONTEXT_TYPE ContextType);
 FLT_PREOP_CALLBACK_STATUS  FLTAPI FilterOperation_Pre_Create(_Inout_ PFLT_CALLBACK_DATA Data, _In_ PCFLT_RELATED_OBJECTS FltObjects, _In_ PVOID* CompletionContext);
 FLT_POSTOP_CALLBACK_STATUS FLTAPI FilterOperation_Post_Create(_Inout_ PFLT_CALLBACK_DATA Data, _In_ PCFLT_RELATED_OBJECTS FltObjects, _In_opt_ PVOID CompletionContext, _In_ FLT_POST_OPERATION_FLAGS Flags);
 
-/* Structures */
-struct FILE_CONTEXT
+
+struct FilterConnectionCookie
 {
+    MiniFilter* Filter;
+    PFLT_PORT Port;
 };
+_IRQL_requires_(PASSIVE_LEVEL) NTSTATUS FLTAPI FilterConnectNotify(_In_ PFLT_PORT ClientPort, _In_ PVOID ServerPortCookie, _In_reads_bytes_(SizeOfContext) PVOID ConnectionContext, _In_ ULONG SizeOfContext, _Outptr_ PVOID* ConnectionCookie);
+_IRQL_requires_(PASSIVE_LEVEL) VOID     FLTAPI FilterDisconnectNotify(_In_ PVOID ConnectionCookie);
+_IRQL_requires_(PASSIVE_LEVEL) NTSTATUS FLTAPI FilterMessageNotify(_In_ PVOID ConnectionCookie, _In_reads_bytes_opt_(InputBufferSize) PVOID InputBuffer, _In_ ULONG InputBufferSize, _Out_writes_bytes_to_opt_(OutputBufferSize, *ReturnOutputBufferLength) PVOID OutputBuffer, _In_ ULONG OutputBufferSize, _Out_ PULONG ReturnOutputBufferLength);
 
 /* Static data declarations */
-static PFLT_FILTER FilterHandle = NULL;
-
 static const FLT_CONTEXT_REGISTRATION FilterContextRegistration[] = {
     {
         FLT_FILE_CONTEXT,               //  ContextType
@@ -72,28 +78,7 @@ static const FLT_REGISTRATION FilterRegistration = {
     NULL,                               //  SectionNotificationCallback
 };
 
-NTSTATUS MiniFilter::Install(_In_ DRIVER_OBJECT* DriverObject)
-{
-    auto status = FltRegisterFilter(DriverObject, &FilterRegistration, &FilterHandle);
-    if (status != STATUS_SUCCESS)
-    {
-        Log("Register filter failed: %X", status);
-        return status;
-    }
-    status = FltStartFiltering(FilterHandle);
-    if (status != STATUS_SUCCESS)
-    {
-        Log("Start filter failed: %X", status);
-        FltUnregisterFilter(FilterHandle);
-        return status;
-    }
-    return STATUS_SUCCESS;
-}
-
-void MiniFilter::Uninstall()
-{
-    FltUnregisterFilter(FilterHandle);
-}
+/* Implemtations */
 
 NTSTATUS FLTAPI FilterUnload(_In_ FLT_FILTER_UNLOAD_FLAGS Flags)
 {
@@ -161,3 +146,126 @@ FLT_POSTOP_CALLBACK_STATUS FLTAPI FilterOperation_Post_Create(
     return FLT_POSTOP_FINISHED_PROCESSING;
 }
 
+_IRQL_requires_(PASSIVE_LEVEL)
+NTSTATUS FLTAPI FilterConnectNotify(
+    _In_ PFLT_PORT ClientPort,
+    _In_ PVOID ServerPortCookie,
+    _In_reads_bytes_(SizeOfContext) PVOID ConnectionContext,
+    _In_ ULONG SizeOfContext,
+    _Outptr_ PVOID* ConnectionCookie
+)
+{
+    Log("ClientPort: %X", ClientPort);
+    if (SizeOfContext != sizeof(Communication::Credential))
+        return STATUS_INVALID_PARAMETER;
+
+    Communication::Credential credential;
+    RtlStringCchCopyNA(
+        reinterpret_cast<NTSTRSAFE_PSTR>(credential.Password), sizeof(credential.Password),
+        reinterpret_cast<NTSTRSAFE_PSTR>(reinterpret_cast<Communication::Credential*>(ConnectionContext)->Password), SizeOfContext);
+    Log("ClientCredential: %s", credential.Password);
+
+    auto cookie = new FilterConnectionCookie{
+        reinterpret_cast<MiniFilter*>(ServerPortCookie),
+        ClientPort,
+    };
+    if (!cookie)
+        return STATUS_NO_MEMORY;
+    *ConnectionCookie = cookie;
+    return STATUS_SUCCESS;
+}
+
+_IRQL_requires_(PASSIVE_LEVEL)
+VOID FLTAPI FilterDisconnectNotify(_In_ PVOID ConnectionCookie)
+{
+    auto cookie = reinterpret_cast<FilterConnectionCookie*>(ConnectionCookie);
+    Log("ClientPort: %X", cookie->Port);
+    FltCloseClientPort(cookie->Filter->GetFilter(), &cookie->Port);
+    delete cookie;
+}
+
+_IRQL_requires_(PASSIVE_LEVEL)
+NTSTATUS FLTAPI FilterMessageNotify(_In_ PVOID ConnectionCookie, _In_reads_bytes_opt_(InputBufferSize) PVOID InputBuffer, _In_ ULONG InputBufferSize, _Out_writes_bytes_to_opt_(OutputBufferSize, *ReturnOutputBufferLength) PVOID OutputBuffer, _In_ ULONG OutputBufferSize, _Out_ PULONG ReturnOutputBufferLength)
+{
+    auto cookie = reinterpret_cast<FilterConnectionCookie*>(ConnectionCookie);
+    Log("ClientPort: %X", cookie->Port);
+    UNREFERENCED_PARAMETER(InputBuffer);
+    UNREFERENCED_PARAMETER(InputBufferSize);
+    UNREFERENCED_PARAMETER(OutputBuffer);
+    UNREFERENCED_PARAMETER(OutputBufferSize);
+    UNREFERENCED_PARAMETER(ReturnOutputBufferLength);
+    return STATUS_SUCCESS;
+}
+
+
+MiniFilter::MiniFilter(
+    _In_ DRIVER_OBJECT* DriverObject,
+    _In_ UNICODE_STRING* ComportName)
+{
+    Log("Setup DriverObject: %X, ComportName: %wZ", DriverObject, ComportName);
+    auto status = STATUS_SUCCESS;
+    defer{ failable_object<NTSTATUS>::_error = status; }; // set error code
+
+    // Register Filter
+    {
+        status = ::FltRegisterFilter(DriverObject, &FilterRegistration, &_filter);
+        if (status != STATUS_SUCCESS)
+        {
+            Log("FltRegisterFilter failed -> Status: %X", status);
+            return;
+        }
+        defer{ if (status != STATUS_SUCCESS) ::FltUnregisterFilter(_filter); }; // Rollback
+
+        status = FltStartFiltering(_filter);
+        if (status != STATUS_SUCCESS)
+        {
+            Log("FltStartFiltering failed -> Status: %X", status);
+            return;
+        }
+    }
+    // Open Communication Port
+    {
+        PSECURITY_DESCRIPTOR sd;
+        status = ::FltBuildDefaultSecurityDescriptor(&sd, FLT_PORT_ALL_ACCESS);
+        if (status != STATUS_SUCCESS)
+        {
+            Log("FltBuildDefaultSecurityDescriptor failed -> Status: %X", status);
+            return;
+        }
+        defer{ ::FltFreeSecurityDescriptor(sd); };
+
+        OBJECT_ATTRIBUTES oa;
+        InitializeObjectAttributes(&oa, ComportName, OBJ_KERNEL_HANDLE | OBJ_CASE_INSENSITIVE, NULL, sd);
+
+        status = ::FltCreateCommunicationPort(
+            _filter,                    // Filter
+            &_port,                     // ServerPort
+            &oa,                        // ObjectAttributes
+            this,                       // ServerPortCookie
+            FilterConnectNotify,        // ConnectNotifyCallback
+            FilterDisconnectNotify,     // DisconnectNotifyCallback
+            FilterMessageNotify,        // MessageNotifyCallback
+            2);                         // MaxConnections
+        if (status != STATUS_SUCCESS)
+        {
+            Log("FltCreateCommunicationPort failed -> Status: %X", status);
+            return;
+        }
+        defer{ if (status != STATUS_SUCCESS) FltCloseCommunicationPort(_port); }; // Rollback
+    }
+}
+
+MiniFilter::~MiniFilter()
+{
+    Log("Initialized: %s", error() == STATUS_SUCCESS ? "true" : "false");
+    if (error() == STATUS_SUCCESS)
+    {
+        FltCloseCommunicationPort(_port);
+        FltUnregisterFilter(_filter);
+    }
+}
+
+const PFLT_FILTER& MiniFilter::GetFilter() const
+{
+    return _filter;
+}

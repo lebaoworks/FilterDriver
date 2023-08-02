@@ -28,7 +28,7 @@ namespace std {
         ~unique_ptr() { if (_ptr != nullptr) delete _ptr; }
         
         // Assignments
-        inline unique_ptr<T>& operator=(unique_ptr<T>&& uptr) { swap(_ptr, uptr._ptr); return *this; }
+        inline unique_ptr<T>& operator=(unique_ptr<T>&& uptr) { std::swap(_ptr, uptr._ptr); return *this; }
         unique_ptr<T>& operator=(const unique_ptr<T>& uptr) = delete;
 
         // Modifiers

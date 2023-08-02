@@ -14,16 +14,16 @@
     <None Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Control\Control.cpp" />
-    <ClCompile Include="Device.cpp" />
+    <ClCompile Include="..\Shared\Communication.cpp" />
     <ClCompile Include="Driver.cpp" />
+    <ClCompile Include="Entry.cpp" />
     <ClCompile Include="MiniFilter.cpp" />
     <ClCompile Include="MiniFilterUtils.cpp" />
     <ClCompile Include="Utility\Shared.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Control\Control.h" />
-    <ClInclude Include="Device.h" />
+    <ClInclude Include="..\Shared\Communication.h" />
+    <ClInclude Include="Driver.h" />
     <ClInclude Include="MiniFilter.h" />
     <ClInclude Include="MiniFilterUtils.h" />
     <ClInclude Include="Utility\C++\memory.h" />
@@ -85,7 +85,7 @@
       <WppRecorderEnabled>true</WppRecorderEnabled>
       <WppScanConfigurationData Condition="'%(ClCompile.ScanConfigurationData)' == ''">trace.h</WppScanConfigurationData>
       <WppKernelMode>true</WppKernelMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)Utility;$(SolutionDir)Control;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Utility;$(SolutionDir)Shared;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WppMinimalRebuildFromTracking>false</WppMinimalRebuildFromTracking>
     </ClCompile>
     <DriverSign>
@@ -101,7 +101,7 @@
       <WppRecorderEnabled>true</WppRecorderEnabled>
       <WppScanConfigurationData Condition="'%(ClCompile.ScanConfigurationData)' == ''">trace.h</WppScanConfigurationData>
       <WppKernelMode>true</WppKernelMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)Utility;$(SolutionDir)Control;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Utility;$(SolutionDir)Shared;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WppMinimalRebuildFromTracking>false</WppMinimalRebuildFromTracking>
     </ClCompile>
     <DriverSign>

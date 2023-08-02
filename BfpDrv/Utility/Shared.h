@@ -1,7 +1,6 @@
 #pragma once
 #include <sal.h>
 
-
 /*********************
 *         C++        *
 *********************/
@@ -23,16 +22,16 @@ void _cdecl operator delete[](_In_ void* object, _In_ size_t size);
 *********************/
 
 namespace shared {
-    void log(_In_ unsigned int level, _In_z_ char* szString);
+    void log(_In_z_ char* szString);
 
     template<typename... T>
-    void log(_In_ unsigned int level, _In_z_ char* format, T... args)
+    void log(_In_z_ char* format, T... args)
     {
-        DbgPrintEx(DPFLTR_IHVDRIVER_ID, level, format, args...);
+        DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0, format, args...);
     }
 }
 
-#define Log(format, ...) shared::log(DPFLTR_ERROR_LEVEL, __FUNCTION__"() "##format"\n", __VA_ARGS__)
+#define Log(format, ...) shared::log(__FUNCTION__"() "##format"\n", __VA_ARGS__)
 
 
 /*********************
@@ -57,3 +56,27 @@ inline deferer<F> operator*(defer_dummy, F&& f)
 #define DEFER_(LINE) zz_defer##LINE
 #define DEFER(LINE) DEFER_(LINE)
 #define defer auto DEFER(__LINE__) = defer_dummy{} *[&]()
+
+
+#include <ntdef.h>
+#include <ntstatus.h>
+template <typename T>
+struct failable_object
+{
+protected: T _error;
+public:    T error() const noexcept = 0;
+};
+
+template<>
+struct failable_object<bool>
+{
+protected: bool _error = false;
+public:    bool error() const noexcept { return _error; };
+};
+
+template<>
+struct failable_object<NTSTATUS>
+{
+protected: NTSTATUS _error = STATUS_SUCCESS;
+public:    NTSTATUS error() const noexcept { return _error; };
+};

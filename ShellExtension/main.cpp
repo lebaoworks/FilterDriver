@@ -8,12 +8,13 @@
 
 // Builtin Libraries
 #include <Windows.h>
+#include <Fltuser.h>
 
 // Shared Libraries
 #include <Shared.h>
 #include <ShellExt.h>
 #include <Win32.h>
-#include <Control.h>
+#include <Communication.h>
 
 
 HRESULT SetupRegistry()
@@ -339,24 +340,48 @@ STDAPI DllUnregisterServer(void)
 
 #ifdef _DEBUG
 #include <iostream>
+#include <stdexcept>
+
+class FilterConnection
+{
+private:
+    HANDLE _port = NULL;
+public:
+    FilterConnection(const std::wstring& comport_name, const std::wstring& comport_password)
+    {
+        Communication::Credential credential{"asdasd"};
+        printf("Password: %s", credential.Password);
+        auto ret = FilterConnectCommunicationPort(
+            comport_name.c_str(),
+            FLT_PORT_FLAG_SYNC_HANDLE,
+            &credential,
+            sizeof(credential),
+            NULL,
+            &_port);
+        if (ret != S_OK)
+            throw std::runtime_error(shared::format("FilterConnectCommunicationPort failed -> HRESULT: %X", ret));
+    }
+    ~FilterConnection()
+    {
+        CloseHandle(_port);
+    }
+};
 
 void test_control()
 {
-    Control::Controller controller(CONTROL_POINT);
-    auto status = controller.Connect();
-    if (status != ERROR_SUCCESS)
+    try {
+        auto connection = FilterConnection(COMPORT_NAME, L"BAO");
+    } catch (std::exception& e)
     {
-        printf("Connect to %ws failed %X", CONTROL_POINT, status);
-        return;
+        printf("Exception: %s", e.what());
     }
-    status = controller.RequestProtect(L"C:\\Windows");
-    printf("Control -> %X", status);
 }
 int main()
 {
-    SetupRegistry();
+    /*SetupRegistry();
     SHChangeNotify(SHCNE_ASSOCCHANGED, 0, 0, 0);
-    Log("Done");
+    Log("Done");*/
+    test_control();
     return 0;
 }
 #endif

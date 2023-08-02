@@ -1,4 +1,4 @@
-#include "Control.h"
+#include "Communication.h"
 
 // Reference: https://github.com/System-Glitch/SHA256
 class SHA256
@@ -119,7 +119,7 @@ private:
 
     SHA256() : m_blocklen(0), m_bitlen(0)
     {
-        RtlZeroBytes(m_data, sizeof(m_data));
+        memset(m_data, 0, sizeof(m_data));
         m_state[0] = 0x6a09e667;
         m_state[1] = 0xbb67ae85;
         m_state[2] = 0x3c6ef372;
@@ -152,66 +152,3 @@ private:
     }
 };
 
-
-namespace Control
-{
-    Authenticator::Authenticator(const UINT8 credential[32])
-    {
-        RtlCopyMemory(_credential, credential, 32);
-    }
-
-    bool Control::Authenticator::Verify(const Request::Credential& credential) const
-    {
-        SHA256 s;
-        s.update(credential.Password, 32);
-        auto digest = s.digest();
-        return RtlEqualMemory(_credential, digest.data, 32);
-    }
-}
-
-
-#ifndef _KERNEL_MODE
-#include <memory>
-
-Control::Controller::Controller(const std::wstring& device) : _device(device) {}
-Control::Controller::~Controller() { if (_handle != INVALID_HANDLE_VALUE) CloseHandle(_handle); }
-
-DWORD Control::Controller::Connect()
-{
-    _handle = CreateFile(
-        _device.c_str(),                // DeviceName
-        GENERIC_READ | GENERIC_WRITE,   // DesiredAccess
-        0,                              // ShareMode
-        NULL,                           // SecurityAttributes
-        OPEN_EXISTING,                  // CreationDisposition
-        FILE_ATTRIBUTE_NORMAL,          // FlagsAndAttributes
-        NULL);                          // TemplateFile
-    if (_handle == INVALID_HANDLE_VALUE)
-        return GetLastError();
-    return ERROR_SUCCESS;
-}
-
-DWORD Control::Controller::RequestProtect(const std::wstring& path) const
-{
-    auto buffer = std::make_unique<byte[]>(sizeof(Control::RequestProtect) + path.size() * sizeof(wchar_t));
-    Control::RequestProtect* req = new (buffer.get()) Control::RequestProtect();
-    req->Header.Type = Control::RequestType::Protect;
-    req->Header.Size = sizeof(Control::RequestProtect) + path.size() * sizeof(wchar_t);
-    req->DosPathLength = path.size() * sizeof(wchar_t);
-    RtlCopyMemory(req->DosPath, path.c_str(), path.size() * sizeof(wchar_t));
-
-    Control::ResponseHeader resp;
-
-    if (DeviceIoControl(
-        _handle,                // Device
-        IOCTL_BFP_CONTROL,      // IoControlCode
-        (LPVOID)req,            // InputBuffer
-        req->Header.Size,       // InputBufferLength
-        (LPVOID)&resp,          // OutputBuffer
-        sizeof(resp),           // OutputBufferLength
-        NULL,                   // BytesReturned
-        NULL) == FALSE)         // Overlapped
-        return GetLastError();
-    return ERROR_SUCCESS;
-}
-#endif
