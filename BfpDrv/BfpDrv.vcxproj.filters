@@ -23,6 +23,9 @@
     <Filter Include="Shared">
       <UniqueIdentifier>{c6eb89af-aa70-4855-b36a-c12a75869bde}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Utility\CustomFeature">
+      <UniqueIdentifier>{acdf056a-0ad1-4225-a449-fe67e6df5b14}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="ReadMe.txt" />
@@ -53,6 +56,15 @@
     </ClInclude>
     <ClInclude Include="Driver.h">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\C++\string.h">
+      <Filter>Utility\C++</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\CustomFeature\object.h">
+      <Filter>Utility\CustomFeature</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\CustomFeature\defer.h">
+      <Filter>Utility\CustomFeature</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -6,10 +6,6 @@
 #include <Shared.h>
 #include <Communication.h>
 
-//#include "MiniFilterUtils.h"
-//using namespace MiniFilterUtils;
-
-
 /* Forward declarations */
 
 NTSTATUS FLTAPI FilterUnload(_In_ FLT_FILTER_UNLOAD_FLAGS Flags);
@@ -113,6 +109,29 @@ FLT_PREOP_CALLBACK_STATUS FLTAPI FilterOperation_Pre_Create(
     UNREFERENCED_PARAMETER(Data);
     UNREFERENCED_PARAMETER(FltObjects);
     UNREFERENCED_PARAMETER(CompletionContext);
+
+    PFLT_FILE_NAME_INFORMATION file_name_info;
+    auto status = FltGetFileNameInformation(
+        Data,
+        FLT_FILE_NAME_NORMALIZED | FLT_FILE_NAME_QUERY_DEFAULT,
+        &file_name_info);
+    if (NT_SUCCESS(status))
+    {
+        defer{ FltReleaseFileNameInformation(file_name_info); };
+        //Log("FileName: %wZ", file_name_info->Name);
+
+        auto file_name = std::wstring(file_name_info->Name.Buffer, file_name_info->Name.Length / 2);
+        if (!file_name.error())
+        {
+            if (file_name.find(L"BAO1340") != std::wstring::npos)
+            {
+                Log("[Denied] FileName: %ws", file_name.c_str());
+                Data->IoStatus.Status = STATUS_ACCESS_DENIED;
+                return FLT_PREOP_COMPLETE;
+            }
+        }
+
+    }
     return FLT_PREOP_SUCCESS_WITH_CALLBACK;
 }
 
