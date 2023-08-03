@@ -25,22 +25,30 @@ namespace Communication
         Unprotect = 2,
     };
 
-    struct ClientMessage
+    struct MessageHeader
     {
         UINT32 Type;        // Type of request
         UINT32 Size;        // Total size of request include header
     };
 
-    struct ClientMessageProtect : ClientMessage
+    struct MessageProtect
     {
-        USHORT DosPathLength;
-        WCHAR DosPath[1];
+        static const UINT32 Type = Communication::Type::Protect;
+        WCHAR DosPath[256];
     };
 
-    struct ClientMessageUnprotect : ClientMessage
+    struct MessageUnprotect
     {
-        USHORT DosPathLength;
-        WCHAR DosPath[1];
+        static const UINT32 Type = Communication::Type::Unprotect;
+        WCHAR DosPath[256];
+    };
+
+    template<typename T>
+    struct ClientMessage
+    {
+        MessageHeader Header;   // Header of request
+        T             Body;     // Body of request
+        ClientMessage() { Header.Type = T::Type; Header.Size = sizeof(T); }
     };
 }
 #pragma pack(pop)

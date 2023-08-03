@@ -39,19 +39,11 @@ NTSTATUS DriverEntry(
     _In_ UNICODE_STRING* RegistryPath)
 {
     Log("Initializing... %wZ", RegistryPath);
-    //NTSTATUS status = STATUS_SUCCESS;
 
     // Set up the unload routine
     DriverObject->DriverUnload = DriverUnload;
     //DriverObject->MajorFunction[IRP_MJ_CREATE] = DefaultDispatch;
     //DriverObject->MajorFunction[IRP_MJ_CLOSE] = DefaultDispatch;
-
-    // Install the mini-filter
-    //status = MiniFilter::Install(DriverObject);
-    //Log("Install MiniFilter -> Status: %X", status);
-    //if (status != STATUS_SUCCESS)
-    //    return status;
-    //defer{ if (status != STATUS_SUCCESS) MiniFilter::Uninstall(); }; // Rollback
 
     _Driver = new Driver(DriverObject, RegistryPath, &_ComportName);
     if (_Driver == nullptr)
@@ -76,12 +68,9 @@ VOID DriverUnload(_In_ DRIVER_OBJECT* DriverObject)
 
     Log("Uninstalling...");
 
-    // Uninstall the mini-filter
-    /*MiniFilter::Uninstall();
-    Log("Uninstalled MiniFilter");*/
-    
     if (_Driver != nullptr)
         delete _Driver;
+
     Log("Done");
 }
 

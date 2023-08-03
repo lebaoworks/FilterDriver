@@ -16,6 +16,8 @@
 #include <Win32.h>
 #include <Communication.h>
 
+#include <thread>
+
 
 HRESULT SetupRegistry()
 {
@@ -363,7 +365,26 @@ public:
     }
     ~FilterConnection()
     {
+        printf("Closing...\n");
         CloseHandle(_port);
+        printf("Closed Port!\n");
+    }
+
+    template<typename T>
+    void Send(const Communication::ClientMessage<T>& message)
+    {
+        DWORD bytes_written = 0;
+        std::thread([&] {
+            printf("Sending...\n");
+            auto ret = FilterSendMessage(_port, (PVOID)&message, message.Header.Size, NULL, 0, &bytes_written);
+            if (ret != S_OK)
+                throw std::runtime_error(shared::format("FilterSendMessage failed -> HRESULT: %X", ret));
+            else
+                printf("Success!\n");
+        }).detach();
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        printf("Exit!\n");
+        return;
     }
 };
 
@@ -371,6 +392,9 @@ void test_control()
 {
     try {
         auto connection = FilterConnection(COMPORT_NAME, L"BAO");
+        Communication::ClientMessage<Communication::MessageProtect> message;
+        wcscpy_s(message.Body.DosPath, L"C:\\Users\\BAO\\Desktop\\test.txt");
+        connection.Send(message);
     } catch (std::exception& e)
     {
         printf("Exception: %s", e.what());

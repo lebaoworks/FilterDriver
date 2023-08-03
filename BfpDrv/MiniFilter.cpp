@@ -212,7 +212,11 @@ NTSTATUS FLTAPI FilterMessageNotify(_In_ PVOID ConnectionCookie, _In_reads_bytes
     UNREFERENCED_PARAMETER(InputBufferSize);
     UNREFERENCED_PARAMETER(OutputBuffer);
     UNREFERENCED_PARAMETER(OutputBufferSize);
-    UNREFERENCED_PARAMETER(ReturnOutputBufferLength);
+    *ReturnOutputBufferLength = 0;
+
+    LARGE_INTEGER interval;
+    interval.QuadPart = -10 * 10'000'000;
+    KeDelayExecutionThread(KernelMode, FALSE, &interval);
     return STATUS_SUCCESS;
 }
 
@@ -226,52 +230,49 @@ MiniFilter::MiniFilter(
     defer{ failable_object<NTSTATUS>::_error = status; }; // set error code
 
     // Register Filter
+    status = ::FltRegisterFilter(DriverObject, &FilterRegistration, &_filter);
+    if (status != STATUS_SUCCESS)
     {
-        status = ::FltRegisterFilter(DriverObject, &FilterRegistration, &_filter);
-        if (status != STATUS_SUCCESS)
-        {
-            Log("FltRegisterFilter failed -> Status: %X", status);
-            return;
-        }
-        defer{ if (status != STATUS_SUCCESS) ::FltUnregisterFilter(_filter); }; // Rollback
-
-        status = FltStartFiltering(_filter);
-        if (status != STATUS_SUCCESS)
-        {
-            Log("FltStartFiltering failed -> Status: %X", status);
-            return;
-        }
+        Log("FltRegisterFilter failed -> Status: %X", status);
+        return;
     }
+    defer{ if (status != STATUS_SUCCESS) ::FltUnregisterFilter(_filter); }; // Rollback
+
+    status = FltStartFiltering(_filter);
+    if (status != STATUS_SUCCESS)
+    {
+        Log("FltStartFiltering failed -> Status: %X", status);
+        return;
+    }
+
     // Open Communication Port
+    PSECURITY_DESCRIPTOR sd;
+    status = ::FltBuildDefaultSecurityDescriptor(&sd, FLT_PORT_ALL_ACCESS);
+    if (status != STATUS_SUCCESS)
     {
-        PSECURITY_DESCRIPTOR sd;
-        status = ::FltBuildDefaultSecurityDescriptor(&sd, FLT_PORT_ALL_ACCESS);
-        if (status != STATUS_SUCCESS)
-        {
-            Log("FltBuildDefaultSecurityDescriptor failed -> Status: %X", status);
-            return;
-        }
-        defer{ ::FltFreeSecurityDescriptor(sd); };
-
-        OBJECT_ATTRIBUTES oa;
-        InitializeObjectAttributes(&oa, ComportName, OBJ_KERNEL_HANDLE | OBJ_CASE_INSENSITIVE, NULL, sd);
-
-        status = ::FltCreateCommunicationPort(
-            _filter,                    // Filter
-            &_port,                     // ServerPort
-            &oa,                        // ObjectAttributes
-            this,                       // ServerPortCookie
-            FilterConnectNotify,        // ConnectNotifyCallback
-            FilterDisconnectNotify,     // DisconnectNotifyCallback
-            FilterMessageNotify,        // MessageNotifyCallback
-            2);                         // MaxConnections
-        if (status != STATUS_SUCCESS)
-        {
-            Log("FltCreateCommunicationPort failed -> Status: %X", status);
-            return;
-        }
-        defer{ if (status != STATUS_SUCCESS) FltCloseCommunicationPort(_port); }; // Rollback
+        Log("FltBuildDefaultSecurityDescriptor failed -> Status: %X", status);
+        return;
     }
+    defer{ ::FltFreeSecurityDescriptor(sd); };
+
+    OBJECT_ATTRIBUTES oa;
+    InitializeObjectAttributes(&oa, ComportName, OBJ_KERNEL_HANDLE | OBJ_CASE_INSENSITIVE, NULL, sd);
+
+    status = ::FltCreateCommunicationPort(
+        _filter,                    // Filter
+        &_port,                     // ServerPort
+        &oa,                        // ObjectAttributes
+        this,                       // ServerPortCookie
+        FilterConnectNotify,        // ConnectNotifyCallback
+        FilterDisconnectNotify,     // DisconnectNotifyCallback
+        FilterMessageNotify,        // MessageNotifyCallback
+        2);                         // MaxConnections
+    if (status != STATUS_SUCCESS)
+    {
+        Log("FltCreateCommunicationPort failed -> Status: %X", status);
+        return;
+    }
+    defer{ if (status != STATUS_SUCCESS) FltCloseCommunicationPort(_port); }; // Rollback
 }
 
 MiniFilter::~MiniFilter()
