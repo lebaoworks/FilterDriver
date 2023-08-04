@@ -30,6 +30,7 @@
     <ClInclude Include="Utility\C++\memory.h" />
     <ClInclude Include="Utility\C++\queue.h" />
     <ClInclude Include="Utility\C++\string.h" />
+    <ClInclude Include="Utility\C++\vector.h" />
     <ClInclude Include="Utility\CustomFeature\defer.h" />
     <ClInclude Include="Utility\CustomFeature\object.h" />
     <ClInclude Include="Utility\CustomFeature\tag.h" />

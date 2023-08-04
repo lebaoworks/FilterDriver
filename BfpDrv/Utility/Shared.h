@@ -34,6 +34,7 @@ void _cdecl operator delete[](_In_ void* object, _In_ size_t size);
 #include <C++/queue.h>
 #include <C++/string.h>
 #include <C++/map.h>
+#include <C++/vector.h>
 
 /*********************
 *      Features      *
