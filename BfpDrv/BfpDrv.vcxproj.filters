@@ -66,6 +66,12 @@
     <ClInclude Include="Utility\CustomFeature\defer.h">
       <Filter>Utility\CustomFeature</Filter>
     </ClInclude>
+    <ClInclude Include="Utility\CustomFeature\tag.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\C++\map.h">
+      <Filter>Utility\C++</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Entry.cpp">
