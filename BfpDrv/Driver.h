@@ -6,7 +6,7 @@
 class Driver : public failable_object<NTSTATUS>
 {
 private:
-    MiniFilter _minifilter;
+    std::unique_ptr<MiniFilter::Filter> _filter;
 public:
     Driver(
         _Inout_ DRIVER_OBJECT*  DriverObject,

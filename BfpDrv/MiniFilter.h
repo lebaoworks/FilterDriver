@@ -1,19 +1,26 @@
 #pragma once
-#include <fltKernel.h>
 
+#include <fltKernel.h>
 #include <Shared.h>
 
-class MiniFilter : public failable_object<NTSTATUS>
+// Forward declarations
+namespace MiniFilter
 {
-private:
-    PFLT_FILTER _filter = NULL;
-    PFLT_PORT _port = NULL;
+    struct Context;
+    class Filter;
+    class Comport;
+    class Connection;
+}
 
-public:
-    MiniFilter(
-        _In_ DRIVER_OBJECT* DriverObject,
-        _In_ UNICODE_STRING* ComportName);
-    ~MiniFilter();
-
-    const PFLT_FILTER& GetFilter() const;
-};
+namespace MiniFilter
+{
+    class Filter : public failable_object<NTSTATUS>
+    {
+    private:
+        PFLT_FILTER _filter = NULL;
+        //std::map<UNICODE_STRING, Comport> Comports;
+    public:
+        Filter(_In_ DRIVER_OBJECT* DriverObject);
+        ~Filter();
+    };
+}
