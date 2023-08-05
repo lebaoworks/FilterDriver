@@ -87,24 +87,20 @@ namespace std
         }
 
         // Element access
-        V& operator [](const K& key)
-        {
-            //node n{ key };
-            BOOLEAN added = FALSE;
-            auto p = RtlInsertElementGenericTableAvl(
-                &_table,
-                reinterpret_cast<PVOID>(&const_cast<K&>(key)),
-                sizeof(K),
-                &added);
-            if (p != nullptr)
-            {
-                if (added)
-                    Log("Added %p", p);
-                return reinterpret_cast<node*>(p)->value;
-            }
-            Log("Alloc failed");
-            return _dummy;
-        }
+        //V& operator [](const K& key)
+        //{
+        //    //node n{ key };
+        //    BOOLEAN added = FALSE;
+        //    auto p = RtlInsertElementGenericTableAvl(&_table, reinterpret_cast<PVOID>(&const_cast<K&>(key)), sizeof(K), &added);
+        //    if (p != nullptr)
+        //    {
+        //        if (added)
+        //            Log("Added %p", p);
+        //        return reinterpret_cast<node*>(p)->value;
+        //    }
+        //    Log("Alloc failed");
+        //    return _dummy;
+        //}
        
         //void for_each(std::function<void(const KeyT&, const ValueT&)> func)
         //{
