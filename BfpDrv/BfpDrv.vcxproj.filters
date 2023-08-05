@@ -72,6 +72,12 @@
     <ClInclude Include="Utility\C++\map.h">
       <Filter>Utility\C++</Filter>
     </ClInclude>
+    <ClInclude Include="Utility\C++\vector.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\C++\list.h">
+      <Filter>Utility\C++</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Entry.cpp">

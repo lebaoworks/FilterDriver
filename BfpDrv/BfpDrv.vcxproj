@@ -26,6 +26,7 @@
     <ClInclude Include="Driver.h" />
     <ClInclude Include="MiniFilter.h" />
     <ClInclude Include="MiniFilterUtils.h" />
+    <ClInclude Include="Utility\C++\list.h" />
     <ClInclude Include="Utility\C++\map.h" />
     <ClInclude Include="Utility\C++\memory.h" />
     <ClInclude Include="Utility\C++\queue.h" />
