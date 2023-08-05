@@ -56,7 +56,7 @@ namespace std
         linked_list() {}
         linked_list(const linked_list<T>&) = delete;
         linked_list(linked_list<T>&& q) = delete;//: _size(q._size), _pivot(std::move(q._pivot) { q._size = 0; q._front = q._rear = nullptr; }
-        ~linked_list() {}// while (!empty()) pop();
+        ~linked_list() { clear(); }
 
         // Assignments
         linked_list<T>& operator=(const linked_list<T>&) = delete;
