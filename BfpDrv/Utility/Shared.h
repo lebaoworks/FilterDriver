@@ -36,6 +36,7 @@ void _cdecl operator delete[](_In_ void* object, _In_ size_t size);
 #include <C++/string.h>
 #include <C++/map.h>
 #include <C++/vector.h>
+#include <C++/mutex.h>
 
 /*********************
 *      Features      *
@@ -43,3 +44,24 @@ void _cdecl operator delete[](_In_ void* object, _In_ size_t size);
 #include <CustomFeature/defer.h>
 #include <CustomFeature/object.h>
 #include <CustomFeature/tag.h>
+
+class eresource_lock
+{
+private:
+    ERESOURCE _resource;
+public:
+    eresource_lock();
+    ~eresource_lock();
+
+    _Acquires_lock_(_Global_critical_region_)
+    _Acquires_exclusive_lock_(_resource)
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    void lock();
+
+    _Requires_lock_held_(_Global_critical_region_)
+    _Releases_lock_(_Global_critical_region_)
+    _Requires_lock_held_(_resource)
+    _Releases_lock_(_resource)
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    void unlock();
+};
