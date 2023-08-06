@@ -310,7 +310,7 @@ namespace MiniFilter
     Port::Port(
         _In_ PFLT_FILTER Filter,
         _In_ UNICODE_STRING* PortName,
-        _In_ MiniFilter::Filter* Cookie)
+        _In_ MiniFilter::Filter* Cookie) noexcept
     {
         Log("Setup Comport: %wZ", PortName);
         auto status = STATUS_SUCCESS;
@@ -346,9 +346,9 @@ namespace MiniFilter
         defer{ if (status != STATUS_SUCCESS) FltCloseCommunicationPort(_port); }; // Rollback
     }
 
-    Port::Port(Port&& Other) : _port(Other._port) { Other._error = STATUS_NO_MEMORY; }
+    Port::Port(Port&& Other) noexcept : _port(Other._port) { Other._error = STATUS_NO_MEMORY; }
 
-    Port::~Port()
+    Port::~Port() noexcept
     {
         if (error() == STATUS_SUCCESS)
         {
@@ -363,7 +363,7 @@ namespace MiniFilter
 {
     Connection::Connection(
         _In_ PFLT_FILTER Filter,
-        _In_ PFLT_PORT Port) : _filter(Filter), _port(Port)
+        _In_ PFLT_PORT Port) noexcept : _filter(Filter), _port(Port)
     {}
 
     Connection::Connection(Connection&& Other) noexcept : _filter(Other._filter), _port(Other._port)
@@ -372,7 +372,7 @@ namespace MiniFilter
         Other._port = nullptr;
     }
 
-    Connection::~Connection()
+    Connection::~Connection() noexcept
     {
         if (_filter && _port)
             FltCloseClientPort(_filter, &_port);

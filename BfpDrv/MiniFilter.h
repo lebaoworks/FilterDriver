@@ -46,9 +46,9 @@ namespace MiniFilter
     private:
         PFLT_PORT _port = NULL;
     public:
-        Port(_In_ PFLT_FILTER Filter, _In_ UNICODE_STRING* PortName, _In_ MiniFilter::Filter* Cookie);
-        Port(Port&& Other);
-        ~Port();
+        Port(_In_ PFLT_FILTER Filter, _In_ UNICODE_STRING* PortName, _In_ MiniFilter::Filter* Cookie) noexcept;
+        Port(Port&& Other) noexcept;
+        ~Port() noexcept;
     };
 }
 
@@ -60,9 +60,9 @@ namespace MiniFilter
         PFLT_FILTER _filter = NULL;
         PFLT_PORT _port = NULL;
     public:
-        Connection(_In_ PFLT_FILTER Filter,_In_ PFLT_PORT Port);
+        Connection(_In_ PFLT_FILTER Filter,_In_ PFLT_PORT Port) noexcept;
         Connection(Connection&& Other) noexcept;
-        ~Connection();
+        ~Connection() noexcept;
 
         inline bool operator==(PFLT_PORT Port) const noexcept { return _port == Port; }
     };
