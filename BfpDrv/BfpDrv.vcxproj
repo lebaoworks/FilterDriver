@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <None Include="cpp.hint" />
     <None Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
@@ -29,6 +30,7 @@
     <ClInclude Include="Utility\C++\list.h" />
     <ClInclude Include="Utility\C++\map.h" />
     <ClInclude Include="Utility\C++\memory.h" />
+    <ClInclude Include="Utility\C++\mutex.h" />
     <ClInclude Include="Utility\C++\queue.h" />
     <ClInclude Include="Utility\C++\string.h" />
     <ClInclude Include="Utility\C++\vector.h" />
