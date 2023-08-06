@@ -21,14 +21,14 @@ namespace std {
         T* _ptr = nullptr;
     public:
         // Constructors
-        unique_ptr() {}
-        unique_ptr(T* p) : _ptr(p) {}
+        unique_ptr() noexcept {}
+        unique_ptr(T* p) noexcept : _ptr(p) {}
         unique_ptr(const unique_ptr<T>& uptr) = delete;
-        unique_ptr(unique_ptr<T>&& uptr) : _ptr(uptr._ptr) { uptr._ptr = nullptr; }
+        unique_ptr(unique_ptr<T>&& uptr) noexcept : _ptr(uptr._ptr) { uptr._ptr = nullptr; }
         ~unique_ptr() { if (_ptr != nullptr) delete _ptr; }
         
         // Assignments
-        inline unique_ptr<T>& operator=(unique_ptr<T>&& uptr) { std::swap(_ptr, uptr._ptr); return *this; }
+        inline unique_ptr<T>& operator=(unique_ptr<T>&& uptr) noexcept { std::swap(_ptr, uptr._ptr); return *this; }
         unique_ptr<T>& operator=(const unique_ptr<T>& uptr) = delete;
 
         // Modifiers

@@ -92,7 +92,7 @@ private:
         }
 
         // Append to the padding the total message's length in bits and transform.
-        m_bitlen += m_blocklen * 8;
+        m_bitlen += UINT64(m_blocklen) * 8;
         m_data[63] = UINT8(m_bitlen);
         m_data[62] = UINT8(m_bitlen >> 8);
         m_data[61] = UINT8(m_bitlen >> 16);
