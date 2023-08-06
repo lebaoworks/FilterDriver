@@ -181,12 +181,10 @@ namespace MiniFilter
         }
     }
 
-    PFLT_FILTER Filter::GetFilter() const { return _filter; }
-
     NTSTATUS Filter::RegisterCommunicationPort(_In_ UNICODE_STRING* PortName)
     {
         Log("Register PortName: %wZ", PortName);
-        auto port = std::make_unique<CommunicationPort>(*this, PortName);
+        auto port = std::make_unique<CommunicationPort>(_filter, PortName);
         if (port == nullptr)
             return STATUS_NO_MEMORY;
         if (port->error() != STATUS_SUCCESS)
@@ -308,7 +306,7 @@ namespace MiniFilter
     }
 
     CommunicationPort::CommunicationPort(
-        _In_ const Filter& Filter,
+        _In_ PFLT_FILTER Filter,
         _In_ UNICODE_STRING* PortName)
     {
         Log("Setup Comport: %wZ", PortName);
@@ -329,7 +327,7 @@ namespace MiniFilter
         InitializeObjectAttributes(&oa, PortName, OBJ_KERNEL_HANDLE | OBJ_CASE_INSENSITIVE, NULL, sd);
 
         status = ::FltCreateCommunicationPort(
-            Filter.GetFilter(),         // Filter
+            Filter,                     // Filter
             &_port,                     // ServerPort
             &oa,                        // ObjectAttributes
             (PVOID)&Filter,             // ServerPortCookie

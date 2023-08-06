@@ -23,8 +23,6 @@ namespace MiniFilter
         Filter(_In_ DRIVER_OBJECT* DriverObject);
         ~Filter();
 
-        PFLT_FILTER GetFilter() const;
-
         NTSTATUS RegisterCommunicationPort(_In_ UNICODE_STRING* PortName);
 
         NTSTATUS AddConnection(_In_ PFLT_PORT ClientPort);
@@ -40,7 +38,7 @@ namespace MiniFilter
     private:
         PFLT_PORT _port = NULL;
     public:
-        CommunicationPort(_In_ const Filter& Filter, _In_ UNICODE_STRING* PortName);
+        CommunicationPort(_In_ PFLT_FILTER Filter, _In_ UNICODE_STRING* PortName);
         ~CommunicationPort();
     };
 }
