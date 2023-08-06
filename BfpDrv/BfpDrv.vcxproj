@@ -11,7 +11,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <None Include="cpp.hint" />
     <None Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
@@ -21,6 +20,7 @@
     <ClCompile Include="MiniFilter.cpp" />
     <ClCompile Include="MiniFilterUtils.cpp" />
     <ClCompile Include="Utility\Shared.cpp" />
+    <ClCompile Include="Utility\Win32.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Shared\Communication.h" />
@@ -38,6 +38,7 @@
     <ClInclude Include="Utility\CustomFeature\object.h" />
     <ClInclude Include="Utility\CustomFeature\tag.h" />
     <ClInclude Include="Utility\Shared.h" />
+    <ClInclude Include="Utility\Win32.h" />
   </ItemGroup>
   <ItemGroup>
     <Inf Include="BfpDrv.inf" />

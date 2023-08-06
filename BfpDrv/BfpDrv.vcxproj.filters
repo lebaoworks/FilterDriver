@@ -29,7 +29,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="ReadMe.txt" />
-    <None Include="cpp.hint" />
   </ItemGroup>
   <ItemGroup>
     <Inf Include="BfpDrv.inf">
@@ -73,14 +72,17 @@
     <ClInclude Include="Utility\C++\list.h">
       <Filter>Utility\C++</Filter>
     </ClInclude>
-    <ClInclude Include="Utility\C++\mutex.h">
-      <Filter>Utility</Filter>
-    </ClInclude>
     <ClInclude Include="Utility\C++\vector.h">
       <Filter>Utility\C++</Filter>
     </ClInclude>
     <ClInclude Include="Utility\CustomFeature\tag.h">
       <Filter>Utility\CustomFeature</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\Win32.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\C++\mutex.h">
+      <Filter>Utility\C++</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -101,6 +103,9 @@
     </ClCompile>
     <ClCompile Include="Driver.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utility\Win32.cpp">
+      <Filter>Utility</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

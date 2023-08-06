@@ -1,6 +1,7 @@
 #include <fltKernel.h>
 
 #include <Shared.h>
+#include <Win32.h>
 #include <Communication.h>
 
 #include "Driver.h"
@@ -56,6 +57,12 @@ NTSTATUS DriverEntry(
         delete _Driver;
         return ret;
     }
+
+    UNICODE_STRING KeyPath = RTL_CONSTANT_STRING(L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\BfpDrv");
+    unsigned char* data = nullptr;
+    size_t size = 0;
+    Win32::Registry::GetBinaryString(KeyPath, data, size);
+    
     return STATUS_SUCCESS;
 }
 
