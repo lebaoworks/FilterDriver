@@ -4,10 +4,11 @@
 #include <ntstrsafe.h>
 #include <CustomFeature/object.h>
 
+// Generic string
 namespace std
 {
-    template<typename T> 
-    struct stringbuf : public failable_object<bool>
+    template<typename T>
+    struct const_string
     {
     public:
         static const size_t npos = ~static_cast<size_t>(0);
@@ -15,49 +16,89 @@ namespace std
         T* _sz_string = nullptr;
         size_t _length = 0;
     public:
-        stringbuf(const T* buffer, size_t count)
+        const_string() {};
+        ~const_string() {}
+
+        size_t length() const { return _length; }
+        const T* c_str() const { return _sz_string; }
+
+        inline bool operator==(const const_string& other) const
+        {
+            if (_length != other._length)
+                return false;
+            return RtlCompareMemory(_sz_string, other._sz_string, _length) == _length;
+        }
+        inline bool operator!=(const const_string& other) const
+        {
+            if (_length != other._length)
+                return true;
+            return RtlCompareMemory(_sz_string, other._sz_string, _length) != _length;
+        }
+        inline T& operator[](int i) const { return _sz_string[i]; }
+    };
+}
+
+// Basic string
+namespace std
+{
+    template<typename T>
+    class basic_string : public const_string<T> {};
+
+    template<>
+    class basic_string<wchar_t> : public const_string<wchar_t>, public failable_object<bool>
+    {
+    public:
+        basic_string(const wchar_t* buffer, size_t count)
         {
             _length = count + 1;
-            _sz_string = new T[_length];
+            _sz_string = new wchar_t[_length];
             if (_sz_string == nullptr)
             {
                 failable_object::_error = true;
                 return;
             }
-            RtlCopyMemory(_sz_string, buffer, count * sizeof(T));
+            if (RtlStringCchCopyNW(_sz_string, _length, buffer, count) != STATUS_SUCCESS)
+            {
+                failable_object::_error = true;
+                delete _sz_string;
+                return;
+            }
             _sz_string[count] = 0;
         }
-        ~stringbuf()
+        ~basic_string()
         {
             if (error() == false)
                 delete[] _sz_string;
         }
 
-        size_t length() const { return _length; }
-        const T* c_str() const { return _sz_string; }
-
-        inline bool operator==(const stringbuf& i) const { return wcscmp(_sz_string, i._sz_string) == 0; }
-        inline bool operator!=(const stringbuf& i) const { return wcscmp(_sz_string, i._sz_string) != 0; }
-        inline T& operator[](int i) const { return _sz_string[i]; }
-    };
-
-    template<typename T>
-    class base_string : public stringbuf<T> {};
-    
-    template<>
-    class base_string<wchar_t> : public stringbuf<wchar_t>
-    {
-    public:
-        using stringbuf<wchar_t>::stringbuf;
-
         size_t find(const wchar_t* sz_string, size_t pos = 0) const
         {
             auto p = wcsstr(_sz_string + pos, sz_string);
             if (p == nullptr)
-                return stringbuf<wchar_t>::npos;
+                return basic_string::npos;
             return p - _sz_string;
         }
     };
 
-    using wstring = base_string<wchar_t>;
+    using wstring = basic_string<wchar_t>;
+}
+
+namespace std
+{
+    template<typename T>
+    class ref_string: public const_string<T> {};
+
+    template<>
+    class ref_string<wchar_t> : public const_string<wchar_t>
+    {
+    public:
+        ref_string(const wchar_t* sz_string)
+        {
+            _sz_string = const_cast<wchar_t*>(sz_string);
+            _length = wcslen(sz_string);
+        }
+        ~ref_string() {}
+    };
+
+    using wstring_ref = ref_string<wchar_t>;
 }
