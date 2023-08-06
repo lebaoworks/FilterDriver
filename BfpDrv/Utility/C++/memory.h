@@ -55,8 +55,14 @@ namespace std {
 
     // [Warning] Only for single object
     template<typename T, typename... Args>
-    inline unique_ptr<T> make_unique(Args... args)
+    inline unique_ptr<T> make_unique(const Args&... args)
     {
         return unique_ptr<T>(new T(args...));
+    }
+
+    template<typename T, typename... Args>
+    inline unique_ptr<T> make_unique(Args&&... args)
+    {
+        return unique_ptr<T>(new T(std::move(args)...));
     }
 }
