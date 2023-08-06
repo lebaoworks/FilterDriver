@@ -55,7 +55,7 @@ namespace std
             if (index >= _size)
                 return;
             for (size_t i = index; i < _size - 1; i++)
-                _array[i] = std::move(_data[i+1]);
+                _array[i] = std::move(_array[i+1]);
         }
         void clear()
         {
