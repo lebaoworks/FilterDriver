@@ -2,15 +2,6 @@
 #include <wdm.h>
 
 /*********************
-*       Logging      *
-*********************/
-void shared::log(_In_z_ char* szString)
-{
-    DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0, "%s", szString);
-}
-
-
-/*********************
 *         C++        *
 *********************/
 

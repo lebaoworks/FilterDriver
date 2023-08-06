@@ -2,23 +2,6 @@
 #include <sal.h>
 
 /*********************
-*       Logging      *
-*********************/
-
-namespace shared {
-    void log(_In_z_ char* szString);
-
-    template<typename... T>
-    void log(_In_z_ char* format, T... args)
-    {
-        DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0, format, args...);
-    }
-}
-
-#define Log(format, ...) shared::log(__FUNCTION__"() "##format"\n", __VA_ARGS__)
-
-
-/*********************
 *         C++        *
 *********************/
 void* _cdecl operator new(_In_ size_t size);
@@ -54,14 +37,28 @@ public:
     ~eresource_lock();
 
     _Acquires_lock_(_Global_critical_region_)
-    _Acquires_exclusive_lock_(_resource)
-    _IRQL_requires_max_(DISPATCH_LEVEL)
-    void lock();
+        _Acquires_exclusive_lock_(_resource)
+        _IRQL_requires_max_(DISPATCH_LEVEL)
+        void lock();
 
     _Requires_lock_held_(_Global_critical_region_)
-    _Releases_lock_(_Global_critical_region_)
-    _Requires_lock_held_(_resource)
-    _Releases_lock_(_resource)
-    _IRQL_requires_max_(DISPATCH_LEVEL)
-    void unlock();
+        _Releases_lock_(_Global_critical_region_)
+        _Requires_lock_held_(_resource)
+        _Releases_lock_(_resource)
+        _IRQL_requires_max_(DISPATCH_LEVEL)
+        void unlock();
 };
+
+/*********************
+*       Logging      *
+*********************/
+
+namespace shared {
+    template<typename... T>
+    void log(_In_z_ const char* format, T&&... args)
+    {
+        DbgPrintEx(DPFLTR_IHVDRIVER_ID, 0, format, args...);
+    }
+}
+
+#define Log(format, ...) shared::log(__FUNCTION__"() "##format"\n", __VA_ARGS__)

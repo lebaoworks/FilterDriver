@@ -74,8 +74,8 @@ namespace std
         }
 
         // Capacity
-        bool empty() const { return RtlNumberGenericTableElementsAvl(&_table) == 0; }
-        size_t size() const { return RtlNumberGenericTableElementsAvl(&_table); }
+        bool empty() const { return RtlNumberGenericTableElementsAvl(const_cast<PRTL_AVL_TABLE>(& _table)) == 0; }
+        size_t size() const { return RtlNumberGenericTableElementsAvl(const_cast<PRTL_AVL_TABLE>(&_table)); }
 
         // Lookup
         V* find(const K& key) const

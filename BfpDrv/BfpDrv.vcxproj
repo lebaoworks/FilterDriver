@@ -50,6 +50,7 @@
     <Configuration>Debug</Configuration>
     <Platform Condition="'$(Platform)' == ''">x64</Platform>
     <RootNamespace>BfpDrv</RootNamespace>
+    <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -96,6 +97,7 @@
       <WppKernelMode>true</WppKernelMode>
       <AdditionalIncludeDirectories>$(ProjectDir)Utility;$(SolutionDir)Shared;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WppMinimalRebuildFromTracking>false</WppMinimalRebuildFromTracking>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <DriverSign>
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
@@ -112,6 +114,7 @@
       <WppKernelMode>true</WppKernelMode>
       <AdditionalIncludeDirectories>$(ProjectDir)Utility;$(SolutionDir)Shared;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WppMinimalRebuildFromTracking>false</WppMinimalRebuildFromTracking>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <DriverSign>
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
