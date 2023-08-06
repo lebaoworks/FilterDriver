@@ -1,7 +1,10 @@
 #include "MiniFilter.h"
 
 #include <fltKernel.h>
+#include <ntstrsafe.h>
+
 #include <Shared.h>
+#include <Communication.h>
 
 // Filter
 namespace MiniFilter
@@ -166,41 +169,186 @@ namespace MiniFilter
     {
         Log("Initialized: %s", error() == STATUS_SUCCESS ? "true" : "false");
         if (error() == STATUS_SUCCESS)
+        {
+            // Close ports to stop accepting new connection
+            _comports.clear();
+            
+            // Close connections before FltUnregisterFilter() waiting for all connections to be closed
+            ClearConnections();
+
+            // Unregister filter
             FltUnregisterFilter(_filter);
+        }
+    }
+
+    PFLT_FILTER Filter::GetFilter() const { return _filter; }
+
+    NTSTATUS Filter::RegisterCommunicationPort(_In_ UNICODE_STRING* PortName)
+    {
+        Log("Register PortName: %wZ", PortName);
+        auto port = std::make_unique<CommunicationPort>(*this, PortName);
+        if (port == nullptr)
+            return STATUS_NO_MEMORY;
+        if (port->error() != STATUS_SUCCESS)
+            return port->error();
+        if (_comports.push_back(std::move(port)) == _comports.end())
+            return STATUS_NO_MEMORY;
+        return STATUS_SUCCESS;
+    }
+
+    NTSTATUS Filter::AddConnection(_In_ PFLT_PORT ClientPort)
+    {
+        Log("%p", ClientPort);
+        std::lock_guard<eresource_lock> lock(_connections_lock);
+        if (_connections.push_back(ClientPort) == _connections.end())
+            return STATUS_NO_MEMORY;
+        return STATUS_SUCCESS;
+    }
+    
+    void Filter::RemoveConnection(_In_ PFLT_PORT ClientPort)
+    {
+        std::lock_guard<eresource_lock> lock(_connections_lock);
+        Log("%p", ClientPort);
+        for (auto it = _connections.begin(); it != _connections.end(); ++it)
+            if (*it == ClientPort)
+            {
+                FltCloseClientPort(_filter, &*it);
+                _connections.erase(it);
+                break;
+            }
+    }
+
+    void Filter::ClearConnections()
+    {
+        std::lock_guard<eresource_lock> lock(_connections_lock);
+        for (auto& connection : _connections)
+        {
+            Log("Force close connection: %p", connection);
+            FltCloseClientPort(_filter, &connection);
+        }
     }
 }
 
 // Comport
 namespace MiniFilter
 {
+    struct Cookie
+    {
+        Filter& Filter;
+        PFLT_PORT ClientPort = NULL;
+        Cookie(MiniFilter::Filter& Filter, PFLT_PORT Port) : Filter(Filter), ClientPort(Port) {}
+    };
 
-    //// Open Communication Port
-    //PSECURITY_DESCRIPTOR sd;
-    //status = ::FltBuildDefaultSecurityDescriptor(&sd, FLT_PORT_ALL_ACCESS);
-    //if (status != STATUS_SUCCESS)
-    //{
-    //    Log("FltBuildDefaultSecurityDescriptor failed -> Status: %X", status);
-    //    return;
-    //}
-    //defer{ ::FltFreeSecurityDescriptor(sd); };
+    _IRQL_requires_(PASSIVE_LEVEL)
+    NTSTATUS FLTAPI FilterConnectNotify(
+        _In_ PFLT_PORT ClientPort,
+        _In_ PVOID ServerPortCookie,
+        _In_reads_bytes_(SizeOfContext) PVOID ConnectionContext,
+        _In_ ULONG SizeOfContext,
+        _Outptr_ PVOID* ConnectionCookie)
+    {
+        Log("ClientPort: %p", ClientPort);
+        if (SizeOfContext != sizeof(Communication::Credential))
+            return STATUS_INVALID_PARAMETER;
 
-    //OBJECT_ATTRIBUTES oa;
-    //InitializeObjectAttributes(&oa, ComportName, OBJ_KERNEL_HANDLE | OBJ_CASE_INSENSITIVE, NULL, sd);
+        // Authenicate connection
+        Communication::Credential credential;
+        RtlStringCchCopyNA(
+            reinterpret_cast<NTSTRSAFE_PSTR>(credential.Password), sizeof(credential.Password),
+            reinterpret_cast<NTSTRSAFE_PSTR>(reinterpret_cast<Communication::Credential*>(ConnectionContext)->Password), SizeOfContext);
+        Log("ClientCredential: %s", credential.Password);
 
-    //status = ::FltCreateCommunicationPort(
-    //    _filter,                    // Filter
-    //    &_port,                     // ServerPort
-    //    &oa,                        // ObjectAttributes
-    //    this,                       // ServerPortCookie
-    //    FilterConnectNotify,        // ConnectNotifyCallback
-    //    FilterDisconnectNotify,     // DisconnectNotifyCallback
-    //    FilterMessageNotify,        // MessageNotifyCallback
-    //    2);                         // MaxConnections
-    //if (status != STATUS_SUCCESS)
-    //{
-    //    Log("FltCreateCommunicationPort failed -> Status: %X", status);
-    //    return;
-    //}
-    //defer{ if (status != STATUS_SUCCESS) FltCloseCommunicationPort(_port); }; // Rollback
+        // Setup connection data
+        auto& filter = *reinterpret_cast<Filter*>(ServerPortCookie);
+        auto cookie = new Cookie(filter, ClientPort);
+        if (!cookie)
+            return STATUS_NO_MEMORY;
+        *ConnectionCookie = cookie;
 
+        auto status = filter.AddConnection(ClientPort);
+        if (status != STATUS_SUCCESS)
+        {
+            delete cookie;
+            return status;
+        }
+
+        return STATUS_SUCCESS;
+    }
+
+    _IRQL_requires_(PASSIVE_LEVEL)
+    VOID FLTAPI FilterDisconnectNotify(_In_ PVOID ConnectionCookie)
+    {
+        auto cookie = reinterpret_cast<Cookie*>(ConnectionCookie);
+        Log("Disconnect ClientPort: %p", cookie->ClientPort);
+        cookie->Filter.RemoveConnection(cookie->ClientPort);
+        delete cookie;
+    }
+
+    _IRQL_requires_(PASSIVE_LEVEL)
+    NTSTATUS FLTAPI FilterMessageNotify(
+        _In_ PVOID ConnectionCookie,
+        _In_reads_bytes_opt_(InputBufferSize) PVOID InputBuffer,
+        _In_ ULONG InputBufferSize,
+        _Out_writes_bytes_to_opt_(OutputBufferSize, *ReturnOutputBufferLength) PVOID OutputBuffer,
+        _In_ ULONG OutputBufferSize,
+        _Out_ PULONG ReturnOutputBufferLength)
+    {
+        auto cookie = reinterpret_cast<Cookie*>(ConnectionCookie);
+        Log("ClientPort: %X", cookie->ClientPort);
+        UNREFERENCED_PARAMETER(InputBuffer);
+        UNREFERENCED_PARAMETER(InputBufferSize);
+        UNREFERENCED_PARAMETER(OutputBuffer);
+        UNREFERENCED_PARAMETER(OutputBufferSize);
+        *ReturnOutputBufferLength = 0;
+
+        LARGE_INTEGER interval;
+        interval.QuadPart = -10 * 10'000'000;
+        KeDelayExecutionThread(KernelMode, FALSE, &interval);
+        return STATUS_SUCCESS;
+    }
+
+    CommunicationPort::CommunicationPort(
+        _In_ const Filter& Filter,
+        _In_ UNICODE_STRING* PortName)
+    {
+        Log("Setup Comport: %wZ", PortName);
+        auto status = STATUS_SUCCESS;
+        defer{ failable_object<NTSTATUS>::_error = status; }; // set error code
+
+        // Open Communication Port
+        PSECURITY_DESCRIPTOR sd;
+        status = ::FltBuildDefaultSecurityDescriptor(&sd, FLT_PORT_ALL_ACCESS);
+        if (status != STATUS_SUCCESS)
+        {
+            Log("FltBuildDefaultSecurityDescriptor failed -> Status: %X", status);
+            return;
+        }
+        defer{ ::FltFreeSecurityDescriptor(sd); };
+
+        OBJECT_ATTRIBUTES oa;
+        InitializeObjectAttributes(&oa, PortName, OBJ_KERNEL_HANDLE | OBJ_CASE_INSENSITIVE, NULL, sd);
+
+        status = ::FltCreateCommunicationPort(
+            Filter.GetFilter(),         // Filter
+            &_port,                     // ServerPort
+            &oa,                        // ObjectAttributes
+            (PVOID)&Filter,             // ServerPortCookie
+            FilterConnectNotify,        // ConnectNotifyCallback
+            FilterDisconnectNotify,     // DisconnectNotifyCallback
+            FilterMessageNotify,        // MessageNotifyCallback
+            2);                         // MaxConnections
+        if (status != STATUS_SUCCESS)
+        {
+            Log("FltCreateCommunicationPort failed -> Status: %X", status);
+            return;
+        }
+        defer{ if (status != STATUS_SUCCESS) FltCloseCommunicationPort(_port); }; // Rollback
+    }
+
+    CommunicationPort::~CommunicationPort()
+    {
+        Log("Initialized: %s", error() == STATUS_SUCCESS ? "true" : "false");
+        if (error() == STATUS_SUCCESS)
+            FltCloseCommunicationPort(_port);
+    }
 }

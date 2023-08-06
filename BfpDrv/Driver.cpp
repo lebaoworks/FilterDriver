@@ -20,6 +20,9 @@ Driver::Driver(
         Log("Setup MiniFilter failed: %X", status);
         return;
     }
+    defer{ if (status != STATUS_SUCCESS) _filter.reset(nullptr); }; // Rollback
+
+    status = _filter->RegisterCommunicationPort(ComportName);
 }
 
 Driver::~Driver()
