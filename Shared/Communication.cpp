@@ -152,3 +152,13 @@ private:
     }
 };
 
+namespace Communication
+{
+    bool SavedCredential::Authenticate(const Credential& credential)
+    {
+        auto h = SHA256();
+        h.update(credential.Password, sizeof(credential.Password));
+        auto hash = h.digest();
+        return RtlCompareMemory(Password, hash.data, sizeof(Password)) == sizeof(Password);
+    }
+}

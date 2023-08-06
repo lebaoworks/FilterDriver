@@ -18,6 +18,11 @@ namespace Communication
     {
         UCHAR Password[256];
     };
+    struct SavedCredential
+    {
+        UCHAR Password[32];
+        bool Authenticate(const Credential& credential);
+    };
 
     enum Type {
         Init = 0,

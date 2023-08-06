@@ -11,7 +11,7 @@ namespace MiniFilter
 {
     NTSTATUS FLTAPI FilterUnload(_In_ FLT_FILTER_UNLOAD_FLAGS Flags)
     {
-        Log("Uninstalling");
+        Log("");
         UNREFERENCED_PARAMETER(Flags);
         return STATUS_SUCCESS;
     }
@@ -167,63 +167,65 @@ namespace MiniFilter
 
     Filter::~Filter()
     {
-        Log("Initialized: %s", error() == STATUS_SUCCESS ? "true" : "false");
         if (error() == STATUS_SUCCESS)
         {
+            Log("Filter: %p", _filter);
+
             // Close ports to stop accepting new connection
-            _comports.clear();
+            _ports.clear();
             
             // Close connections before FltUnregisterFilter() waiting for all connections to be closed
-            ClearConnections();
+            {
+                std::lock_guard<eresource_lock> lock(_connections_lock);
+                _connections.clear();
+            }
 
             // Unregister filter
             FltUnregisterFilter(_filter);
         }
     }
 
-    NTSTATUS Filter::RegisterCommunicationPort(_In_ UNICODE_STRING* PortName)
+    void Filter::SetCredential(_In_ Communication::SavedCredential* Credential) noexcept { _credential = Credential; }
+
+    bool Filter::Authenticate(_In_ Communication::Credential& Credential) noexcept
     {
-        Log("Register PortName: %wZ", PortName);
-        auto port = std::make_unique<CommunicationPort>(_filter, PortName);
-        if (port == nullptr)
+        if (_credential == nullptr)
+            return true;
+        return _credential->Authenticate(Credential);
+    }
+
+    NTSTATUS Filter::OpenPort(_In_ UNICODE_STRING* PortName)
+    {
+        Log("OpenPort: %wZ", PortName);
+        auto port = Port(_filter, PortName, this);
+        if (port.error() != STATUS_SUCCESS)
+            return port.error();
+        
+        if (_ports.push_back(std::move(port)) == _ports.end())
             return STATUS_NO_MEMORY;
-        if (port->error() != STATUS_SUCCESS)
-            return port->error();
-        if (_comports.push_back(std::move(port)) == _comports.end())
-            return STATUS_NO_MEMORY;
+
         return STATUS_SUCCESS;
     }
 
-    NTSTATUS Filter::AddConnection(_In_ PFLT_PORT ClientPort)
+    NTSTATUS Filter::OnConnect(_In_ PFLT_PORT ClientPort)
     {
         Log("%p", ClientPort);
         std::lock_guard<eresource_lock> lock(_connections_lock);
-        if (_connections.push_back(ClientPort) == _connections.end())
+        if (_connections.push_back(Connection(_filter, ClientPort)) == _connections.end())
             return STATUS_NO_MEMORY;
         return STATUS_SUCCESS;
     }
     
-    void Filter::RemoveConnection(_In_ PFLT_PORT ClientPort)
+    void Filter::OnDisconnect(_In_ PFLT_PORT ClientPort)
     {
-        std::lock_guard<eresource_lock> lock(_connections_lock);
         Log("%p", ClientPort);
+        std::lock_guard<eresource_lock> lock(_connections_lock);
         for (auto it = _connections.begin(); it != _connections.end(); ++it)
             if (*it == ClientPort)
             {
-                FltCloseClientPort(_filter, &*it);
                 _connections.erase(it);
                 break;
             }
-    }
-
-    void Filter::ClearConnections()
-    {
-        std::lock_guard<eresource_lock> lock(_connections_lock);
-        for (auto& connection : _connections)
-        {
-            Log("Force close connection: %p", connection);
-            FltCloseClientPort(_filter, &connection);
-        }
     }
 }
 
@@ -245,32 +247,32 @@ namespace MiniFilter
         _In_ ULONG SizeOfContext,
         _Outptr_ PVOID* ConnectionCookie)
     {
-        Log("ClientPort: %p", ClientPort);
         if (SizeOfContext != sizeof(Communication::Credential))
+        {
+            Log("ClientPort: %p -> Invalid credential", ClientPort);
             return STATUS_INVALID_PARAMETER;
+        }
 
         // Authenicate connection
-        Communication::Credential credential;
-        RtlStringCchCopyNA(
-            reinterpret_cast<NTSTRSAFE_PSTR>(credential.Password), sizeof(credential.Password),
-            reinterpret_cast<NTSTRSAFE_PSTR>(reinterpret_cast<Communication::Credential*>(ConnectionContext)->Password), SizeOfContext);
-        Log("ClientCredential: %s", credential.Password);
+        auto& filter = *reinterpret_cast<Filter*>(ServerPortCookie);
+        if (!filter.Authenticate(*reinterpret_cast<Communication::Credential*>(ConnectionContext)))
+        {
+            Log("ClientPort: %p -> Authen failed", ClientPort);
+            return STATUS_ACCESS_DENIED;
+        }
 
         // Setup connection data
-        auto& filter = *reinterpret_cast<Filter*>(ServerPortCookie);
         auto cookie = new Cookie(filter, ClientPort);
         if (!cookie)
             return STATUS_NO_MEMORY;
         *ConnectionCookie = cookie;
-
-        auto status = filter.AddConnection(ClientPort);
+        
+        // Save connection to filter
+        auto status = filter.OnConnect(ClientPort);
         if (status != STATUS_SUCCESS)
-        {
             delete cookie;
-            return status;
-        }
-
-        return STATUS_SUCCESS;
+        
+        return status;
     }
 
     _IRQL_requires_(PASSIVE_LEVEL)
@@ -278,7 +280,7 @@ namespace MiniFilter
     {
         auto cookie = reinterpret_cast<Cookie*>(ConnectionCookie);
         Log("Disconnect ClientPort: %p", cookie->ClientPort);
-        cookie->Filter.RemoveConnection(cookie->ClientPort);
+        cookie->Filter.OnDisconnect(cookie->ClientPort);
         delete cookie;
     }
 
@@ -305,9 +307,10 @@ namespace MiniFilter
         return STATUS_SUCCESS;
     }
 
-    CommunicationPort::CommunicationPort(
+    Port::Port(
         _In_ PFLT_FILTER Filter,
-        _In_ UNICODE_STRING* PortName)
+        _In_ UNICODE_STRING* PortName,
+        _In_ MiniFilter::Filter* Cookie)
     {
         Log("Setup Comport: %wZ", PortName);
         auto status = STATUS_SUCCESS;
@@ -330,7 +333,7 @@ namespace MiniFilter
             Filter,                     // Filter
             &_port,                     // ServerPort
             &oa,                        // ObjectAttributes
-            (PVOID)&Filter,             // ServerPortCookie
+            (PVOID)Cookie,              // ServerPortCookie
             FilterConnectNotify,        // ConnectNotifyCallback
             FilterDisconnectNotify,     // DisconnectNotifyCallback
             FilterMessageNotify,        // MessageNotifyCallback
@@ -343,10 +346,35 @@ namespace MiniFilter
         defer{ if (status != STATUS_SUCCESS) FltCloseCommunicationPort(_port); }; // Rollback
     }
 
-    CommunicationPort::~CommunicationPort()
+    Port::Port(Port&& Other) : _port(Other._port) { Other._error = STATUS_NO_MEMORY; }
+
+    Port::~Port()
     {
-        Log("Initialized: %s", error() == STATUS_SUCCESS ? "true" : "false");
         if (error() == STATUS_SUCCESS)
+        {
+            Log("Port: %p", _port);
             FltCloseCommunicationPort(_port);
+        }
+    }
+}
+
+// Connection
+namespace MiniFilter
+{
+    Connection::Connection(
+        _In_ PFLT_FILTER Filter,
+        _In_ PFLT_PORT Port) : _filter(Filter), _port(Port)
+    {}
+
+    Connection::Connection(Connection&& Other) noexcept : _filter(Other._filter), _port(Other._port)
+    {
+        Other._filter = nullptr;
+        Other._port = nullptr;
+    }
+
+    Connection::~Connection()
+    {
+        if (_filter && _port)
+            FltCloseClientPort(_filter, &_port);
     }
 }

@@ -22,7 +22,7 @@ Driver::Driver(
     }
     defer{ if (status != STATUS_SUCCESS) _filter.reset(nullptr); }; // Rollback
 
-    status = _filter->RegisterCommunicationPort(ComportName);
+    status = _filter->OpenPort(ComportName);
 }
 
 Driver::~Driver()
