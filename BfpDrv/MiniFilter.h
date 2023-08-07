@@ -42,6 +42,7 @@ namespace MiniFilter
 
         NTSTATUS AddProtectedFile(_In_ const WCHAR* FileName);
         NTSTATUS RemoveProtectedFile(_In_ const WCHAR* FileName);
+        bool IsFileProtected(_In_ UNICODE_STRING* FileName);
     };
 }
 

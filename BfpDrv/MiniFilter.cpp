@@ -11,6 +11,8 @@
 // Filter
 namespace MiniFilter
 {
+    static Filter* g_filter = nullptr;
+
     NTSTATUS FLTAPI FilterUnload(_In_ FLT_FILTER_UNLOAD_FLAGS Flags)
     {
         Log("");
@@ -53,19 +55,13 @@ namespace MiniFilter
         if (NT_SUCCESS(status))
         {
             defer{ FltReleaseFileNameInformation(file_name_info); };
-            //Log("FileName: %wZ", file_name_info->Name);
-
-            auto file_name = std::wstring(file_name_info->Name.Buffer, file_name_info->Name.Length / 2);
-            if (!file_name.error())
+            
+            if (g_filter->IsFileProtected(&file_name_info->Name))
             {
-                if (file_name.find(L"BAO1340") != std::wstring::npos)
-                {
-                    Log("[Denied] FileName: %ws", file_name.c_str());
-                    Data->IoStatus.Status = STATUS_ACCESS_DENIED;
-                    return FLT_PREOP_COMPLETE;
-                }
+                Log("[Denied] FileName: %wZ", &file_name_info->Name);
+                Data->IoStatus.Status = STATUS_ACCESS_DENIED;
+                return FLT_PREOP_COMPLETE;
             }
-
         }
         return FLT_PREOP_SUCCESS_WITH_CALLBACK;
     }
@@ -165,6 +161,8 @@ namespace MiniFilter
         status = FltStartFiltering(_filter);
         if (status != STATUS_SUCCESS)
             Log("FltStartFiltering failed -> Status: %X", status);
+
+        g_filter = this;
     }
 
     Filter::~Filter()
@@ -238,23 +236,65 @@ namespace MiniFilter
 
     NTSTATUS Filter::AddProtectedFile(_In_ const WCHAR* FileName)
     {
-        std::lock_guard<eresource_lock> lock(_protected_files_lock);
-        if (_protected_files.push_back(std::wstring(FileName, wcslen(FileName))) == _protected_files.end())
+        unicode_string input(2000);
+        if (input.error())
             return STATUS_NO_MEMORY;
-        Log("Added");
+        RtlUnicodeStringCatString(&input.raw(), L"\\??\\");
+        RtlUnicodeStringCatString(&input.raw(), FileName);
+
+        unicode_string path(2000);
+        if (input.error())
+            return STATUS_NO_MEMORY;
+        Win32::Path::QueryAbsoluteTarget(&input.raw(), &path.raw());
+
+        {
+            auto ws = std::wstring(path.raw().Buffer, path.raw().Length / 2);
+            std::lock_guard<eresource_lock> lock(_protected_files_lock);
+            if (_protected_files.push_back(std::move(ws)) == _protected_files.end())
+                return STATUS_NO_MEMORY;
+            Log("Added %wZ", &path.raw());
+        }
         return STATUS_SUCCESS;
     }
     NTSTATUS Filter::RemoveProtectedFile(_In_ const WCHAR* FileName)
     {
+        unicode_string input(2000);
+        if (input.error())
+            return STATUS_NO_MEMORY;
+        RtlUnicodeStringCatString(&input.raw(), L"\\??\\");
+        RtlUnicodeStringCatString(&input.raw(), FileName);
+
+        unicode_string path(2000);
+        if (input.error())
+            return STATUS_NO_MEMORY;
+        Win32::Path::QueryAbsoluteTarget(&input.raw(), &path.raw());
+        auto nt_path = std::wstring(path.raw().Buffer, path.raw().Length / 2);
+        if (nt_path.error())
+            return STATUS_NO_MEMORY;
+
+        {
+            std::lock_guard<eresource_lock> lock(_protected_files_lock);
+            for (auto it = _protected_files.begin(); it != _protected_files.end(); ++it)
+                if (*it == nt_path)
+                {
+                    _protected_files.erase(it);
+                    Log("Removed %ws", nt_path.c_str());
+                    return STATUS_SUCCESS;
+                }
+        }
+        return STATUS_NOT_FOUND;
+    }
+    bool Filter::IsFileProtected(_In_ UNICODE_STRING* FileName)
+    {
+        auto nt_path = std::wstring(FileName->Buffer, FileName->Length / 2);
+        if (nt_path.error())
+            return false;
+
         std::lock_guard<eresource_lock> lock(_protected_files_lock);
         for (auto it = _protected_files.begin(); it != _protected_files.end(); ++it)
-            if (*it == std::wstring(FileName, wcslen(FileName)))
-            {
-                _protected_files.erase(it);
-                Log("Removed");
-                return STATUS_SUCCESS;
-            }
-        return STATUS_NOT_FOUND;
+            if (*it == nt_path)
+                return true;
+        return false;
     }
 }
 

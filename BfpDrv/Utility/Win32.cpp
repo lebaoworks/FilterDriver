@@ -78,7 +78,7 @@ namespace Win32::Path
 
         HANDLE LinkHandle;
         OBJECT_ATTRIBUTES Attributes;
-        InitializeObjectAttributes(&Attributes, SymbolicPath, OBJ_CASE_INSENSITIVE, NULL, NULL);
+        InitializeObjectAttributes(&Attributes, SymbolicPath, OBJ_KERNEL_HANDLE | OBJ_CASE_INSENSITIVE, NULL, NULL);
         auto status = ZwOpenSymbolicLinkObject(&LinkHandle, GENERIC_READ, &Attributes);
         if (status != STATUS_SUCCESS)
             return status;

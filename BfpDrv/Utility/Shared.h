@@ -49,6 +49,17 @@ public:
         void unlock();
 };
 
+class unicode_string : public failable_object<bool>
+{
+private:
+    UNICODE_STRING _raw;
+public:
+    unicode_string(size_t size);
+    ~unicode_string();
+
+    UNICODE_STRING& raw();
+};
+
 /*********************
 *       Logging      *
 *********************/

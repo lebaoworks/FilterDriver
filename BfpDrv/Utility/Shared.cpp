@@ -41,3 +41,21 @@ void eresource_lock::unlock()
     ExReleaseResourceLite(&_resource);
     KeLeaveCriticalRegion();
 }
+
+unicode_string::unicode_string(size_t size)
+{
+    _raw.Length = 0;
+    _raw.MaximumLength = (USHORT)size;
+    _raw.Buffer = new WCHAR[size/2+1];
+    if (_raw.Buffer == nullptr)
+        failable_object::_error = true;
+}
+unicode_string::~unicode_string()
+{
+    if (!error())
+        delete[]_raw.Buffer;
+}
+UNICODE_STRING& unicode_string::raw()
+{
+    return _raw;
+}

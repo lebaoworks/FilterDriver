@@ -26,13 +26,13 @@ namespace std
         {
             if (_length != other._length)
                 return false;
-            return RtlCompareMemory(_sz_string, other._sz_string, _length) == _length;
+            return RtlCompareMemory(_sz_string, other._sz_string, _length * sizeof(T)) == _length * sizeof(T);
         }
         inline bool operator!=(const const_string& other) const
         {
             if (_length != other._length)
                 return true;
-            return RtlCompareMemory(_sz_string, other._sz_string, _length) != _length;
+            return RtlCompareMemory(_sz_string, other._sz_string, _length * sizeof(T)) != _length * sizeof(T);
         }
         inline T& operator[](int i) const { return _sz_string[i]; }
     };
