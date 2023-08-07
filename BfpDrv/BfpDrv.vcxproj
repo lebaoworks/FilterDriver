@@ -18,7 +18,6 @@
     <ClCompile Include="Driver.cpp" />
     <ClCompile Include="Entry.cpp" />
     <ClCompile Include="MiniFilter.cpp" />
-    <ClCompile Include="MiniFilterUtils.cpp" />
     <ClCompile Include="Utility\Hash.cpp" />
     <ClCompile Include="Utility\Shared.cpp" />
     <ClCompile Include="Utility\Win32.cpp" />
@@ -27,7 +26,6 @@
     <ClInclude Include="..\Shared\Communication.h" />
     <ClInclude Include="Driver.h" />
     <ClInclude Include="MiniFilter.h" />
-    <ClInclude Include="MiniFilterUtils.h" />
     <ClInclude Include="Utility\C++\list.h" />
     <ClInclude Include="Utility\C++\map.h" />
     <ClInclude Include="Utility\C++\memory.h" />

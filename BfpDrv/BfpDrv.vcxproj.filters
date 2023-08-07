@@ -48,9 +48,6 @@
     <ClInclude Include="Utility\C++\queue.h">
       <Filter>Utility\C++</Filter>
     </ClInclude>
-    <ClInclude Include="MiniFilterUtils.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\Shared\Communication.h">
       <Filter>Shared</Filter>
     </ClInclude>
@@ -97,9 +94,6 @@
     </ClCompile>
     <ClCompile Include="Utility\Shared.cpp">
       <Filter>Utility</Filter>
-    </ClCompile>
-    <ClCompile Include="MiniFilterUtils.cpp">
-      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Driver.cpp">
       <Filter>Source Files</Filter>
