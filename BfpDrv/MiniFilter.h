@@ -11,6 +11,7 @@ namespace MiniFilter
     class Filter;
     class Port;
     class Connection;
+    class Authenticator;
 }
 
 namespace MiniFilter
@@ -20,7 +21,8 @@ namespace MiniFilter
     private:
         PFLT_FILTER _filter = NULL;
         
-        std::unique_ptr<Communication::SavedCredential> _credential;
+        std::unique_ptr<Authenticator> _authenticator;
+
         std::list<Port> _ports;
         std::list<Connection> _connections;
         eresource_lock _connections_lock;
@@ -29,12 +31,10 @@ namespace MiniFilter
         Filter(_In_ DRIVER_OBJECT* DriverObject);
         ~Filter();
 
-        void SetCredential(_In_ Communication::SavedCredential* Credential) noexcept;
-        bool Authenticate(_In_ Communication::Credential& Credential) noexcept;
+        NTSTATUS InitAuthenticator();
 
         NTSTATUS OpenPort(_In_ UNICODE_STRING* PortName);
-
-        NTSTATUS OnConnect(_In_ PFLT_PORT ClientPort);
+        NTSTATUS OnConnect(_In_ PFLT_PORT ClientPort, _In_ const Communication::Credential& Credential);
         void OnDisconnect(_In_ PFLT_PORT ClientPort);
     };
 }
@@ -65,5 +65,21 @@ namespace MiniFilter
         ~Connection() noexcept;
 
         inline bool operator==(PFLT_PORT Port) const noexcept { return _port == Port; }
+    };
+}
+
+namespace MiniFilter
+{
+    class Authenticator : public failable_object<NTSTATUS>
+    {
+    private:
+        unsigned char _credential[32];
+
+        NTSTATUS InitCredential() noexcept;
+    public:
+        Authenticator(_In_opt_ UNICODE_STRING* RegistryPath) noexcept;
+        ~Authenticator() noexcept;
+
+        bool Authenticate(_In_ const Communication::Credential& Credential) const noexcept;
     };
 }

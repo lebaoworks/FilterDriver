@@ -23,6 +23,18 @@ Driver::Driver(
     defer{ if (status != STATUS_SUCCESS) _filter.reset(nullptr); }; // Rollback
 
     status = _filter->OpenPort(ComportName);
+    if (status != STATUS_SUCCESS)
+    {
+        Log("OpenPort failed: %X", status);
+        return;
+    }
+
+    status = _filter->InitAuthenticator();
+    if (status != STATUS_SUCCESS)
+    {
+        Log("InitAuthenticator failed: %X", status);
+        return;
+    }
 }
 
 Driver::~Driver()

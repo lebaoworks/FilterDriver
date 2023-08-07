@@ -6,7 +6,19 @@ namespace Win32
 {
     namespace Registry
     {
-        NTSTATUS OpenKey(const UNICODE_STRING& KeyPath, HANDLE& handle);
-        NTSTATUS GetBinaryString(const UNICODE_STRING& KeyPath, unsigned char*& Data, size_t& DataSize);
+        NTSTATUS OpenKey(_In_ UNICODE_STRING* KeyPath, _In_ ACCESS_MASK DesiredAccess, _Out_ HANDLE* Handle);
+        NTSTATUS GetValue(
+            _In_ UNICODE_STRING* KeyPath,
+            _In_ UNICODE_STRING* ValueName,
+            _Out_writes_(DataSize) PVOID Data,
+            _In_ ULONG DataSize,
+            _Out_ ULONG* ResultSize);
+
+        NTSTATUS SetValue(
+            _In_ UNICODE_STRING* KeyPath,
+            _In_ UNICODE_STRING* ValueName,
+            _In_ ULONG ValueType,
+            _In_reads_bytes_(DataSize) PVOID Data,
+            _In_ ULONG DataSize);
     }
 }

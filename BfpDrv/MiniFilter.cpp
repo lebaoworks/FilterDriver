@@ -4,6 +4,8 @@
 #include <ntstrsafe.h>
 
 #include <Shared.h>
+#include <Win32.h>
+#include <Hash.h>
 #include <Communication.h>
 
 // Filter
@@ -185,13 +187,15 @@ namespace MiniFilter
         }
     }
 
-    void Filter::SetCredential(_In_ Communication::SavedCredential* Credential) noexcept { _credential = Credential; }
-
-    bool Filter::Authenticate(_In_ Communication::Credential& Credential) noexcept
+    NTSTATUS Filter::InitAuthenticator()
     {
-        if (_credential == nullptr)
-            return true;
-        return _credential->Authenticate(Credential);
+        auto new_authenticator = std::make_unique<Authenticator>(nullptr);
+        if (new_authenticator == nullptr)
+            return STATUS_NO_MEMORY;
+        if (new_authenticator->error() != STATUS_SUCCESS)
+            return new_authenticator->error();
+        _authenticator = std::move(new_authenticator);
+        return STATUS_SUCCESS;
     }
 
     NTSTATUS Filter::OpenPort(_In_ UNICODE_STRING* PortName)
@@ -207,9 +211,13 @@ namespace MiniFilter
         return STATUS_SUCCESS;
     }
 
-    NTSTATUS Filter::OnConnect(_In_ PFLT_PORT ClientPort)
+    NTSTATUS Filter::OnConnect(_In_ PFLT_PORT ClientPort, _In_ const Communication::Credential& Credential)
     {
         Log("%p", ClientPort);
+
+        if (_authenticator->Authenticate(Credential) == false)
+            return STATUS_ACCESS_DENIED;
+
         std::lock_guard<eresource_lock> lock(_connections_lock);
         if (_connections.push_back(Connection(_filter, ClientPort)) == _connections.end())
             return STATUS_NO_MEMORY;
@@ -253,22 +261,15 @@ namespace MiniFilter
             return STATUS_INVALID_PARAMETER;
         }
 
-        // Authenicate connection
-        auto& filter = *reinterpret_cast<Filter*>(ServerPortCookie);
-        if (!filter.Authenticate(*reinterpret_cast<Communication::Credential*>(ConnectionContext)))
-        {
-            Log("ClientPort: %p -> Authen failed", ClientPort);
-            return STATUS_ACCESS_DENIED;
-        }
-
         // Setup connection data
+        auto& filter = *reinterpret_cast<Filter*>(ServerPortCookie);
         auto cookie = new Cookie(filter, ClientPort);
         if (!cookie)
             return STATUS_NO_MEMORY;
         *ConnectionCookie = cookie;
         
         // Save connection to filter
-        auto status = filter.OnConnect(ClientPort);
+        auto status = filter.OnConnect(ClientPort, *reinterpret_cast<Communication::Credential*>(ConnectionContext));
         if (status != STATUS_SUCCESS)
             delete cookie;
         
@@ -376,5 +377,63 @@ namespace MiniFilter
     {
         if (_filter && _port)
             FltCloseClientPort(_filter, &_port);
+    }
+}
+
+// Authenticator
+namespace MiniFilter
+{
+    Authenticator::Authenticator(_In_opt_ UNICODE_STRING* RegistryPath) noexcept
+    {
+        UNREFERENCED_PARAMETER(RegistryPath);
+        failable_object<NTSTATUS>::_error = InitCredential();
+        Log("Object: %p", this);
+    }
+    Authenticator::~Authenticator() noexcept  {}
+
+    NTSTATUS Authenticator::InitCredential() noexcept
+    {
+        UNICODE_STRING KeyPath = RTL_CONSTANT_STRING(L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\BfpDrv\\Parameters");
+        UNICODE_STRING ValueName = RTL_CONSTANT_STRING(L"Credential");
+
+        const char* data = "bao1340";
+        Hash::SHA256::Hasher hasher;
+        hasher.feed(reinterpret_cast<const UINT8*>(data), 7);
+        auto hash = hasher.digest();
+
+        auto status = Win32::Registry::SetValue(&KeyPath, &ValueName, REG_BINARY, hash.data, 32);
+        if (status != STATUS_SUCCESS)
+        {
+            Log("Registry::SetValue failed -> Status: %X", status);
+            return status;
+        }
+        RtlCopyMemory(_credential, hash.data, 32);
+        return STATUS_SUCCESS;
+        /*ULONG ret_size = 0;
+        auto status = Win32::Registry::GetValue(&KeyPath, &ValueName, data, 32, &ret_size);
+        if (status != STATUS_SUCCESS)
+        {
+            Log("Registry::GetValue failed -> Status: %X", status);
+            return;
+        }*/
+    }
+
+    bool Authenticator::Authenticate(_In_ const Communication::Credential& Credential) const noexcept
+    {
+        if (error() != STATUS_SUCCESS)
+            return true;
+        
+        CHAR password[256] = { 0 };
+        RtlStringCchCopyNA(password, 256, (CHAR*) Credential.Password, sizeof(Credential.Password));
+        auto len = strlen(password);
+        Log("Got password: %s", password);
+
+        Hash::SHA256::Hasher hasher;
+        hasher.feed(reinterpret_cast<UINT8*>(password), len);
+        auto hash = hasher.digest();
+
+        if (RtlCompareMemory(hash.data, _credential, 32) != 32)
+            return false;
+        return true;
     }
 }

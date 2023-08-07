@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_WARNINGS
+
 //#pragma comment(linker, "/export:DllMain")
 //#pragma comment(linker, "/export:DllGetClassObject,PRIVATE")
 //#pragma comment(linker, "/export:DllCanUnloadNow,PRIVATE")
@@ -17,6 +19,7 @@
 #include <Communication.h>
 
 #include <thread>
+#include <list>
 
 
 HRESULT SetupRegistry()
@@ -349,9 +352,10 @@ class FilterConnection
 private:
     HANDLE _port = NULL;
 public:
-    FilterConnection(const std::wstring& comport_name, const std::wstring& comport_password)
+    FilterConnection(const std::wstring& comport_name, const std::string& comport_password)
     {
-        Communication::Credential credential{"asdasd"};
+        Communication::Credential credential;
+        strcpy(reinterpret_cast<char*>(credential.Password), comport_password.c_str());
         printf("Password: %s", credential.Password);
         auto ret = FilterConnectCommunicationPort(
             comport_name.c_str(),
@@ -391,7 +395,7 @@ public:
 void test_control()
 {
     try {
-        auto connection = FilterConnection(COMPORT_NAME, L"BAO");
+        auto connection = FilterConnection(COMPORT_NAME, "bao1340x");
         Communication::ClientMessage<Communication::MessageProtect> message;
         wcscpy_s(message.Body.DosPath, L"C:\\Users\\BAO\\Desktop\\test.txt");
         connection.Send(message);
@@ -400,6 +404,7 @@ void test_control()
         printf("Exception: %s", e.what());
     }
 }
+
 int main()
 {
     /*SetupRegistry();
