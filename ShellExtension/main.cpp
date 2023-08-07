@@ -392,25 +392,99 @@ public:
     }
 };
 
-void test_control()
+void test_protect(const std::string& password, std::wstring& path)
 {
     try {
-        auto connection = FilterConnection(COMPORT_NAME, "bao1340x");
+        auto connection = FilterConnection(COMPORT_NAME, password);
         Communication::ClientMessage<Communication::MessageProtect> message;
-        wcscpy_s(message.Body.DosPath, L"C:\\Users\\BAO\\Desktop\\test.txt");
+        wcscpy_s(message.Body.DosPath, path.c_str());
         connection.Send(message);
     } catch (std::exception& e)
     {
-        printf("Exception: %s", e.what());
+        MessageBoxA(NULL, e.what(), "Error", MB_OK);
     }
 }
 
-int main()
+void test_unprotect(const std::string& password, std::wstring& path)
 {
+    try {
+        auto connection = FilterConnection(COMPORT_NAME, password);
+        Communication::ClientMessage<Communication::MessageUnprotect> message;
+        wcscpy_s(message.Body.DosPath, path.c_str());
+        connection.Send(message);
+    }
+    catch (std::exception& e)
+    {
+        MessageBoxA(NULL, e.what(), "Error", MB_OK);
+    }
+}
+
+#include <wincred.h>
+std::string get_password()
+{
+    CREDUI_INFOA cui;
+    CHAR pszName[CREDUI_MAX_USERNAME_LENGTH + 1];
+    CHAR pszPwd[CREDUI_MAX_PASSWORD_LENGTH + 1];
+    BOOL fSave;
+    DWORD dwErr;
+
+    cui.cbSize = sizeof(CREDUI_INFO);
+    cui.hwndParent = NULL;
+    //  Ensure that MessageText and CaptionText identify what credentials
+    //  to use and which application requires them.
+    cui.pszMessageText = "Enter administrator account information";
+    cui.pszCaptionText = "CredUITest";
+    cui.hbmBanner = NULL;
+    fSave = FALSE;
+    SecureZeroMemory(pszName, sizeof(pszName));
+    SecureZeroMemory(pszPwd, sizeof(pszPwd));
+    dwErr = CredUIPromptForCredentialsA(
+        &cui,                         // CREDUI_INFO structure
+        "TheServer",            // Target for credentials, usually a server
+        NULL,                         // Reserved
+        0,                            // Reason
+        pszName,                      // User name
+        CREDUI_MAX_USERNAME_LENGTH + 1, // Max number of char for user name
+        pszPwd,                       // Password
+        CREDUI_MAX_PASSWORD_LENGTH + 1, // Max number of char for password
+        &fSave,                       // State of save check box
+        CREDUI_FLAGS_GENERIC_CREDENTIALS |  // flags
+        CREDUI_FLAGS_ALWAYS_SHOW_UI |
+        CREDUI_FLAGS_DO_NOT_PERSIST);
+
+    if (dwErr)
+    {
+        MessageBoxA(NULL, "Invalid input", "Error", MB_OK);
+        exit(1);
+    }
+    return pszPwd;
+}
+
+int main(int argc, char* argv[])
+{
+    auto c = std::string(argv[1]);
+    auto path = std::string(argv[2]);
+    auto wpath = std::wstring(path.begin(), path.end());
+
+    if (c == "1")
+    {
+        // do protect
+        auto password = get_password();
+        test_protect(password, wpath);
+    }
+    if (c == "2")
+    {
+        // do unprotect
+        auto password = get_password();
+        test_unprotect(password, wpath);
+    }
+
     /*SetupRegistry();
     SHChangeNotify(SHCNE_ASSOCCHANGED, 0, 0, 0);
     Log("Done");*/
-    test_control();
+    //test_control();
+
+    
     return 0;
 }
 #endif

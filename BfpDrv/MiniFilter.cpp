@@ -235,6 +235,27 @@ namespace MiniFilter
                 break;
             }
     }
+
+    NTSTATUS Filter::AddProtectedFile(_In_ const WCHAR* FileName)
+    {
+        std::lock_guard<eresource_lock> lock(_protected_files_lock);
+        if (_protected_files.push_back(std::wstring(FileName, wcslen(FileName))) == _protected_files.end())
+            return STATUS_NO_MEMORY;
+        Log("Added");
+        return STATUS_SUCCESS;
+    }
+    NTSTATUS Filter::RemoveProtectedFile(_In_ const WCHAR* FileName)
+    {
+        std::lock_guard<eresource_lock> lock(_protected_files_lock);
+        for (auto it = _protected_files.begin(); it != _protected_files.end(); ++it)
+            if (*it == std::wstring(FileName, wcslen(FileName)))
+            {
+                _protected_files.erase(it);
+                Log("Removed");
+                return STATUS_SUCCESS;
+            }
+        return STATUS_NOT_FOUND;
+    }
 }
 
 // Comport
@@ -302,10 +323,29 @@ namespace MiniFilter
         UNREFERENCED_PARAMETER(OutputBufferSize);
         *ReturnOutputBufferLength = 0;
 
-        LARGE_INTEGER interval;
+        if (InputBuffer == NULL ||
+            InputBufferSize <  sizeof(Communication::MessageHeader))
+        {
+            Log("ClientPort: %p -> Invalid message", cookie->ClientPort);
+            return STATUS_INVALID_PARAMETER;
+        }
+
+        auto header = reinterpret_cast<Communication::MessageHeader*>(InputBuffer);
+        if (header->Type == Communication::Type::Protect)
+        {
+            auto message = reinterpret_cast<Communication::ClientMessage<Communication::MessageProtect>*>(InputBuffer);
+            return cookie->Filter.AddProtectedFile(message->Body.DosPath);
+        }
+        else if (header->Type == Communication::Type::Unprotect)
+        {
+            auto message = reinterpret_cast<Communication::ClientMessage<Communication::MessageUnprotect>*>(InputBuffer);
+            return cookie->Filter.RemoveProtectedFile(message->Body.DosPath);
+        }
+
+        /*LARGE_INTEGER interval;
         interval.QuadPart = -10 * 10'000'000;
-        KeDelayExecutionThread(KernelMode, FALSE, &interval);
-        return STATUS_SUCCESS;
+        KeDelayExecutionThread(KernelMode, FALSE, &interval);*/
+        return STATUS_NOT_SUPPORTED;
     }
 
     Port::Port(
