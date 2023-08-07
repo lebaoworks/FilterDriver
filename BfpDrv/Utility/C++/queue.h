@@ -74,6 +74,7 @@ namespace std
             inline bool operator==(const iterator& i) const { return n == i.n; }
             inline bool operator!=(const iterator& i) const { return n != i.n; }
             inline T& operator*() const { return n->_data; }
+            inline T* operator->() const { return &n->_data; }
         };
         inline iterator begin() const { return iterator(_front); }
         inline iterator end() const { return iterator(nullptr); }

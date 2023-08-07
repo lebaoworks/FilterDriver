@@ -83,6 +83,7 @@ namespace std
             inline bool operator==(const iterator& i) const { return _node == i._node; }
             inline bool operator!=(const iterator& i) const { return _node != i._node; }
             inline T& operator*() const { return _node->_data; }
+            inline T* operator->() const { return &_node->_data; }
         };
         inline iterator begin() const { return iterator(_front); }
         inline iterator end() const { return iterator(nullptr); }

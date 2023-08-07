@@ -50,6 +50,11 @@ namespace std
     public:
         basic_string(const wchar_t* buffer, size_t count)
         {
+            if (buffer == nullptr)
+            {
+                failable_object::_error = true;
+                return;
+            }
             _length = count + 1;
             _sz_string = new wchar_t[_length];
             if (_sz_string == nullptr)
@@ -65,10 +70,29 @@ namespace std
             }
             _sz_string[count] = 0;
         }
+        basic_string(basic_string&& temp)
+        {
+            _sz_string = temp._sz_string;
+            _length = temp._length;
+            temp._sz_string = nullptr;
+            temp._length = 0;
+            temp._error = true;
+        }
         ~basic_string()
         {
             if (error() == false)
                 delete[] _sz_string;
+        }
+
+        basic_string substr(size_t pos, size_t count = npos) const
+        {
+            if (pos >= _length)
+                return basic_string(nullptr, 0);
+            if (count == npos)
+                count = _length - pos;
+            if (pos + count > _length)
+                count = _length - pos;
+            return basic_string(_sz_string + pos, count);
         }
 
         size_t find(const wchar_t* sz_string, size_t pos = 0) const

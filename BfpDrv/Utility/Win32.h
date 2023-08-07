@@ -21,4 +21,10 @@ namespace Win32
             _In_reads_bytes_(DataSize) PVOID Data,
             _In_ ULONG DataSize);
     }
+
+    namespace Path
+    {
+        NTSTATUS QueryTarget(_In_ UNICODE_STRING* SymbolicPath, _Out_ UNICODE_STRING* TargetPath);
+        NTSTATUS QueryAbsoluteTarget(_In_ UNICODE_STRING* SymbolicPath, _Out_ UNICODE_STRING* TargetPath);
+    }
 }
