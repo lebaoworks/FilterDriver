@@ -4,7 +4,6 @@
 #include <fltKernel.h>
 #else
 #include <Windows.h>
-#include <string>
 #endif
 
 #define COMPORT_NAME L"\\BfpDrvPort"
@@ -17,11 +16,6 @@ namespace Communication
     struct Credential
     {
         UCHAR Password[256];
-    };
-    struct SavedCredential
-    {
-        UCHAR Password[32];
-        bool Authenticate(const Credential& credential);
     };
 
     enum Type {

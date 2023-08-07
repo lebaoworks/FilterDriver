@@ -19,6 +19,7 @@
     <ClCompile Include="Entry.cpp" />
     <ClCompile Include="MiniFilter.cpp" />
     <ClCompile Include="MiniFilterUtils.cpp" />
+    <ClCompile Include="Utility\Hash.cpp" />
     <ClCompile Include="Utility\Shared.cpp" />
     <ClCompile Include="Utility\Win32.cpp" />
   </ItemGroup>
@@ -37,6 +38,7 @@
     <ClInclude Include="Utility\CustomFeature\defer.h" />
     <ClInclude Include="Utility\CustomFeature\object.h" />
     <ClInclude Include="Utility\CustomFeature\tag.h" />
+    <ClInclude Include="Utility\Hash.h" />
     <ClInclude Include="Utility\Shared.h" />
     <ClInclude Include="Utility\Win32.h" />
   </ItemGroup>
