@@ -29,18 +29,35 @@ namespace shared {
 /*********************
 *       Logging      *
 *********************/
+#define LOG_LEVEL_DEBUG 0
+#define LOG_LEVEL_INFO 1
+#define LOG_LEVEL_WARNING 2
+#define LOG_LEVEL_ERROR 3
 
-namespace shared {
-    void log(_In_ unsigned int level, _In_z_ const char* szString);
+namespace shared::logging
+{
+    enum class Level
+    {
+        Debug   = 0,
+        Info    = 1,
+        Warning = 2,
+        Error   = 3
+    };
+
+    void log(_In_ Level level, _In_z_ const char* szString);
 
     template<typename... T>
-    void log(_In_ unsigned int level, _In_z_ const char* format, T... args)
+    void log(_In_ Level level, _In_z_ const char* format, T... args)
     {
         log(level, shared::format(format, args...).c_str());
     }
 }
 
-#define Log(format, ...) shared::log(0, __FUNCTION__"() "##format"\n", __VA_ARGS__)
+#define Log(format, ...)        shared::logging::log(shared::logging::Level::Info,    __FUNCTION__"() "##format"\n", __VA_ARGS__)
+#define LogDebug(format, ...)   shared::logging::log(shared::logging::Level::Debug,   __FUNCTION__"() "##format"\n", __VA_ARGS__)
+#define LogError(format, ...)   shared::logging::log(shared::logging::Level::Error,   __FUNCTION__"() "##format"\n", __VA_ARGS__)
+#define LogWarning(format, ...) shared::logging::log(shared::logging::Level::Warning, __FUNCTION__"() "##format"\n", __VA_ARGS__)
+
 
 
 /*********************

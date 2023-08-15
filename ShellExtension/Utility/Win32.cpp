@@ -59,7 +59,7 @@ namespace Win32::Registry {
     LSTATUS DeleteKey(const std::string& key)
     {
         auto k = ParseKey(key);
-        return RegDeleteKeyA(k.first, k.second.c_str());
+        return RegDeleteTreeA(k.first, k.second.c_str());
     }
 
     LSTATUS SetValueString(const std::string& key, const std::string& value, const std::string& data)
