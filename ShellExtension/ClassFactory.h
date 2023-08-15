@@ -6,18 +6,24 @@
 class ClassFactory : public IClassFactory
 {
 private:
-    ULONG _refCount;
+    ULONG _ref;
 public:
     ClassFactory();
     ~ClassFactory();
 
-    //IUnknown interface
-    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID, LPVOID FAR*);
+    // IUnknown interface
+    HRESULT STDMETHODCALLTYPE QueryInterface(
+        _In_         REFIID riid,
+        _COM_Outptr_ void** ppvObject);
     ULONG   STDMETHODCALLTYPE AddRef();
     ULONG   STDMETHODCALLTYPE Release();
 
-    //IClassFactory interface
-    HRESULT STDMETHODCALLTYPE CreateInstance(LPUNKNOWN, REFIID, LPVOID FAR*);
-    HRESULT STDMETHODCALLTYPE LockServer(BOOL);
+    // IClassFactory interface
+    HRESULT STDMETHODCALLTYPE CreateInstance(
+        _In_opt_     IUnknown* pUnkOuter,
+        _In_         REFIID    riid,
+        _COM_Outptr_ void**    ppvObject);
+    HRESULT STDMETHODCALLTYPE LockServer(
+        BOOL fLock);
 };
 

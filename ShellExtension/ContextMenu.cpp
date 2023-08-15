@@ -1,328 +1,119 @@
 #include "ContextMenu.h"
 
+
+// Built-in Libraries
 #include <atlbase.h>
 #include <atlcom.h>
+#include <strsafe.h>
 
+// Shared Libraries
 #include <Shared.h>
 #include <ShellExt.h>
 
-//#include "shellext.h"
-//
-//#pragma warning( push )
-//#pragma warning( disable: 4355 ) // glog\install_dir\include\glog/logging.h(1167): warning C4355: 'this' : used in base member initializer list
-//#include <glog/logging.h>
-//#pragma warning( pop )
-//
-//#include "ErrorManager.h"
-//#include "Win32Registry.h"
-//#include "Win32Utils.h"
-//#include "GlogUtils.h"
-//#include "Unicode.h"
-//
-//#include "PropertyManager.h"
-//#include "ConfigManager.h"
-//#include "PropertyManager.h"
-//#include "SaUtils.h"
-//
-//#include "rapidassist/undef_windows_macros.h"
-//#include "rapidassist/strings.h"
-//#include "rapidassist/filesystem_utf8.h"
-//#include "rapidassist/process_utf8.h"
-//#include "rapidassist/errors.h"
-//#include "rapidassist/user_utf8.h"
-//#include "rapidassist/unicode.h"
-//#include "rapidassist/environment.h"
-//
-//static const GUID CLSID_UNDOCUMENTED_01 = { 0x924502a7, 0xcc8e, 0x4f60, { 0xae, 0x1f, 0xf7, 0x0c, 0x0a, 0x2b, 0x7a, 0x7c } };
 
-//void CContextMenu::BuildMenuTree(HMENU hMenu, shellanything::Menu* menu, UINT& insert_pos, bool& next_menu_is_column)
-//{
-//    //Expanded the menu's strings
-//    shellanything::PropertyManager& pmgr = shellanything::PropertyManager::GetInstance();
-//    std::string title = pmgr.Expand(menu->GetName());
-//    std::string description = pmgr.Expand(menu->GetDescription());
-//
-//    //Get visible/enable properties based on current context.
-//    bool menu_visible = menu->IsVisible();
-//    bool menu_enabled = menu->IsEnabled();
-//    bool menu_separator = menu->IsSeparator();
-//    bool menu_column = menu->IsColumnSeparator();
-//
-//    //Skip column separator, those are not menu item
-//    if (menu_column)
-//    {
-//        next_menu_is_column = true;
-//        return;
-//    }
-//
-//    //Skip this menu if not visible
-//    if (!menu_visible)
-//    {
-//        menu->TruncateName(title);
-//        LOG(INFO) << __FUNCTION__ << "(), skipped menu '" << title << "', not visible.";
-//        return;
-//    }
-//
-//    //Validate menus integrity
-//    const uint32_t& menu_command_id = menu->GetCommandId();
-//    if (menu_command_id == shellanything::Menu::INVALID_COMMAND_ID)
-//    {
-//        menu->TruncateName(title);
-//        LOG(ERROR) << __FUNCTION__ << "(), menu '" << title << "' have invalid command id.";
-//        return;
-//    }
-//
-//    // Truncate if required, issue #55.
-//    menu->TruncateName(title);
-//    menu->TruncateName(description);
-//
-//    //convert to windows unicode...
-//    std::wstring title_utf16 = ra::unicode::Utf8ToUnicode(title);
-//    std::wstring desc_utf16 = ra::unicode::Utf8ToUnicode(description);
-//
-//    MENUITEMINFOW menuinfo = { 0 };
-//
-//    menuinfo.cbSize = sizeof(MENUITEMINFOW);
-//    menuinfo.fMask = MIIM_FTYPE | MIIM_STATE | MIIM_ID | MIIM_STRING;
-//    menuinfo.fType = (menu_separator ? MFT_SEPARATOR : MFT_STRING);
-//    menuinfo.fType += (next_menu_is_column ? MFT_MENUBARBREAK : 0);
-//    menuinfo.fState = (menu_enabled ? MFS_ENABLED : MFS_DISABLED);
-//    menuinfo.wID = menu_command_id;
-//    menuinfo.dwTypeData = (wchar_t*)title_utf16.c_str();
-//    menuinfo.cch = (UINT)title_utf16.size();
-//
-//    //add an icon
-//    const shellanything::Icon& icon = menu->GetIcon();
-//    if (!menu_separator && icon.IsValid())
-//    {
-//        shellanything::PropertyManager& pmgr = shellanything::PropertyManager::GetInstance();
-//        std::string file_extension = pmgr.Expand(icon.GetFileExtension());
-//        std::string icon_filename = pmgr.Expand(icon.GetPath());
-//        int icon_index = icon.GetIndex();
-//
-//        //if the icon is pointing to a file extension
-//        if (!file_extension.empty())
-//        {
-//            //resolve the file extension to a system icon.
-//
-//            //did we already resolved this icon?
-//            IconMap::iterator wExtensionsIterator = m_FileExtensionCache.find(file_extension);
-//            bool found = (wExtensionsIterator != m_FileExtensionCache.end());
-//            if (found)
-//            {
-//                //already resolved
-//                const shellanything::Icon& resolved_icon = wExtensionsIterator->second;
-//                icon_filename = resolved_icon.GetPath();
-//                icon_index = resolved_icon.GetIndex();
-//            }
-//            else
-//            {
-//                //not found
-//
-//                //make a copy of the icon and resolve the file extension to a system icon.
-//                shellanything::Icon resolved_icon = icon;
-//                resolved_icon.ResolveFileExtensionIcon();
-//
-//                //save the icon for a future use
-//                m_FileExtensionCache[file_extension] = resolved_icon;
-//
-//                //use the resolved icon location
-//                icon_filename = resolved_icon.GetPath();
-//                icon_index = resolved_icon.GetIndex();
-//            }
-//        }
-//
-//        //ask the cache for an existing icon.
-//        //this will identify the icon in the cache as "used" or "active".
-//        HBITMAP hBitmap = m_BitmapCache.FindHandle(icon_filename, icon_index);
-//
-//        //if nothing in cache, create a new one
-//        if (hBitmap == shellanything::BitmapCache::INVALID_BITMAP_HANDLE && !icon_filename.empty())
-//        {
-//            // #117 - ExtractIconEx() behavior is different when the monitor is scaled. A small and a large icon
-//            // cannot always be extracted when scaling factor is greater than 1.0. The solution is to only extract a small icon.
-//            // Small icons matches the size of a menu icon (16x16). A "large" (or larger) icon is not necessary.
-//            // The size of a small icon is scaled to match the monitor scaling. For 300% scaling, menu icons are 48x48.
-//            HICON hIconSmall = NULL;
-//
-//            std::wstring icon_filename_wide = ra::unicode::Utf8ToUnicode(icon_filename);
-//
-//            //check how many icons the file contains
-//            UINT num_icon_in_file = ExtractIconExW(icon_filename_wide.c_str(), -1, NULL, NULL, 1);
-//            if (num_icon_in_file == 0)
-//                LOG(WARNING) << __FUNCTION__ << "(), File '" << icon_filename << "' does not contains an icon.";
-//            else
-//            {
-//                //the file contains 1 or more icons, try to load a small one
-//                UINT num_icon_loaded = 0;
-//                if (num_icon_in_file >= 1)
-//                    num_icon_loaded = ExtractIconExW(icon_filename_wide.c_str(), icon_index, NULL, &hIconSmall, 1);
-//                if (num_icon_in_file >= 1 && num_icon_loaded == 0)
-//                    LOG(WARNING) << __FUNCTION__ << "(), Failed to load icon index " << icon_index << " from file '" << icon_filename << "'.";
-//                else
-//                {
-//                    SIZE menu_icon_size = Win32Utils::GetIconSize(hIconSmall);
-//                    // LOG(INFO) << __FUNCTION__ << "(), Loaded icon " << icon_index << " from file '" << icon_filename << "' is " << menu_icon_size.cx << "x" << menu_icon_size.cy << ".";
-//
-//                    //Convert the icon to a 32bpp bitmap with alpha channel (invisible background)
-//                    hBitmap = Win32Utils::CopyAsBitmap(hIconSmall);
-//                    if (hBitmap == shellanything::BitmapCache::INVALID_BITMAP_HANDLE)
-//                        LOG(ERROR) << __FUNCTION__ << "(), Icon " << icon_index << " from file '" << icon_filename << "' has failed to convert to bitmap.";
-//
-//                    if (hIconSmall != NULL)
-//                        DestroyIcon(hIconSmall);
-//
-//                    //add the bitmap to the cache for future use
-//                    if (hBitmap != shellanything::BitmapCache::INVALID_BITMAP_HANDLE)
-//                        m_BitmapCache.AddHandle(icon_filename.c_str(), icon_index, hBitmap);
-//                }
-//            }
-//        }
-//
-//        //if a bitmap is created
-//        if (hBitmap != shellanything::BitmapCache::INVALID_BITMAP_HANDLE)
-//        {
-//            //enable bitmap handling for the menu
-//            menuinfo.fMask |= MIIM_BITMAP;
-//
-//            //assign the HBITMAP to the HMENU
-//            menuinfo.hbmpItem = hBitmap;
-//        }
-//    }
-//
-//    //handle column separator
-//    if (next_menu_is_column)
-//    {
-//        menuinfo.fType |= MFT_MENUBARBREAK;
-//    }
-//    next_menu_is_column = false;
-//
-//    //handle submenus
-//    if (menu->IsParentMenu())
-//    {
-//        menuinfo.fMask |= MIIM_SUBMENU;
-//        HMENU hSubMenu = CreatePopupMenu();
-//
-//        bool next_sub_menu_is_column = false;
-//
-//        shellanything::Menu::MenuPtrList subs = menu->GetSubMenus();
-//        UINT sub_insert_pos = 0;
-//        for (size_t i = 0; i < subs.size(); i++)
-//        {
-//            shellanything::Menu* submenu = subs[i];
-//            BuildMenuTree(hSubMenu, submenu, sub_insert_pos, next_sub_menu_is_column);
-//        }
-//
-//        menuinfo.hSubMenu = hSubMenu;
-//    }
-//
-//    BOOL result = InsertMenuItemW(hMenu, insert_pos, TRUE, &menuinfo);
-//    insert_pos++; //next menu is below this one
-//
-//    LOG(INFO) << __FUNCTION__ << "(), insert.pos=" << ra::strings::Format("%03d", insert_pos) << ", id=" << ra::strings::Format("%06d", menuinfo.wID) << ", result=" << result << ", title=" << title;
-//}
-//
-//void CContextMenu::BuildMenuTree(HMENU hMenu)
-//{
-//    //Bitmap ressources must be properly destroyed.
-//    //When a menu (HMENU handle) is destroyed using win32 DestroyMenu() function, it also destroy the child menus:
-//    //https://docs.microsoft.com/en-us/windows/desktop/api/winuser/nf-winuser-destroymenu
-//    //
-//    //However the bitmap assigned to menus are not deleted with DestroyMenu() function.
-//    //Bitmap is a limited resource. If you ran out of GDI resources, you may see black menus 
-//    //and Windows Explorer will have difficulties to render all the window. For details, see
-//    //https://www.codeproject.com/Questions/1228261/Windows-shell-extension
-//    //
-//    //To prevent running out of bitmap ressource we use the shellanything::BitmapCache class.
-//    //Each bitmap is identified as 'used' in CContextMenu::BuildMenuTree() with 'm_BitmapCache.FindHandle()'.
-//    //Every 5 times the shell extension popup is displayed, we look for 'unused' bitmap and delete them.
-//    //
-//
-//    //handle destruction of old bitmap in the cache
-//    m_BuildMenuTreeCount++;
-//    if (m_BuildMenuTreeCount > 0 && (m_BuildMenuTreeCount % 5) == 0)
-//    {
-//        //every 10 calls, refresh the cache
-//        m_BitmapCache.DestroyOldHandles();
-//
-//        //reset counters
-//        m_BitmapCache.ResetCounters();
-//    }
-//
-//    bool next_menu_is_column = false;
-//
-//    //browse through all shellanything menus and build the win32 popup menus
-//
-//    //for each configuration
-//    shellanything::ConfigManager& cmgr = shellanything::ConfigManager::GetInstance();
-//    shellanything::Configuration::ConfigurationPtrList configs = cmgr.GetConfigurations();
-//    UINT insert_pos = 0;
-//    for (size_t i = 0; i < configs.size(); i++)
-//    {
-//        shellanything::Configuration* config = configs[i];
-//        if (config)
-//        {
-//            //for each menu child
-//            shellanything::Menu::MenuPtrList menus = config->GetMenus();
-//            for (size_t j = 0; j < menus.size(); j++)
-//            {
-//                shellanything::Menu* menu = menus[j];
-//
-//                //Add this menu to the tree
-//                BuildMenuTree(hMenu, menu, insert_pos, next_menu_is_column);
-//            }
-//        }
-//    }
-//}
+ContextMenu::ContextMenu() : _ref(1) { LogDebug("NewInstance: %p -> [%4d]", this, ShellExt::DllAddRef()); }
+ContextMenu::~ContextMenu() { LogDebug("DeleteInstance: %p -> [%4d]", this, ShellExt::DllRelease()); }
 
-ContextMenu::ContextMenu() : _refCount(1)
+// IUnknown
+// ========
+
+HRESULT STDMETHODCALLTYPE ContextMenu::QueryInterface(
+    _In_         REFIID riid,
+    _COM_Outptr_ void** ppvObject)
 {
-    Log("NewInstance: %X", this);
-
-    //m_FirstCommandId = 0;
-    //m_IsBackGround = false;
-    //m_BuildMenuTreeCount = 0;
-    //m_previousMenu = 0;
-
-    ShellExt::DllAddRef();
-}
-
-ContextMenu::~ContextMenu()
-{
-    Log("DeleteInstance: %X", this);
-    ShellExt::DllRelease();
-}
-
-HRESULT STDMETHODCALLTYPE ContextMenu::QueryInterface(REFIID riid, LPVOID FAR* ppv)
-{
-    Log("riid = %s", ShellExt::GuidToString(riid).c_str());
-    if (ppv == NULL)
-        return E_INVALIDARG;
-
     static const QITAB qit[] = {
       QITABENT(ContextMenu, IShellExtInit),
       QITABENT(ContextMenu, IContextMenu),
       {0, 0},
     };
-    auto hr = QISearch(this, qit, riid, ppv);
-    if (SUCCEEDED(hr))
-        Log("Found interface %s", ShellExt::GuidToString(riid).c_str());
-    else
-        Log("Unkonwn interface %s", ShellExt::GuidToString(riid).c_str());
+    auto hr = QISearch(this, qit, riid, ppvObject);
+    LogDebug("Search interface %s -> %s", ShellExt::GuidToString(riid).c_str(), SUCCEEDED(hr) ? "Found" : "Unknown");
     return hr;
 }
 
-ULONG STDMETHODCALLTYPE ContextMenu::AddRef() { return InterlockedIncrement(&_refCount); }
+ULONG STDMETHODCALLTYPE ContextMenu::AddRef() { return InterlockedIncrement(&_ref); }
 
 ULONG STDMETHODCALLTYPE ContextMenu::Release()
 {
-    LONG refCount = InterlockedDecrement(&_refCount);
-    if (refCount == 0)
+    auto ref = InterlockedDecrement(&_ref);
+    if (ref == 0)
         delete this;
-    return refCount;
+    return ref;
 }
 
-HRESULT STDMETHODCALLTYPE ContextMenu::QueryContextMenu(HMENU hMenu, UINT menu_index, UINT first_command_id, UINT max_command_id, UINT flags)
+// IShellExtInit
+// =============
+
+HRESULT STDMETHODCALLTYPE ContextMenu::Initialize(
+    _In_opt_ PCIDLIST_ABSOLUTE pidlFolder,
+    _In_opt_ IDataObject*      pdtobj,
+    _In_opt_ HKEY              hkeyProgID)
+{
+    LogDebug("IdList: %p, DataObj: %p, Key: %p", pidlFolder, pdtobj, hkeyProgID);
+    this->_selected_files.clear();
+    defer{
+        Log("Clicked on %d entries", this->_selected_files.size());
+        for (auto& file : this->_selected_files)
+            Log("  %ws", file.c_str());
+    };
+
+    // Clicked on a folder's background or the desktop directory?
+    if (pidlFolder != nullptr)
+    {
+        auto buffer = std::make_unique<WCHAR[]>(MAXSHORT + 1);
+        if (SHGetPathFromIDListW(pidlFolder, buffer.get()) == FALSE)
+        {
+            LogError("GetPath failed: %d", GetLastError());
+            return E_INVALIDARG;
+        }
+        this->_selected_files.push_back(buffer.get());
+        return S_OK;
+
+    }
+    // Clicked on one or more file or directory?
+    else if (pdtobj != nullptr)
+    {
+        FORMATETC fmt = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+        STGMEDIUM stg = { TYMED_HGLOBAL };
+
+        // The selected files are expected to be in HDROP format.
+        if (FAILED(pdtobj->GetData(&fmt, &stg)))
+        {
+            LogError("selected files are not in HDROP format");
+            return E_INVALIDARG;
+        }
+
+        // Get a locked pointer to the files data.
+        auto hDropInfo = static_cast<HDROP>(GlobalLock(stg.hGlobal));
+        if (hDropInfo == NULL)
+        {
+            ReleaseStgMedium(&stg);
+            LogError("failed to get lock on selected files");
+            return E_INVALIDARG;
+        }
+        defer{ GlobalUnlock(stg.hGlobal); ReleaseStgMedium(&stg); };
+
+        auto num_files = DragQueryFileW(hDropInfo, 0xFFFFFFFF, NULL, 0);
+        auto buffer = std::make_unique<WCHAR[]>(MAXSHORT + 1);
+        for (UINT i = 0; i < num_files; i++)
+        {
+            if (DragQueryFileW(hDropInfo, i, buffer.get(), MAXSHORT + 1) != 0)
+                this->_selected_files.push_back(buffer.get());
+        }
+        return S_OK;
+    }
+    return S_OK;
+}
+
+// IContextMenu
+// ============
+
+HRESULT STDMETHODCALLTYPE ContextMenu::QueryContextMenu(
+    _In_ HMENU hMenu,
+    _In_ UINT  indexMenu,
+    _In_ UINT  idCmdFirst,
+    _In_ UINT  idCmdLast,
+    _In_ UINT  uFlags)
 {
     //Note on flags...
     //Right-click on a file or directory with Windows Explorer on the right area:  flags=0x00020494=132244(dec)=(CMF_NORMAL|CMF_EXPLORE|CMF_CANRENAME|CMF_ITEMMENU|CMF_ASYNCVERBSTATE)
@@ -331,7 +122,26 @@ HRESULT STDMETHODCALLTYPE ContextMenu::QueryContextMenu(HMENU hMenu, UINT menu_i
     //Right-click on a drive             with Windows Explorer on the left area:   flags=0x00000414=001044(dec)=(CMF_NORMAL|CMF_EXPLORE|CMF_CANRENAME|CMF_ASYNCVERBSTATE)
     //Right-click on the empty area      on the Desktop:                           flags=0x00020420=132128(dec)=(CMF_NORMAL|CMF_NODEFAULT|CMF_ASYNCVERBSTATE)
     //Right-click on a directory         on the Desktop:                           flags=0x00020490=132240(dec)=(CMF_NORMAL|CMF_CANRENAME|CMF_ITEMMENU|CMF_ASYNCVERBSTATE)
-    Log("Menu: %08X, Flags: %08X", hMenu, flags);
+    LogDebug("Menu: %08X, Flags: %08X", hMenu, uFlags);
+
+#define IDM_DISPLAY 0
+
+    if (!(CMF_DEFAULTONLY & uFlags))
+    {
+        InsertMenuW(
+            hMenu,
+            indexMenu,
+            MF_STRING | MF_BYPOSITION,
+            idCmdFirst + IDM_DISPLAY,
+            L"&Display File Name");
+
+        //hr = StringCbCopyA(m_pszVerb, sizeof(m_pszVerb), "display");
+        //hr = StringCbCopyW(m_pwszVerb, sizeof(m_pwszVerb), L"display");
+
+        return MAKE_HRESULT(SEVERITY_SUCCESS, 0, USHORT(IDM_DISPLAY + 1));
+    }
+
+    return MAKE_HRESULT(SEVERITY_SUCCESS, 0, USHORT(0));
 
 #ifdef IMPLEMENT
     //From this point, it is safe to use class members without other threads interference
@@ -400,13 +210,58 @@ HRESULT STDMETHODCALLTYPE ContextMenu::QueryContextMenu(HMENU hMenu, UINT menu_i
 #endif
 
     HRESULT hr = MAKE_HRESULT(SEVERITY_SUCCESS, FACILITY_NULL, num_menu_items);
-#endif
-    HRESULT hr = SEVERITY_ERROR;
     return hr;
+#endif
 }
 
-HRESULT STDMETHODCALLTYPE ContextMenu::InvokeCommand(LPCMINVOKECOMMANDINFO pici)
+HRESULT STDMETHODCALLTYPE ContextMenu::InvokeCommand(
+    _In_ CMINVOKECOMMANDINFO* pici)
 {
+    BOOL fEx = FALSE;
+    BOOL fUnicode = FALSE;
+
+    if (pici->cbSize == sizeof(CMINVOKECOMMANDINFOEX))
+    {
+        fEx = TRUE;
+        if ((pici->fMask & CMIC_MASK_UNICODE))
+        {
+            fUnicode = TRUE;
+        }
+    }
+
+    if (!fUnicode && HIWORD(pici->lpVerb))
+    {
+        if (StrCmpIA(pici->lpVerb, "display"))
+        {
+            return E_FAIL;
+        }
+    }
+
+    else if (fUnicode && HIWORD(((CMINVOKECOMMANDINFOEX*)pici)->lpVerbW))
+    {
+        if (StrCmpIW(((CMINVOKECOMMANDINFOEX*)pici)->lpVerbW, L"display"))
+        {
+            return E_FAIL;
+        }
+    }
+
+    else if (LOWORD(pici->lpVerb) != IDM_DISPLAY)
+    {
+        return E_FAIL;
+    }
+
+    else
+    {
+        auto& info = *reinterpret_cast<CMINVOKECOMMANDINFOEX*>(pici);
+        Log("Verb: %ws, Parameter: %ws", info.lpVerbW, info.lpParametersW);
+        MessageBoxW(pici->hwnd,
+            L"The File Name",
+            L"File Name",
+            MB_OK | MB_ICONINFORMATION);
+    }
+
+    return S_OK;
+
 #ifdef IMPLEMENT
     //define the type of structure pointed by pici
     const char* struct_name = "UNKNOWN";
@@ -491,12 +346,36 @@ HRESULT STDMETHODCALLTYPE ContextMenu::InvokeCommand(LPCMINVOKECOMMANDINFO pici)
     }
 
 #endif
-    Log("executing action(s) for menu completed");
-    return S_OK;
 }
 
-HRESULT STDMETHODCALLTYPE ContextMenu::GetCommandString(UINT_PTR command_id, UINT flags, UINT FAR* reserved, LPSTR pszName, UINT cchMax)
+HRESULT STDMETHODCALLTYPE ContextMenu::GetCommandString(
+    _In_       UINT_PTR    idCmd,
+    _In_       UINT        uType,
+    _Reserved_ UINT*,
+    _Out_writes_bytes_((uType& GCS_UNICODE) ? (cchMax * sizeof(wchar_t)) : cchMax) _When_(!(uType& (GCS_VALIDATEA | GCS_VALIDATEW)), _Null_terminated_) CHAR* pszName,
+    _In_       UINT        cchMax)
 {
+    HRESULT hr = E_INVALIDARG;
+
+    if (idCmd == IDM_DISPLAY)
+    {
+        switch (uType)
+        {
+        case GCS_HELPTEXTW:
+            // Only useful for pre-Vista versions of Windows that 
+            // have a Status bar.
+            hr = StringCchCopyW(reinterpret_cast<PWSTR>(pszName), cchMax, L"Display File Name");
+            break;
+        case GCS_VERBW:
+            // GCS_VERBW is an optional feature that enables a caller
+            // to discover the canonical name for the verb that is passed in
+            // through idCommand.
+            hr = StringCchCopyW(reinterpret_cast<PWSTR>(pszName), cchMax, L"DisplayFileName");
+            break;
+        }
+    }
+    return hr;
+
 #ifdef IMPLEMENT
     std::string flags_str = GetGetCommandStringFlags(flags);
     std::string flags_hex = ra::strings::Format("0x%08x", flags);
@@ -566,112 +445,4 @@ HRESULT STDMETHODCALLTYPE ContextMenu::GetCommandString(UINT_PTR command_id, UIN
     break;
     }
 #endif
-
-    Log("unknown flags: %X", flags);
-    return S_FALSE;
-}
-
-HRESULT STDMETHODCALLTYPE ContextMenu::Initialize(LPCITEMIDLIST pIDFolder, LPDATAOBJECT pDataObj, HKEY hRegKey)
-{
-    Log("pIdFolder=%p pDataObj=%p hRegKey=%p", pIDFolder, pDataObj, hRegKey);
-#ifdef IMPLEMENT
-
-    //From this point, it is safe to use class members without other threads interference
-    CCriticalSectionGuard cs_guard(&m_CS);
-
-    shellanything::StringList files;
-
-    // Cleanup
-    m_Context.UnregisterProperties(); //Unregister the previous context properties
-    m_Context.SetElements(files);
-    m_IsBackGround = false;
-
-    // Did we clicked on a folder's background or the desktop directory?
-    if (pIDFolder)
-    {
-        LOG(INFO) << __FUNCTION__ << "(), User right-clicked on a background directory.";
-
-        wchar_t szPath[2 * MAX_PATH] = { 0 };
-
-        if (SHGetPathFromIDListW(pIDFolder, szPath))
-        {
-            if (szPath[0] != '\0')
-            {
-                std::string path_utf8 = ra::unicode::UnicodeToUtf8(szPath);
-                LOG(INFO) << __FUNCTION__ << "(), Found directory '" << path_utf8 << "'.";
-                m_IsBackGround = true;
-                files.push_back(path_utf8);
-            }
-            else
-            {
-                LOG(WARNING) << __FUNCTION__ << "(), found empty path in pIDFolder.";
-                return E_INVALIDARG;
-            }
-        }
-        else
-        {
-            LOG(ERROR) << __FUNCTION__ << "(), SHGetPathFromIDList() has failed.";
-            return E_INVALIDARG;
-        }
-    }
-
-    // User clicked on one or more file or directory
-    else if (pDataObj)
-    {
-        LOG(INFO) << __FUNCTION__ << "(), User right-clicked on selected files/directories.";
-
-        FORMATETC fmt = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
-        STGMEDIUM stg = { TYMED_HGLOBAL };
-        HDROP hDropInfo;
-
-        // The selected files are expected to be in HDROP format.
-        if (FAILED(pDataObj->GetData(&fmt, &stg)))
-        {
-            LOG(WARNING) << __FUNCTION__ << "(), selected files are not in HDROP format.";
-            return E_INVALIDARG;
-        }
-
-        // Get a locked pointer to the files data.
-        hDropInfo = (HDROP)GlobalLock(stg.hGlobal);
-        if (NULL == hDropInfo)
-        {
-            ReleaseStgMedium(&stg);
-            LOG(ERROR) << __FUNCTION__ << "(), failed to get lock on selected files.";
-            return E_INVALIDARG;
-        }
-
-        UINT num_files = DragQueryFileW(hDropInfo, 0xFFFFFFFF, NULL, 0);
-        LOG(INFO) << __FUNCTION__ << "(), User right-clicked on " << num_files << " files/directories.";
-
-        // For each files
-        for (UINT i = 0; i < num_files; i++)
-        {
-            UINT length = DragQueryFileW(hDropInfo, i, NULL, 0);
-
-            // Allocate a temporary buffer
-            std::wstring path(length, '\0');
-            if (path.size() != length)
-                continue;
-            size_t num_characters = length + 1;
-
-            // Copy the element into the temporary buffer
-            DragQueryFileW(hDropInfo, i, (wchar_t*)path.data(), (UINT)num_characters);
-
-            //add the new file
-            std::string path_utf8 = ra::unicode::UnicodeToUtf8(path);
-            LOG(INFO) << __FUNCTION__ << "(), Found file/directory #" << ra::strings::Format("%03d", i) << ": '" << path_utf8 << "'.";
-            files.push_back(path_utf8);
-        }
-        GlobalUnlock(stg.hGlobal);
-        ReleaseStgMedium(&stg);
-    }
-
-    //update the selection context
-    m_Context.SetElements(files);
-
-    //Register the current context properties so that menus can display the right caption
-    m_Context.RegisterProperties();
-#endif
-
-    return S_OK;
 }

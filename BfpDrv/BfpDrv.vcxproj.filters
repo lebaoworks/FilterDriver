@@ -28,9 +28,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="ReadMe.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <Inf Include="BfpDrv.inf">
       <Filter>Driver Files</Filter>
     </Inf>
@@ -107,5 +104,8 @@
     <ClCompile Include="..\Shared\Communication.cpp">
       <Filter>Shared</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\ReadMe.txt" />
   </ItemGroup>
 </Project>

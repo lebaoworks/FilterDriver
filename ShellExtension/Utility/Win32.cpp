@@ -74,7 +74,7 @@ namespace Win32::Registry {
             0,                          // Reserved
             REG_SZ,                     // dwType
             (const BYTE*)data.c_str(),  // lpData
-            data.size()                 // cbData
+            (DWORD)data.size()          // cbData
         );
     }
 

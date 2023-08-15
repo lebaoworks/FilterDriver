@@ -8,60 +8,62 @@
 
 #include "ContextMenu.h"
 
-ClassFactory::ClassFactory() : _refCount(1) { Log("NewInstance: %X", this); ShellExt::DllAddRef(); }
-ClassFactory::~ClassFactory() { Log("DeleteInstance %X", this); ShellExt::DllRelease(); }
+ClassFactory::ClassFactory() : _ref(1) { LogDebug("NewInstance: %X -> [%4d]", this, ShellExt::DllAddRef()); }
+ClassFactory::~ClassFactory() { LogDebug("DeleteInstance %X -> [%4d]", this, ShellExt::DllRelease()); }
 
-HRESULT STDMETHODCALLTYPE ClassFactory::QueryInterface(REFIID riid, LPVOID FAR* ppv)
+// IUnknown
+// ========
+
+HRESULT STDMETHODCALLTYPE ClassFactory::QueryInterface(
+    _In_ REFIID riid,
+    _COM_Outptr_ void** ppvObject)
 {
-    Log("riid = %s", ShellExt::GuidToString(riid).c_str());
-    if (ppv == NULL)
-        return E_INVALIDARG;
-
     static const QITAB qit[] = {
         QITABENT(ClassFactory, IClassFactory),
         {0, 0}
     };
-    auto hr = QISearch(this, qit, riid, ppv);
-    if (SUCCEEDED(hr))
-        Log("Found interface %s", ShellExt::GuidToString(riid).c_str());
-    else
-        Log("Unkonwn interface %s", ShellExt::GuidToString(riid).c_str());
+    auto hr = QISearch(this, qit, riid, ppvObject);
+    LogDebug("Search interface %s -> %s", ShellExt::GuidToString(riid).c_str(), SUCCEEDED(hr) ? "Found" : "Unknown");
     return hr;
 }
 
-ULONG STDMETHODCALLTYPE ClassFactory::AddRef() { return InterlockedIncrement(&_refCount); }
+ULONG STDMETHODCALLTYPE ClassFactory::AddRef() { return InterlockedIncrement(&_ref); }
 
 ULONG STDMETHODCALLTYPE ClassFactory::Release()
 {
-    LONG refCount = InterlockedDecrement(&_refCount);
-    if (refCount == 0)
+    LONG ref = InterlockedDecrement(&_ref);
+    if (ref == 0)
         delete this;
-    return refCount;
+    return ref;
 }
 
-HRESULT STDMETHODCALLTYPE ClassFactory::CreateInstance(LPUNKNOWN pUnkOuter, REFIID riid, LPVOID FAR* ppv)
+// IClassFactory
+// =============
+
+HRESULT STDMETHODCALLTYPE ClassFactory::CreateInstance(
+    _In_opt_      IUnknown* pUnkOuter,
+    _In_          REFIID    riid,
+    _COM_Outptr_  void**    ppvObject)
 {
-    Log("riid = %s", ShellExt::GuidToString(riid).c_str());
-    if (ppv == NULL)
-        return E_INVALIDARG;
+    *ppvObject = nullptr;
     if (pUnkOuter != NULL)
+    {
+        LogWarning("Not supporting aggregation");
         return CLASS_E_NOAGGREGATION;
+    }
 
     // Query the specified interface.
     auto ext = new ContextMenu();
-    auto hr = ext->QueryInterface(riid, ppv);
+    auto hr = ext->QueryInterface(riid, ppvObject);
     ext->Release();
 
-    if (SUCCEEDED(hr))
-        Log("Found interface %s", ShellExt::GuidToString(riid).c_str());
-    else
-        Log("Unkonwn interface %s", ShellExt::GuidToString(riid).c_str());
+    LogDebug("Search interface %s -> %s", ShellExt::GuidToString(riid).c_str(), SUCCEEDED(hr) ? "Found" : "Unknown");
     return hr;
 }
 
-HRESULT STDMETHODCALLTYPE ClassFactory::LockServer(BOOL bLock)
+HRESULT STDMETHODCALLTYPE ClassFactory::LockServer(
+    BOOL bLock)
 {
-    Log("Instance: %X, bLock = %d", this, bLock);
     if (bLock)
         ShellExt::DllAddRef();
     else
