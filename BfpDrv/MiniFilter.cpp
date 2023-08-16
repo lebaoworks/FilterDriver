@@ -405,6 +405,7 @@ namespace MiniFilter
             Log("FltBuildDefaultSecurityDescriptor failed -> Status: %X", status);
             return;
         }
+        RtlSetDaclSecurityDescriptor(sd, TRUE, NULL, FALSE);
         defer{ ::FltFreeSecurityDescriptor(sd); };
 
         OBJECT_ATTRIBUTES oa;
