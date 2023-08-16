@@ -58,27 +58,6 @@ NTSTATUS DriverEntry(
         return ret;
     }
 
-    // test
-    {
-        UNICODE_STRING SymbolicPath = RTL_CONSTANT_STRING(LR"(\??\C:\Users\bao\source\repos\BfpDrv\x64\Debug)");
-        auto buffer = new WCHAR[1024];
-        if (buffer == nullptr)
-        {
-            Log("Failed to allocate memory");
-            return STATUS_NO_MEMORY;
-        }
-        defer{ delete[] buffer; };
-        auto TargetPath = reinterpret_cast<PUNICODE_STRING>(buffer);
-        TargetPath->Length = 0;
-        TargetPath->MaximumLength = 2000;
-        TargetPath->Buffer = buffer + sizeof(UNICODE_STRING) / sizeof(WCHAR);
-
-        Win32::Path::QueryAbsoluteTarget(&SymbolicPath, TargetPath);
-        /*if (NT_SUCCESS(status))
-            Log("Target: %wZ", TargetPath);
-        else
-            Log("Failed to query target: %X", status);*/
-    }
     return STATUS_SUCCESS;
 }
 
