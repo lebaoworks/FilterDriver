@@ -38,6 +38,9 @@
     <ClCompile Include="..\Shared\Communication.cpp">
       <Filter>Shared</Filter>
     </ClCompile>
+    <ClCompile Include="Control.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ContextMenu.h">
@@ -60,6 +63,9 @@
     </ClInclude>
     <ClInclude Include="..\Shared\Communication.h">
       <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="Control.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -82,6 +82,7 @@
     <ClCompile Include="..\Shared\Communication.cpp" />
     <ClCompile Include="ClassFactory.cpp" />
     <ClCompile Include="ContextMenu.cpp" />
+    <ClCompile Include="Control.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Utility\Shared.cpp" />
     <ClCompile Include="Utility\ShellExt.cpp" />
@@ -91,6 +92,7 @@
     <ClInclude Include="..\Shared\Communication.h" />
     <ClInclude Include="ClassFactory.h" />
     <ClInclude Include="ContextMenu.h" />
+    <ClInclude Include="Control.h" />
     <ClInclude Include="Utility\main.h" />
     <ClInclude Include="Utility\Shared.h" />
     <ClInclude Include="Utility\ShellExt.h" />
