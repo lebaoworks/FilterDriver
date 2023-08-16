@@ -1,6 +1,5 @@
 #include "ContextMenu.h"
 
-
 // Built-in Libraries
 #include <atlbase.h>
 #include <atlcom.h>
@@ -9,6 +8,12 @@
 // Shared Libraries
 #include <Shared.h>
 #include <ShellExt.h>
+
+#include "Control.h"
+
+// Definitions
+#define IDM_PROTECT 0
+#define IDM_UNPROTECT 1
 
 
 ContextMenu::ContextMenu() : _ref(1) { LogDebug("NewInstance: %p -> [%4d]", this, ShellExt::DllAddRef()); }
@@ -52,9 +57,9 @@ HRESULT STDMETHODCALLTYPE ContextMenu::Initialize(
     LogDebug("IdList: %p, DataObj: %p, Key: %p", pidlFolder, pdtobj, hkeyProgID);
     this->_selected_files.clear();
     defer{
-        Log("Clicked on %d entries", this->_selected_files.size());
+        LogDebug("Clicked on %d entries", this->_selected_files.size());
         for (auto& file : this->_selected_files)
-            Log("  %ws", file.c_str());
+            LogDebug("  %ws", file.c_str());
     };
 
     // Clicked on a folder's background or the desktop directory?
@@ -115,30 +120,21 @@ HRESULT STDMETHODCALLTYPE ContextMenu::QueryContextMenu(
     _In_ UINT  idCmdLast,
     _In_ UINT  uFlags)
 {
-    //Note on flags...
-    //Right-click on a file or directory with Windows Explorer on the right area:  flags=0x00020494=132244(dec)=(CMF_NORMAL|CMF_EXPLORE|CMF_CANRENAME|CMF_ITEMMENU|CMF_ASYNCVERBSTATE)
-    //Right-click on the empty area      with Windows Explorer on the right area:  flags=0x00020424=132132(dec)=(CMF_NORMAL|CMF_EXPLORE|CMF_NODEFAULT|CMF_ASYNCVERBSTATE)
-    //Right-click on a directory         with Windows Explorer on the left area:   flags=0x00000414=001044(dec)=(CMF_NORMAL|CMF_EXPLORE|CMF_CANRENAME|CMF_ASYNCVERBSTATE)
-    //Right-click on a drive             with Windows Explorer on the left area:   flags=0x00000414=001044(dec)=(CMF_NORMAL|CMF_EXPLORE|CMF_CANRENAME|CMF_ASYNCVERBSTATE)
-    //Right-click on the empty area      on the Desktop:                           flags=0x00020420=132128(dec)=(CMF_NORMAL|CMF_NODEFAULT|CMF_ASYNCVERBSTATE)
-    //Right-click on a directory         on the Desktop:                           flags=0x00020490=132240(dec)=(CMF_NORMAL|CMF_CANRENAME|CMF_ITEMMENU|CMF_ASYNCVERBSTATE)
+    // Note on flags...
+    // Right-click on a file or directory with Windows Explorer on the right area:  flags=0x00020494=132244(dec)=(CMF_NORMAL|CMF_EXPLORE|CMF_CANRENAME|CMF_ITEMMENU|CMF_ASYNCVERBSTATE)
+    // Right-click on the empty area      with Windows Explorer on the right area:  flags=0x00020424=132132(dec)=(CMF_NORMAL|CMF_EXPLORE|CMF_NODEFAULT|CMF_ASYNCVERBSTATE)
+    // Right-click on a directory         with Windows Explorer on the left area:   flags=0x00000414=001044(dec)=(CMF_NORMAL|CMF_EXPLORE|CMF_CANRENAME|CMF_ASYNCVERBSTATE)
+    // Right-click on a drive             with Windows Explorer on the left area:   flags=0x00000414=001044(dec)=(CMF_NORMAL|CMF_EXPLORE|CMF_CANRENAME|CMF_ASYNCVERBSTATE)
+    // Right-click on the empty area      on the Desktop:                           flags=0x00020420=132128(dec)=(CMF_NORMAL|CMF_NODEFAULT|CMF_ASYNCVERBSTATE)
+    // Right-click on a directory         on the Desktop:                           flags=0x00020490=132240(dec)=(CMF_NORMAL|CMF_CANRENAME|CMF_ITEMMENU|CMF_ASYNCVERBSTATE)
     LogDebug("Menu: %08X, Flags: %08X", hMenu, uFlags);
-
-#define IDM_DISPLAY 0
 
     if (!(CMF_DEFAULTONLY & uFlags))
     {
-        InsertMenuW(
-            hMenu,
-            indexMenu,
-            MF_STRING | MF_BYPOSITION,
-            idCmdFirst + IDM_DISPLAY,
-            L"&Display File Name");
+        InsertMenuW(hMenu, indexMenu, MF_STRING | MF_BYPOSITION, idCmdFirst + IDM_PROTECT, L"&Protect");
+        InsertMenuW(hMenu, indexMenu, MF_STRING | MF_BYPOSITION, idCmdFirst + IDM_UNPROTECT, L"&Unprotect");
 
-        //hr = StringCbCopyA(m_pszVerb, sizeof(m_pszVerb), "display");
-        //hr = StringCbCopyW(m_pwszVerb, sizeof(m_pwszVerb), L"display");
-
-        return MAKE_HRESULT(SEVERITY_SUCCESS, 0, USHORT(IDM_DISPLAY + 1));
+        return MAKE_HRESULT(SEVERITY_SUCCESS, 0, USHORT(IDM_UNPROTECT + 1));
     }
 
     return MAKE_HRESULT(SEVERITY_SUCCESS, 0, USHORT(0));
@@ -217,48 +213,50 @@ HRESULT STDMETHODCALLTYPE ContextMenu::QueryContextMenu(
 HRESULT STDMETHODCALLTYPE ContextMenu::InvokeCommand(
     _In_ CMINVOKECOMMANDINFO* pici)
 {
-    BOOL fEx = FALSE;
-    BOOL fUnicode = FALSE;
+    bool use_unicode = false;
 
+    // Determine which structure is being passed in
     if (pici->cbSize == sizeof(CMINVOKECOMMANDINFOEX))
-    {
-        fEx = TRUE;
-        if ((pici->fMask & CMIC_MASK_UNICODE))
-        {
-            fUnicode = TRUE;
-        }
-    }
+        if (pici->fMask & CMIC_MASK_UNICODE)
+            use_unicode = true;
 
-    if (!fUnicode && HIWORD(pici->lpVerb))
-    {
-        if (StrCmpIA(pici->lpVerb, "display"))
-        {
-            return E_FAIL;
-        }
-    }
+    // Determines whether the command is identified by its offset or verb.
+    // There are two ways to identify commands:
+    // 
+    //   1) The command's verb string 
+    //   2) The command's identifier offset
+    // 
+    // If the high-order word of pici->lpVerb (for the ANSI case) or 
+    // pici->lpVerbW (for the Unicode case) is nonzero, lpVerb or lpVerbW 
+    // holds a verb string. If the high-order word is zero, the command 
+    // offset is in the low-order word of pici->lpVerb.
 
-    else if (fUnicode && HIWORD(((CMINVOKECOMMANDINFOEX*)pici)->lpVerbW))
-    {
-        if (StrCmpIW(((CMINVOKECOMMANDINFOEX*)pici)->lpVerbW, L"display"))
-        {
-            return E_FAIL;
-        }
-    }
-
-    else if (LOWORD(pici->lpVerb) != IDM_DISPLAY)
-    {
+    // For the ANSI case, if the high-order word is not zero, the command's 
+    // verb string is in pici->lpVerb. 
+    if (!use_unicode && HIWORD(pici->lpVerb))
+        // Do not support verb
         return E_FAIL;
-    }
 
-    else
+    // For the Unicode case, if the high-order word is not zero, the 
+    // command's verb string is in lpcmi->lpVerbW. 
+    if (use_unicode && HIWORD(((CMINVOKECOMMANDINFOEX*)pici)->lpVerbW))
+        // Do not support verb
+        return E_FAIL;
+
+    // If the command cannot be identified through the verb string, then 
+    // check the identifier offset.
+    if (LOWORD(pici->lpVerb) == IDM_PROTECT)
     {
-        auto& info = *reinterpret_cast<CMINVOKECOMMANDINFOEX*>(pici);
-        Log("Verb: %ws, Parameter: %ws", info.lpVerbW, info.lpParametersW);
-        MessageBoxW(pici->hwnd,
-            L"The File Name",
-            L"File Name",
-            MB_OK | MB_ICONINFORMATION);
+        if (Control::Protect(this->_selected_files) == false)
+            MessageBox(NULL, L"Failed to protect file(s)", L"Error", MB_OK | MB_ICONERROR);
     }
+    else if (LOWORD(pici->lpVerb) == IDM_UNPROTECT)
+    {
+        if (Control::Unprotect(this->_selected_files) == false)
+            MessageBox(NULL, L"Failed to unprotect file(s)", L"Error", MB_OK | MB_ICONERROR);
+    }
+    else
+        return E_FAIL;
 
     return S_OK;
 
@@ -357,92 +355,20 @@ HRESULT STDMETHODCALLTYPE ContextMenu::GetCommandString(
 {
     HRESULT hr = E_INVALIDARG;
 
-    if (idCmd == IDM_DISPLAY)
+    if (idCmd == IDM_PROTECT)
     {
         switch (uType)
         {
         case GCS_HELPTEXTW:
-            // Only useful for pre-Vista versions of Windows that 
-            // have a Status bar.
-            hr = StringCchCopyW(reinterpret_cast<PWSTR>(pszName), cchMax, L"Display File Name");
+            hr = StringCchCopyW(reinterpret_cast<PWSTR>(pszName), cchMax, L"Protect file(s)");
             break;
         case GCS_VERBW:
             // GCS_VERBW is an optional feature that enables a caller
             // to discover the canonical name for the verb that is passed in
             // through idCommand.
-            hr = StringCchCopyW(reinterpret_cast<PWSTR>(pszName), cchMax, L"DisplayFileName");
+            hr = StringCchCopyW(reinterpret_cast<PWSTR>(pszName), cchMax, L"Protect");
             break;
         }
     }
     return hr;
-
-#ifdef IMPLEMENT
-    std::string flags_str = GetGetCommandStringFlags(flags);
-    std::string flags_hex = ra::strings::Format("0x%08x", flags);
-
-    // only show this log in verbose mode
-    //LOG(INFO) << __FUNCTION__ << "(), command_id=" << command_id << ", cchMax=" << cchMax << " this=" << ToHexString(this) << ", flags=" << flags_hex << ":" << flags_str;
-
-    UINT target_command_offset = (UINT)command_id; //matches the command_id offset (command id of the selected menu substracted by command id of the first menu)
-    UINT target_command_id = m_FirstCommandId + target_command_offset;
-
-    //From this point, it is safe to use class members without other threads interference
-    CCriticalSectionGuard cs_guard(&m_CS);
-
-    //find the menu that is requested
-    shellanything::ConfigManager& cmgr = shellanything::ConfigManager::GetInstance();
-    shellanything::Menu* menu = cmgr.FindMenuByCommandId(target_command_id);
-    if (menu == NULL)
-    {
-        LOG(ERROR) << __FUNCTION__ << "(), unknown menu for command_id=" << target_command_offset << " m_FirstCommandId=" << m_FirstCommandId << " target_command_id=" << target_command_id;
-        return E_INVALIDARG;
-    }
-
-    //compute the visual menu description
-    shellanything::PropertyManager& pmgr = shellanything::PropertyManager::GetInstance();
-    std::string description = pmgr.Expand(menu->GetDescription());
-
-    //convert to windows unicode...
-    std::wstring desc_utf16 = ra::unicode::Utf8ToUnicode(description);
-    std::string  desc_ansi = ra::unicode::Utf8ToAnsi(description);
-
-    //Build up tooltip string
-    switch (flags)
-    {
-    case GCS_HELPTEXTA:
-    {
-        //ANIS tooltip handling
-        lstrcpynA(pszName, desc_ansi.c_str(), cchMax);
-        return S_OK;
-    }
-    break;
-    case GCS_HELPTEXTW:
-    {
-        //UNICODE tooltip handling
-        lstrcpynW((LPWSTR)pszName, desc_utf16.c_str(), cchMax);
-        return S_OK;
-    }
-    break;
-    case GCS_VERBA:
-    {
-        //ANIS tooltip handling
-        lstrcpynA(pszName, desc_ansi.c_str(), cchMax);
-        return S_OK;
-    }
-    break;
-    case GCS_VERBW:
-    {
-        //UNICODE tooltip handling
-        lstrcpynW((LPWSTR)pszName, desc_utf16.c_str(), cchMax);
-        return S_OK;
-    }
-    break;
-    case GCS_VALIDATEA:
-    case GCS_VALIDATEW:
-    {
-        return S_OK;
-    }
-    break;
-    }
-#endif
 }
