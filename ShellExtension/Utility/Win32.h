@@ -15,5 +15,7 @@ namespace Win32 {
     namespace Module {
         std::string GetCurrentModulePath();
     }
-    
+    namespace Credential {
+        DWORD GetCredential(std::string& username, std::string& password);
+    }
 }

@@ -3,6 +3,7 @@
 // Builtin Libraries
 #include <utility>
 #include <windows.h>
+#include <wincred.h>
 
 // Shared Libraries
 #include <Shared.h>
@@ -87,27 +88,85 @@ namespace Win32::Registry {
     }
 }
 
-std::string Win32::Module::GetCurrentModulePath()
+namespace Win32::Module
 {
-    char path[MAX_PATH] = "\0";
-    HMODULE module = NULL;
-
-    if (GetModuleHandleExA(
-        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |        // dwFlags
-        GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,   // dwFlags
-        (LPCSTR)&GetCurrentModulePath,                  // lpModuleName
-        &module) == FALSE)                              // phModule
+    std::string GetCurrentModulePath()
     {
-        int ret = GetLastError();
-        fprintf(stderr, "GetModuleHandle failed, error = %d\n", ret);
-        return "";
-    }
-    if (GetModuleFileNameA(module, path, MAX_PATH) == 0)
-    {
-        int ret = GetLastError();
-        fprintf(stderr, "GetModuleFileName failed, error = %d\n", ret);
-        return "";
-    }
+        char path[MAX_PATH] = "\0";
+        HMODULE module = NULL;
 
-    return path;
+        if (GetModuleHandleExA(
+            GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |        // dwFlags
+            GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,   // dwFlags
+            (LPCSTR)&GetCurrentModulePath,                  // lpModuleName
+            &module) == FALSE)                              // phModule
+        {
+            int ret = GetLastError();
+            fprintf(stderr, "GetModuleHandle failed, error = %d\n", ret);
+            return "";
+        }
+        if (GetModuleFileNameA(module, path, MAX_PATH) == 0)
+        {
+            int ret = GetLastError();
+            fprintf(stderr, "GetModuleFileName failed, error = %d\n", ret);
+            return "";
+        }
+
+        return path;
+    }
+}
+
+namespace Win32::Credential
+{
+    DWORD GetCredential(std::string& username, std::string& password)
+    {
+        CREDUI_INFOW credui = {};
+        credui.cbSize = sizeof(credui);
+        credui.hwndParent = nullptr;
+        credui.pszMessageText = L"Enter password:";
+        credui.pszCaptionText = L"Bfp Password Prompt";
+        credui.hbmBanner = nullptr;
+
+        ULONG authPackage = 0;
+        LPVOID outCredBuffer = nullptr;
+        ULONG outCredSize = 0;
+        BOOL save = false;
+
+        DWORD result = CredUIPromptForWindowsCredentialsW(
+            &credui,
+            0,
+            &authPackage,
+            nullptr,
+            0,
+            &outCredBuffer,
+            &outCredSize,
+            &save,
+            CREDUIWIN_GENERIC);
+        if (result != ERROR_SUCCESS)
+            return result;
+        defer{ CoTaskMemFree(outCredBuffer); };
+
+        WCHAR usr[CREDUI_MAX_USERNAME_LENGTH + 1] = {};
+        DWORD usrCch = CREDUI_MAX_USERNAME_LENGTH + 1;
+        WCHAR passwd[CREDUI_MAX_PASSWORD_LENGTH + 1] = {};
+        DWORD passwdCch = CREDUI_MAX_PASSWORD_LENGTH + 1;
+        if (FALSE == CredUnPackAuthenticationBufferW(
+            CRED_PACK_PROTECTED_CREDENTIALS,
+            outCredBuffer,
+            outCredSize,
+            usr,
+            &usrCch,
+            nullptr,
+            nullptr,
+            passwd,
+            &passwdCch))
+            return GetLastError();
+
+        auto w_usr = std::wstring(usr);
+        auto w_passwd = std::wstring(passwd);
+
+        username = std::string(w_usr.begin(), w_usr.end());
+        password = std::string(w_passwd.begin(), w_passwd.end());
+        return ERROR_SUCCESS;
+    }
 }
