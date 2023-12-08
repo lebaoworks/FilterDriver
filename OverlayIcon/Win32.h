@@ -11,7 +11,7 @@ namespace Win32 {
         LSTATUS SetValueString(const std::string& key, const std::string& value, const std::string& data);
 
         LSTATUS CreateKey(const std::string& key, const std::string& default_value);
-        LSTATUS DeleteValue(const std::string& key, const std::string& value);
+        LSTATUS CheckValue(const std::string& key, const std::string& value);
     }
     namespace Module {
         std::string GetCurrentModulePath();

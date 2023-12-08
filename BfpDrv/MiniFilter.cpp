@@ -30,20 +30,11 @@ namespace MiniFilter
         return STATUS_SUCCESS;
     }
 
-    VOID FLTAPI FilterContextCleanup(
-        _In_ PFLT_CONTEXT Context,
-        _In_ FLT_CONTEXT_TYPE ContextType)
-    {
-        UNREFERENCED_PARAMETER(Context);
-        UNREFERENCED_PARAMETER(ContextType);
-    }
-
     FLT_PREOP_CALLBACK_STATUS FLTAPI FilterOperation_Pre_Create(
         _Inout_ PFLT_CALLBACK_DATA Data,
         _In_ PCFLT_RELATED_OBJECTS FltObjects,
         _In_ PVOID* CompletionContext)
     {
-        UNREFERENCED_PARAMETER(Data);
         UNREFERENCED_PARAMETER(FltObjects);
         UNREFERENCED_PARAMETER(CompletionContext);
 
@@ -66,42 +57,12 @@ namespace MiniFilter
         return FLT_PREOP_SUCCESS_WITH_CALLBACK;
     }
 
-    FLT_POSTOP_CALLBACK_STATUS FLTAPI FilterOperation_Post_Create(
-        _Inout_ PFLT_CALLBACK_DATA Data,
-        _In_ PCFLT_RELATED_OBJECTS FltObjects,
-        _In_opt_ PVOID CompletionContext,
-        _In_ FLT_POST_OPERATION_FLAGS Flags)
-    {
-        UNREFERENCED_PARAMETER(Data);
-        UNREFERENCED_PARAMETER(FltObjects);
-        UNREFERENCED_PARAMETER(CompletionContext);
-        UNREFERENCED_PARAMETER(Flags);
-
-        /*PFLT_FILE_NAME_INFORMATION file_name_info;
-        auto status = FltGetFileNameInformation(
-            Data,
-            FLT_FILE_NAME_NORMALIZED | FLT_FILE_NAME_QUERY_DEFAULT,
-            &file_name_info);
-        if (NT_SUCCESS(status))
-        {
-            defer{ FltReleaseFileNameInformation(file_name_info); };
-
-            FILE_ID fileId;
-            status = GetFileId(Data->Iopb->TargetInstance, Data->Iopb->TargetFileObject, fileId);
-            if (status == STATUS_SUCCESS)
-                Log("[FileId: %I64X] FileName: %wZ", fileId.FileId64.Value, file_name_info->Name);
-            else
-                Log("[FileId: ERROR: %X] FileName: %wZ", status, file_name_info->Name);
-        }*/
-        return FLT_POSTOP_FINISHED_PROCESSING;
-    }
-
     /* Static data declarations */
     static const FLT_CONTEXT_REGISTRATION FilterContextRegistration[] = {
         {
             FLT_FILE_CONTEXT,               //  ContextType
             0,                              //  Flags
-            FilterContextCleanup,           //  ContextCleanupCallback
+            NULL,                           //  ContextCleanupCallback
             FLT_VARIABLE_SIZED_CONTEXTS,    //  SizeOfContext
             'TLF0',                         //  PoolTag
             NULL,                           //  ContextAllocateCallback
@@ -116,7 +77,7 @@ namespace MiniFilter
             IRP_MJ_CREATE,                  //  MajorFunction
             0,                              //  Flags
             FilterOperation_Pre_Create,     //  PreOperation
-            FilterOperation_Post_Create,    //  PostOperation
+            NULL,                           //  PostOperation
         },
         { IRP_MJ_OPERATION_END }
     };

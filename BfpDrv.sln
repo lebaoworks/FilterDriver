@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BfpDrv", "BfpDrv\BfpDrv.vcx
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ShellExtension", "ShellExtension\ShellExtension.vcxproj", "{89DD1364-76A5-452A-AAE7-A59A5926AF78}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OverlayIcon", "OverlayIcon\OverlayIcon.vcxproj", "{E3C01473-656A-4D66-9469-1589AE9FDAD1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -35,6 +37,14 @@ Global
 		{89DD1364-76A5-452A-AAE7-A59A5926AF78}.Release|x64.Build.0 = Release|x64
 		{89DD1364-76A5-452A-AAE7-A59A5926AF78}.Release|x86.ActiveCfg = Release|x64
 		{89DD1364-76A5-452A-AAE7-A59A5926AF78}.Release|x86.Build.0 = Release|x64
+		{E3C01473-656A-4D66-9469-1589AE9FDAD1}.Debug|x64.ActiveCfg = Debug|x64
+		{E3C01473-656A-4D66-9469-1589AE9FDAD1}.Debug|x64.Build.0 = Debug|x64
+		{E3C01473-656A-4D66-9469-1589AE9FDAD1}.Debug|x86.ActiveCfg = Debug|Win32
+		{E3C01473-656A-4D66-9469-1589AE9FDAD1}.Debug|x86.Build.0 = Debug|Win32
+		{E3C01473-656A-4D66-9469-1589AE9FDAD1}.Release|x64.ActiveCfg = Release|x64
+		{E3C01473-656A-4D66-9469-1589AE9FDAD1}.Release|x64.Build.0 = Release|x64
+		{E3C01473-656A-4D66-9469-1589AE9FDAD1}.Release|x86.ActiveCfg = Release|Win32
+		{E3C01473-656A-4D66-9469-1589AE9FDAD1}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

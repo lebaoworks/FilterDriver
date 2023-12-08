@@ -58,6 +58,8 @@ NTSTATUS DriverEntry(
         return ret;
     }
 
+    DriverObject->DriverUnload = nullptr;
+
     return STATUS_SUCCESS;
 }
 

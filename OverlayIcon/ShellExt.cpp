@@ -5,8 +5,8 @@
 #include <ShlObj.h>
 
 // Shared Libraries
-#include <Shared.h>
-#include <Win32.h>
+#include "Shared.h"
+#include "Win32.h"
 
 
 static LONG _DllRefCount = 0;
@@ -111,13 +111,13 @@ namespace ShellExt::Setup
         }
 
         // Register the shell extension for all the file types
-        {
-            auto key = shared::format("HKEY_CLASSES_ROOT\\*\\shellex\\ContextMenuHandlers\\%s", class_name.c_str());
-            if (Win32::Registry::CreateKey(key, guid) != ERROR_SUCCESS)
-                return E_ACCESSDENIED;
-            printf("Registered %s -> %s\n", key.c_str(), guid.c_str());
-        }
-         
+        //{
+        //    auto key = shared::format("HKEY_CLASSES_ROOT\\*\\shellex\\ContextMenuHandlers\\%s", class_name.c_str());
+        //    if (Win32::Registry::CreateKey(key, guid) != ERROR_SUCCESS)
+        //        return E_ACCESSDENIED;
+        //    printf("Registered %s -> %s\n", key.c_str(), guid.c_str());
+        //}
+
         //// Register the shell extension for directories
         //{
         //    auto key = shared::format("HKEY_CLASSES_ROOT\\Directory\\shellex\\ContextMenuHandlers\\%s", class_name.c_str());
@@ -142,7 +142,7 @@ namespace ShellExt::Setup
         //    if (Win32::Registry::CreateKey(key, guid) != ERROR_SUCCESS)
         //        return E_ACCESSDENIED;
         //}
-         
+
         // Register the shell extension to the system's approved Shell Extensions
         {
             auto key = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Shell Extensions\\Approved";
@@ -154,12 +154,12 @@ namespace ShellExt::Setup
         }
 
         // Register the shell extension to the system's approved Shell Extensions
-        //{
-        //    auto key = shared::format("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers\\%s", class_name.c_str());
-        //    if (Win32::Registry::CreateKey(key, guid) != ERROR_SUCCESS)
-        //        return E_ACCESSDENIED;
-        //    printf("Registered Overlay Icon %s -> %s\n", key.c_str(), guid.c_str());
-        //}
+        {
+            auto key = shared::format("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ShellIconOverlayIdentifiers\\%s", class_name.c_str());
+            if (Win32::Registry::CreateKey(key, guid) != ERROR_SUCCESS)
+                return E_ACCESSDENIED;
+            printf("Registered Overlay Icon %s -> %s\n", key.c_str(), guid.c_str());
+        }
 
         SHChangeNotify(SHCNE_ASSOCCHANGED, 0, 0, 0);
         return ERROR_SUCCESS;

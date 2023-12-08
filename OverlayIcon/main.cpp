@@ -3,25 +3,26 @@
 #pragma comment(linker, "/export:DllCanUnloadNow,PRIVATE")
 #pragma comment(linker, "/export:DllRegisterServer,PRIVATE")
 #pragma comment(linker, "/export:DllUnregisterServer,PRIVATE")
+#pragma comment(linker, "/export:DllInstall,PRIVATE")
 
 #include "main.h"
 
-// Builtin Libraries
-/// C++
-#include <memory>
-/// Windows
-#include <Windows.h>
-#include <atlbase.h>
-#include <atlcom.h>
-
-// Shared Libraries
-#include <Shared.h>
-#include <ShellExt.h>
-#include <Win32.h>
+#include "Shared.h"
+#include "ShellExt.h"
+#include "Win32.h"
 
 #include "ClassFactory.h"
 
-//CComModule _Module;
+
+_Check_return_
+STDAPI DllInstall(
+    BOOL   bInstall,
+    PCWSTR pszCmdLine
+)
+{
+    return S_OK;
+}
+
 
 HRESULT WINAPI DllMain(
     _In_ HMODULE hModule,
@@ -104,14 +105,4 @@ STDAPI DllUnregisterServer(void)
         return E_UNEXPECTED;
     }
     return S_OK;
-}
-
-
-int main(int argc, char**argv)
-{
-    if (std::string(argv[1]) == "install")
-        printf("Install -> %d", ShellExt::Setup::Install(Win32::Module::GetCurrentModulePath(), ShellExt::GuidToString(CLSID_ShellMenu), SHELL_EXTENSION_CLASS_NAME));
-    if (std::string(argv[1]) == "uninstall")
-        printf("Uninstall -> %d", ShellExt::Setup::Uninstall(ShellExt::GuidToString(CLSID_ShellMenu)));
-    return 0;
 }

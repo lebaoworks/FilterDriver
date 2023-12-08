@@ -46,4 +46,16 @@ public:
         _Reserved_ UINT*,
         _Out_writes_bytes_((uType& GCS_UNICODE) ? (cchMax * sizeof(wchar_t)) : cchMax) _When_(!(uType& (GCS_VALIDATEA | GCS_VALIDATEW)), _Null_terminated_) CHAR* pszName,
         _In_       UINT        cchMax);
+
+    // IShellIconOverlayIdentifier interface
+    HRESULT STDMETHODCALLTYPE GetOverlayInfo(
+        _Out_ LPWSTR pwszIconFile,
+        _In_ int cchMax,
+        _Out_ int* pIndex,
+        _Out_ DWORD* pdwFlags);
+    HRESULT STDMETHODCALLTYPE GetPriority(
+        _Out_ int* pPriority);
+    HRESULT STDMETHODCALLTYPE IsMemberOf(
+        _In_ LPCWSTR pwszPath,
+        _In_ DWORD dwAttrib);
 };

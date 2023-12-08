@@ -6,7 +6,7 @@
 #include <wincred.h>
 
 // Shared Libraries
-#include <Shared.h>
+#include "Shared.h"
 
 
 namespace Win32::Registry {
@@ -86,15 +86,17 @@ namespace Win32::Registry {
             return ret;
         return SetValueString(key, "", default_value);
     }
-
-    LSTATUS DeleteValue(const std::string& key, const std::string& value)
+    LSTATUS CheckValue(const std::string& key, const std::string& value)
     {
         HKEY h;
         auto ret = OpenKey(key, h);
         if (ret != ERROR_SUCCESS)
             return ret;
         defer{ RegCloseKey(h); };
-        return RegDeleteValueA(h, value.c_str());
+        BYTE buffer[1024];
+        DWORD size = 1024;
+        DWORD type = REG_SZ;
+        return RegQueryValueExA(h, value.c_str(), NULL, &type, buffer, &size);
     }
 }
 

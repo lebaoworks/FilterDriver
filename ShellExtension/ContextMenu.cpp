@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_WARNINGS
+
 #include "ContextMenu.h"
 
 // Built-in Libraries
@@ -216,4 +218,46 @@ HRESULT STDMETHODCALLTYPE ContextMenu::GetCommandString(
         }
     }
     return hr;
+}
+
+
+// IContextMenu
+// ============
+
+//HRESULT STDMETHODCALLTYPE ContextMenu::GetOverlayInfo(
+//    _Out_ LPWSTR pwszIconFile,
+//    _In_ int cchMax,
+//    _Out_ int* pIndex,
+//    _Out_ DWORD* pdwFlags)
+//{
+//    LogDebug("GetOverlayInfo");
+//    StringCchCopyNW(pwszIconFile, cchMax, LR"(C:\Users\test\Desktop\Artifact\OverlayIcon.ico)", 14);
+//    *pIndex = 0;
+//    *pdwFlags = ISIOI_ICONFILE | ISIOI_ICONINDEX;
+//    return S_OK;
+//}
+HRESULT STDMETHODCALLTYPE ContextMenu::GetPriority(
+    _Out_ int* pPriority)
+{
+    if (!pPriority)
+        return E_POINTER;
+    *pPriority = 0;
+    return S_OK;
+}
+HRESULT STDMETHODCALLTYPE ContextMenu::IsMemberOf(
+    _In_ LPCWSTR pwszPath,
+    _In_ DWORD dwAttrib)
+{
+    LogDebug("IsMemberOf: %ws", pwszPath);
+
+    //wchar_t* s = _wcsdup(pwszPath);
+    HRESULT r = S_OK;
+
+    //_wcslwr(s);
+    //// Criteria
+    //if (wcsstr(s, L"protect_me") != 0)
+    //    r = S_OK;
+    //free(s);
+
+    return r;
 }

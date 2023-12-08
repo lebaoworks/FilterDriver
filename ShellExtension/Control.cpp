@@ -68,7 +68,10 @@ bool Control::Protect(const std::vector<std::wstring>& paths) noexcept
             wcscpy_s(message.Body.DosPath, path.c_str());
             connection.Send(message);
             Log("Protected %ws", path.c_str());
+            
+            Win32::Registry::SetValueString("HKEY_CURRENT_USER\\Protected", std::string(path.begin(), path.end()), "asd");
         }
+        
         return true;
     }
     catch (std::exception& e)
@@ -98,6 +101,8 @@ bool Control::Unprotect(const std::vector<std::wstring>& paths) noexcept
             wcscpy_s(message.Body.DosPath, path.c_str());
             connection.Send(message);
             Log("Unprotected %ws", path.c_str());
+
+            Win32::Registry::DeleteValue("HKEY_CURRENT_USER\\Protected", std::string(path.begin(), path.end()));
         }
         return true;
     }
