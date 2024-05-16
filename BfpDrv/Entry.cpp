@@ -1,6 +1,6 @@
 #include <fltKernel.h>
 
-#include <Shared.h>
+#include <base.h>
 #include <Win32.h>
 #include <Communication.h>
 
@@ -43,14 +43,12 @@ NTSTATUS DriverEntry(
 
     // Set up the unload routine
     DriverObject->DriverUnload = DriverUnload;
-    //DriverObject->MajorFunction[IRP_MJ_CREATE] = DefaultDispatch;
-    //DriverObject->MajorFunction[IRP_MJ_CLOSE] = DefaultDispatch;
 
     _Driver = new Driver(DriverObject, RegistryPath, &_ComportName);
     if (_Driver == nullptr)
         return STATUS_NO_MEMORY;
 
-    auto ret = _Driver->error();
+    auto ret = _Driver->status();
     Log("Setup Driver -> Status: %X", ret);
     if (ret != STATUS_SUCCESS)
     {
@@ -59,6 +57,8 @@ NTSTATUS DriverEntry(
     }
 
     DriverObject->DriverUnload = nullptr;
+
+    base::object_failable<Driver> x;
 
     return STATUS_SUCCESS;
 }
@@ -77,17 +77,3 @@ VOID DriverUnload(_In_ DRIVER_OBJECT* DriverObject)
 
     Log("Done");
 }
-
-//_Function_class_(DRIVER_DISPATCH)
-//_IRQL_requires_max_(DISPATCH_LEVEL)
-//_IRQL_requires_same_
-//NTSTATUS DefaultDispatch(
-//    _In_ struct _DEVICE_OBJECT* DeviceObject,
-//    _Inout_ struct _IRP* Irp)
-//{
-//    UNREFERENCED_PARAMETER(DeviceObject);
-//    Irp->IoStatus.Status = STATUS_SUCCESS;
-//    Irp->IoStatus.Information = 0;
-//    IoCompleteRequest(Irp, IO_NO_INCREMENT);
-//    return STATUS_SUCCESS;
-//}

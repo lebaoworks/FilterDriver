@@ -1,19 +1,9 @@
 #pragma once
 
-namespace std {
-    // Convert object to rvalue
-    template<typename T>
-    inline T&& move(T& obj) noexcept { return static_cast<T&&>(obj); }
 
-    // Convert object to rvalue
-    template<typename T>
-    inline T&& move(T&& obj) noexcept { return static_cast<T&&>(obj); }
-
-    // Swap objects' value
-    template<typename T>
-    inline void swap(T& a, T& b) noexcept { auto x = move(a); a = move(b); b = move(x); }
-    
-    // [Warning] Only for single object
+// Unique ptr
+namespace mem
+{
     template<typename T>
     class unique_ptr
     {
@@ -52,6 +42,7 @@ namespace std {
         inline bool operator<=(const unique_ptr& other) const { return _ptr <= other._ptr; }
         inline bool operator>=(const unique_ptr& other) const { return _ptr >= other._ptr; }
     };
+    
 
     // [Warning] Only for single object
     template<typename T, typename... Args>

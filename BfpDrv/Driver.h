@@ -1,12 +1,14 @@
 #pragma once
 
-#include <Shared.h>
-#include "MiniFilter.h"
+#include <fltKernel.h>
 
-class Driver : public failable_object<NTSTATUS>
+#include <base.h>
+//#include "MiniFilter.h"
+
+class Driver : public base::failable
 {
 private:
-    std::unique_ptr<MiniFilter::Filter> _filter;
+    //std::unique_ptr<MiniFilter::Filter> _filter;
 public:
     Driver(
         _Inout_ DRIVER_OBJECT*  DriverObject,
