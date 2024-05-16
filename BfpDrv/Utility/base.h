@@ -7,7 +7,7 @@
 *        Base        *
 *********************/
 
-__drv_allocatesMem(Mem)
+__drv_allocatesMem(object)
 _Check_return_
 _Ret_maybenull_
 _Post_writable_byte_size_(size)
@@ -16,7 +16,7 @@ void* _cdecl operator new(_In_ size_t size);
 _Ret_notnull_
 void* _cdecl operator new(_In_ size_t size, _Inout_updates_(size) void* buffer);
 
-void _cdecl operator delete(_Pre_notnull_ __drv_freesMem(Mem) void* object);
+void _cdecl operator delete(_Pre_notnull_ __drv_freesMem(object) void* object);
 
 void _cdecl operator delete(_Inout_updates_(size) void* object, _In_ size_t size);
 
@@ -52,16 +52,16 @@ namespace logging
         _In_z_ const char* format,
         _In_z_ T&... args)
     {
-        CHAR* buffer = reinterpret_cast<CHAR*>(ExAllocatePool2(POOL_FLAG_NON_PAGED, 256, 'gol0'));
+        CHAR* buffer = reinterpret_cast<CHAR*>(ExAllocatePool2(POOL_FLAG_NON_PAGED, 512, 'gol0'));
         if (buffer == NULL)
             return;
         defer { ExFreePool(buffer); };
 
-        if (RtlStringCchCopyA(buffer, 256, "[%4d:%2d:%2d-%2d:%2d:%2d] ") != STATUS_SUCCESS)
+        if (RtlStringCchCopyA(buffer, 512, "[%4d:%2d:%2d-%2d:%2d:%2d] ") != STATUS_SUCCESS)
             return;
-        if (RtlStringCchCopyA(buffer, 256, caller) != STATUS_SUCCESS)
+        if (RtlStringCchCatA(buffer, 512, caller) != STATUS_SUCCESS)
             return;
-        if (RtlStringCchCatA(buffer, 256, format) != STATUS_SUCCESS)
+        if (RtlStringCchCatA(buffer, 512, format) != STATUS_SUCCESS)
             return;
 
         LARGE_INTEGER time_stamp;
@@ -72,7 +72,7 @@ namespace logging
         DbgPrintEx(
             DPFLTR_IHVDRIVER_ID,
             0,
-            format,
+            buffer,
             time.Year, time.Month, time.Day,
             time.Hour, time.Minute, time.Second,
             args...);
@@ -80,7 +80,7 @@ namespace logging
 
 }
 
-#define Log(format, ...) logging::log_caller(__FUNCTION__, format"\n", __VA_ARGS__)
+#define Log(format, ...) logging::log_caller(__FUNCTION__"() ", format"\n", __VA_ARGS__)
 
 //#include <C++/memory.h>
 //#include <C++/list.h>
@@ -125,9 +125,4 @@ namespace logging
 //
 //    UNICODE_STRING& raw();
 //};
-
-/*********************
-*       Logging      *
-*********************/
-
 

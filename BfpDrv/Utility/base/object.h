@@ -3,9 +3,10 @@
 #include <ntdef.h>
 #include <ntstatus.h>
 
-// Reference: https://stackoverflow.com/questions/37031844/logic-of-stdis-base-of-in-c-11
+
 namespace base
 {
+    // Reference: https://stackoverflow.com/questions/37031844/logic-of-stdis-base-of-in-c-11
     namespace detail
     {
         template<typename D, typename B>
@@ -22,7 +23,6 @@ namespace base
         };
 
     }
-    
     template <class C, class P>
     constexpr bool is_derived_from() { return detail::derived_helper<C, P>::Is; }
 }
@@ -40,20 +40,45 @@ namespace base
     };
     
     template<typename T>
-    class object_failable
+    struct object_failable
     {
         static_assert(is_derived_from<T, failable>());
     private:
         T* _ptr = nullptr;
-        NTSTATUS _status = STATUS_SUCCESS;
+        NTSTATUS _status = STATUS_UNSUCCESSFUL;
     public:
+        
         // Constructors
-        //unique_ptr() noexcept {}
-        //unique_ptr(T* p) noexcept : _ptr(p) {}
-        //unique_ptr(const unique_ptr<T>& uptr) = delete;
-        //unique_ptr(unique_ptr<T>&& uptr) noexcept : _ptr(uptr._ptr) { uptr._ptr = nullptr; }
-        //~unique_ptr() { if (_ptr != nullptr) delete _ptr; }
+        object_failable() noexcept {}
+        //object_failable(T* p) noexcept : _ptr(p) {}
+        //object_failable(const object_failable<T>& uptr) = delete;
+        //object_failable(unique_ptr<T>&& uptr) noexcept : _ptr(uptr._ptr) { uptr._ptr = nullptr; }
+        //~object_failable() { if (_ptr != nullptr) delete _ptr; }
 
+
+        template<typename... Args>
+        object_failable(const Args&... args)
+        {
+            _ptr = new T(args...);
+            if (_ptr == nullptr)
+            {
+                _status = STATUS_NO_MEMORY;
+                return;
+            }
+            if (_ptr->status() != STATUS_SUCCESS)
+            {
+                _status = _ptr->status();
+                delete _ptr;
+                return;
+            }
+            _status = STATUS_SUCCESS;
+        }
+        inline ~object_failable() { if (_status == STATUS_SUCCESS) delete _ptr; }
+
+        inline NTSTATUS status() { return _status; };
+        
+        
+        
         //// Assignments
         //inline unique_ptr<T>& operator=(unique_ptr<T>&& uptr) noexcept { std::swap(_ptr, uptr._ptr); return *this; }
         //unique_ptr<T>& operator=(const unique_ptr<T>& uptr) = delete;

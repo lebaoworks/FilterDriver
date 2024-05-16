@@ -24,7 +24,7 @@ DRIVER_UNLOAD DriverUnload;
 *     Global Vars    *
 *********************/
 
-static Driver* _Driver = nullptr;
+static Driver* _Driver;
 static UNICODE_STRING _ComportName = RTL_CONSTANT_STRING(COMPORT_NAME);
 
 
@@ -39,27 +39,26 @@ NTSTATUS DriverEntry(
     _In_ DRIVER_OBJECT* DriverObject,
     _In_ UNICODE_STRING* RegistryPath)
 {
-    Log("Initializing... %wZ", RegistryPath);
+    Log("Loading... %wZ", RegistryPath);
 
     // Set up the unload routine
     DriverObject->DriverUnload = DriverUnload;
 
+    NTSTATUS status = STATUS_SUCCESS;
+
     _Driver = new Driver(DriverObject, RegistryPath, &_ComportName);
     if (_Driver == nullptr)
         return STATUS_NO_MEMORY;
+    defer { if (status != STATUS_SUCCESS) delete _Driver; };
 
-    auto ret = _Driver->status();
-    Log("Setup Driver -> Status: %X", ret);
-    if (ret != STATUS_SUCCESS)
+    status = _Driver->status();
+    if (status != STATUS_SUCCESS)
     {
-        delete _Driver;
-        return ret;
-    }
+        Log("Construct driver status -> %X", status);
+        return status;
+    };
 
-    DriverObject->DriverUnload = nullptr;
-
-    base::object_failable<Driver> x;
-
+    Log("Done!");
     return STATUS_SUCCESS;
 }
 
@@ -70,10 +69,9 @@ VOID DriverUnload(_In_ DRIVER_OBJECT* DriverObject)
 {
     UNREFERENCED_PARAMETER(DriverObject);
 
-    Log("Uninstalling...");
+    Log("Unloading...");
 
-    if (_Driver != nullptr)
-        delete _Driver;
+    delete _Driver;
 
-    Log("Done");
+    Log("Done!");
 }
