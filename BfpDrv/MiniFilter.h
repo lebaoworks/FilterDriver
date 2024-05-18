@@ -1,51 +1,51 @@
-//#pragma once
-//
-//#include <fltKernel.h>
-//
-//#include <Shared.h>
+#pragma once
+
+#include <fltKernel.h>
+
+#include <base.h>
 //#include <Communication.h>
-//
-//// Forward declarations
-//namespace MiniFilter
-//{
-//    class Filter;
-//    class Port;
-//    class Connection;
-//    class Authenticator;
-//}
-//
-//namespace MiniFilter
-//{
-//    class Filter : public failable_object<NTSTATUS>
-//    {
-//    private:
-//        PFLT_FILTER _filter = NULL;
-//        
-//        std::unique_ptr<Authenticator> _authenticator;
-//
-//        std::list<Port> _ports;
-//        std::list<Connection> _connections;
-//        eresource_lock _connections_lock;
-//
-//        std::list<std::wstring> _protected_files;
-//        eresource_lock _protected_files_lock;
-//
-//    public:
-//        Filter(_In_ DRIVER_OBJECT* DriverObject);
-//        ~Filter();
-//
-//        NTSTATUS InitAuthenticator();
-//
-//        NTSTATUS OpenPort(_In_ UNICODE_STRING* PortName);
-//        NTSTATUS OnConnect(_In_ PFLT_PORT ClientPort, _In_ const Communication::Credential& Credential);
-//        void OnDisconnect(_In_ PFLT_PORT ClientPort);
-//
-//        NTSTATUS AddProtectedFile(_In_ const WCHAR* FileName);
-//        NTSTATUS RemoveProtectedFile(_In_ const WCHAR* FileName);
-//        bool IsFileProtected(_In_ UNICODE_STRING* FileName);
-//    };
-//}
-//
+
+// Forward declarations
+namespace MiniFilter
+{
+    class Filter;
+    class Port;
+    class Connection;
+    class Authenticator;
+}
+
+namespace MiniFilter
+{
+    class Filter : public failable
+    {
+    private:
+        PFLT_FILTER _filter = NULL;
+        
+        //std::unique_ptr<Authenticator> _authenticator;
+
+        //std::list<Port> _ports;
+        //std::list<Connection> _connections;
+        //eresource_lock _connections_lock;
+
+        //std::list<std::wstring> _protected_files;
+        //eresource_lock _protected_files_lock;
+
+    public:
+        Filter(_In_ DRIVER_OBJECT* DriverObject);
+        ~Filter();
+
+        //NTSTATUS InitAuthenticator();
+
+        //NTSTATUS OpenPort(_In_ UNICODE_STRING* PortName);
+        //NTSTATUS OnConnect(_In_ PFLT_PORT ClientPort, _In_ const Communication::Credential& Credential);
+        //void OnDisconnect(_In_ PFLT_PORT ClientPort);
+
+        //NTSTATUS AddProtectedFile(_In_ const WCHAR* FileName);
+        //NTSTATUS RemoveProtectedFile(_In_ const WCHAR* FileName);
+        //bool IsFileProtected(_In_ UNICODE_STRING* FileName);
+    };
+}
+
 //namespace MiniFilter
 //{
 //    class Port : public failable_object<NTSTATUS>

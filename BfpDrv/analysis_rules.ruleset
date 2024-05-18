@@ -87,42 +87,42 @@
     <Rule Id="C26115" Action="None" />
     <Rule Id="C26116" Action="None" />
     <Rule Id="C26117" Action="None" />
-    <Rule Id="C26140" Action="Warning" />
+    <Rule Id="C26140" Action="None" />
     <Rule Id="C26400" Action="None" />
-    <Rule Id="C26401" Action="Warning" />
-    <Rule Id="C26402" Action="Warning" />
-    <Rule Id="C26403" Action="Warning" />
-    <Rule Id="C26404" Action="Warning" />
-    <Rule Id="C26405" Action="Warning" />
-    <Rule Id="C26406" Action="Warning" />
-    <Rule Id="C26407" Action="Warning" />
-    <Rule Id="C26408" Action="Warning" />
+    <Rule Id="C26401" Action="None" />
+    <Rule Id="C26402" Action="None" />
+    <Rule Id="C26403" Action="None" />
+    <Rule Id="C26404" Action="None" />
+    <Rule Id="C26405" Action="None" />
+    <Rule Id="C26406" Action="None" />
+    <Rule Id="C26407" Action="None" />
+    <Rule Id="C26408" Action="None" />
     <Rule Id="C26409" Action="None" />
-    <Rule Id="C26410" Action="Warning" />
-    <Rule Id="C26411" Action="Warning" />
-    <Rule Id="C26414" Action="Warning" />
-    <Rule Id="C26415" Action="Warning" />
-    <Rule Id="C26416" Action="Warning" />
-    <Rule Id="C26417" Action="Warning" />
-    <Rule Id="C26418" Action="Warning" />
-    <Rule Id="C26426" Action="Warning" />
-    <Rule Id="C26427" Action="Warning" />
-    <Rule Id="C26429" Action="Warning" />
-    <Rule Id="C26430" Action="Warning" />
-    <Rule Id="C26431" Action="Warning" />
+    <Rule Id="C26410" Action="None" />
+    <Rule Id="C26411" Action="None" />
+    <Rule Id="C26414" Action="None" />
+    <Rule Id="C26415" Action="None" />
+    <Rule Id="C26416" Action="None" />
+    <Rule Id="C26417" Action="None" />
+    <Rule Id="C26418" Action="None" />
+    <Rule Id="C26426" Action="None" />
+    <Rule Id="C26427" Action="None" />
+    <Rule Id="C26429" Action="None" />
+    <Rule Id="C26430" Action="None" />
+    <Rule Id="C26431" Action="None" />
     <Rule Id="C26432" Action="None" />
-    <Rule Id="C26433" Action="Warning" />
-    <Rule Id="C26434" Action="Warning" />
-    <Rule Id="C26435" Action="Warning" />
-    <Rule Id="C26436" Action="Warning" />
+    <Rule Id="C26433" Action="None" />
+    <Rule Id="C26434" Action="None" />
+    <Rule Id="C26435" Action="None" />
+    <Rule Id="C26436" Action="None" />
     <Rule Id="C26437" Action="None" />
-    <Rule Id="C26438" Action="Warning" />
+    <Rule Id="C26438" Action="None" />
     <Rule Id="C26439" Action="None" />
     <Rule Id="C26440" Action="None" />
     <Rule Id="C26441" Action="None" />
-    <Rule Id="C26443" Action="Warning" />
-    <Rule Id="C26444" Action="Warning" />
-    <Rule Id="C26445" Action="Warning" />
+    <Rule Id="C26443" Action="None" />
+    <Rule Id="C26444" Action="None" />
+    <Rule Id="C26445" Action="None" />
     <Rule Id="C26446" Action="None" />
     <Rule Id="C26447" Action="None" />
     <Rule Id="C26448" Action="None" />
@@ -305,7 +305,6 @@
     <Rule Id="C6101" Action="Warning" />
     <Rule Id="C6200" Action="Warning" />
     <Rule Id="C6201" Action="Warning" />
-    <Rule Id="C6211" Action="Warning" />
     <Rule Id="C6214" Action="Warning" />
     <Rule Id="C6215" Action="Warning" />
     <Rule Id="C6216" Action="Warning" />
@@ -368,17 +367,15 @@
     <Rule Id="C6305" Action="Warning" />
     <Rule Id="C6306" Action="Warning" />
     <Rule Id="C6308" Action="Warning" />
-    <Rule Id="C6310" Action="Warning" />
-    <Rule Id="C6312" Action="Warning" />
+    <Rule Id="C6310" Action="None" />
+    <Rule Id="C6312" Action="None" />
     <Rule Id="C6313" Action="Warning" />
     <Rule Id="C6314" Action="Warning" />
     <Rule Id="C6315" Action="Warning" />
     <Rule Id="C6316" Action="Warning" />
     <Rule Id="C6317" Action="Warning" />
-    <Rule Id="C6318" Action="Warning" />
+    <Rule Id="C6318" Action="None" />
     <Rule Id="C6319" Action="Warning" />
-    <Rule Id="C6320" Action="Warning" />
-    <Rule Id="C6322" Action="Warning" />
     <Rule Id="C6323" Action="Warning" />
     <Rule Id="C6324" Action="Warning" />
     <Rule Id="C6326" Action="Warning" />

@@ -1,5 +1,29 @@
-//#include "Win32.h"
+#include "krn.h"
+
+/*********************
+*         C++        *
+*********************/
+
 //
+//unicode_string::unicode_string(size_t size)
+//{
+//    _raw.Length = 0;
+//    _raw.MaximumLength = (USHORT)size;
+//    _raw.Buffer = new WCHAR[size/2+1];
+//    if (_raw.Buffer == nullptr)
+//        failable_object::_error = true;
+//}
+//unicode_string::~unicode_string()
+//{
+//    if (!error())
+//        delete[]_raw.Buffer;
+//}
+//UNICODE_STRING& unicode_string::raw()
+//{
+//    return _raw;
+//}
+
+ 
 //namespace Win32::Registry
 //{
 //    NTSTATUS OpenKey(_In_ UNICODE_STRING* KeyPath, _In_ ACCESS_MASK DesiredAccess, _Out_ HANDLE* Handle)

@@ -20,9 +20,6 @@
     <Filter Include="Utility\C++">
       <UniqueIdentifier>{ff97a810-3181-49b5-8909-efb351957192}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Utility\base">
-      <UniqueIdentifier>{acdf056a-0ad1-4225-a449-fe67e6df5b14}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Inf Include="BfpDrv.inf">
@@ -54,7 +51,7 @@
     <ClInclude Include="Utility\C++\vector.h">
       <Filter>Utility\C++</Filter>
     </ClInclude>
-    <ClInclude Include="Utility\Win32.h">
+    <ClInclude Include="Utility\krn.h">
       <Filter>Utility</Filter>
     </ClInclude>
     <ClInclude Include="Utility\C++\mutex.h">
@@ -63,17 +60,8 @@
     <ClInclude Include="Utility\Hash.h">
       <Filter>Utility</Filter>
     </ClInclude>
-    <ClInclude Include="Utility\base\defer.h">
-      <Filter>Utility\base</Filter>
-    </ClInclude>
-    <ClInclude Include="Utility\base\object.h">
-      <Filter>Utility\base</Filter>
-    </ClInclude>
-    <ClInclude Include="Utility\base\tag.h">
-      <Filter>Utility\base</Filter>
-    </ClInclude>
-    <ClInclude Include="Utility\base\memory.h">
-      <Filter>Utility\base</Filter>
+    <ClInclude Include="Utility\C++\memory.h">
+      <Filter>Utility\C++</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -89,7 +77,7 @@
     <ClCompile Include="Driver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Utility\Win32.cpp">
+    <ClCompile Include="Utility\krn.cpp">
       <Filter>Utility</Filter>
     </ClCompile>
     <ClCompile Include="Utility\Hash.cpp">

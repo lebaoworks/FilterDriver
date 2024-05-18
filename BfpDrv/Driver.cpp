@@ -5,8 +5,16 @@ Driver::Driver(
     _In_    UNICODE_STRING* RegistryPath,
     _In_    UNICODE_STRING* ComportName)
 {
-    Log("Setup DriverObject: %p, RegistryPath: %wZ, ComportName: %wZ", DriverObject, RegistryPath, ComportName);
+    LogDebug("Setup DriverObject: %p, RegistryPath: %wZ, ComportName: %wZ", DriverObject, RegistryPath, ComportName);
+    auto& status = failable::_status;
 
+    _filter = object<MiniFilter::Filter>(DriverObject);
+    status = _filter.status();
+    if (status != STATUS_SUCCESS)
+    {
+        LogDebug("object failable -> %X", status);
+        return;
+    }
     //auto status = STATUS_SUCCESS;
     //defer{ failable_object<NTSTATUS>::_error = status; }; // set error code
 
@@ -36,7 +44,7 @@ Driver::Driver(
 
 Driver::~Driver()
 {
-    if (failable::status() != STATUS_SUCCESS)
+    if (this->status() != STATUS_SUCCESS)
         return;
 
     //_filter.reset(nullptr);

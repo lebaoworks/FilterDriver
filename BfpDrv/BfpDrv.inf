@@ -10,7 +10,7 @@ ClassGuid   = {b86dff51-a31e-4bac-b3cf-e8cfe75c9fc2}
 Provider    = %ProviderString%
 DriverVer   = 06/01/2023,1.0.0.0
 CatalogFile = BfpDrv.cat
-PnpLockDown = 1
+PnpLockDown = 0
 
 [DestinationDirs]
 DefaultDestDir      = 12

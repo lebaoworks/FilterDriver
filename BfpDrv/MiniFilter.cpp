@@ -1,264 +1,274 @@
-//#include "MiniFilter.h"
-//
-//#include <fltKernel.h>
-//#include <ntstrsafe.h>
-//
-//#include <Shared.h>
+#include "MiniFilter.h"
+
 //#include <Win32.h>
 //#include <Hash.h>
 //#include <Communication.h>
 //
-//// Filter
-//namespace MiniFilter
-//{
-//    static Filter* g_filter = nullptr;
-//
-//    NTSTATUS FLTAPI FilterUnload(_In_ FLT_FILTER_UNLOAD_FLAGS Flags)
-//    {
-//        Log("");
-//        UNREFERENCED_PARAMETER(Flags);
-//        return STATUS_SUCCESS;
-//    }
-//
-//    NTSTATUS FLTAPI FilterQueryTeardown(
-//        _In_ PCFLT_RELATED_OBJECTS FltObjects,
-//        _In_ FLT_INSTANCE_QUERY_TEARDOWN_FLAGS Flags)
-//    {
-//        Log("");
-//        UNREFERENCED_PARAMETER(FltObjects);
-//        UNREFERENCED_PARAMETER(Flags);
-//        return STATUS_SUCCESS;
-//    }
-//
-//    FLT_PREOP_CALLBACK_STATUS FLTAPI FilterOperation_Pre_Create(
-//        _Inout_ PFLT_CALLBACK_DATA Data,
-//        _In_ PCFLT_RELATED_OBJECTS FltObjects,
-//        _In_ PVOID* CompletionContext)
-//    {
-//        UNREFERENCED_PARAMETER(FltObjects);
-//        UNREFERENCED_PARAMETER(CompletionContext);
-//
-//        PFLT_FILE_NAME_INFORMATION file_name_info;
-//        auto status = FltGetFileNameInformation(
-//            Data,
-//            FLT_FILE_NAME_NORMALIZED | FLT_FILE_NAME_QUERY_DEFAULT,
-//            &file_name_info);
-//        if (NT_SUCCESS(status))
-//        {
-//            defer{ FltReleaseFileNameInformation(file_name_info); };
-//            
-//            if (g_filter->IsFileProtected(&file_name_info->Name))
-//            {
-//                Log("[Denied] FileName: %wZ", &file_name_info->Name);
-//                Data->IoStatus.Status = STATUS_ACCESS_DENIED;
-//                return FLT_PREOP_COMPLETE;
-//            }
-//        }
-//        return FLT_PREOP_SUCCESS_WITH_CALLBACK;
-//    }
-//
-//    /* Static data declarations */
-//    static const FLT_CONTEXT_REGISTRATION FilterContextRegistration[] = {
-//        {
-//            FLT_FILE_CONTEXT,               //  ContextType
-//            0,                              //  Flags
-//            NULL,                           //  ContextCleanupCallback
-//            FLT_VARIABLE_SIZED_CONTEXTS,    //  SizeOfContext
-//            'TLF0',                         //  PoolTag
-//            NULL,                           //  ContextAllocateCallback
-//            NULL,                           //  ContextFreeCallback
-//            NULL                            //  Reserved
-//        },
-//        { FLT_CONTEXT_END }
-//    };
-//
-//    static FLT_OPERATION_REGISTRATION FilterCallbacks[] = {
-//        {
-//            IRP_MJ_CREATE,                  //  MajorFunction
-//            0,                              //  Flags
-//            FilterOperation_Pre_Create,     //  PreOperation
-//            NULL,                           //  PostOperation
-//        },
-//        { IRP_MJ_OPERATION_END }
-//    };
-//
-//    static const FLT_REGISTRATION FilterRegistration = {
-//        sizeof(FLT_REGISTRATION),           //  Size
-//        FLT_REGISTRATION_VERSION,           //  Version
-//        0,                                  //  Flags
-//
-//        FilterContextRegistration,          //  Context Registration
-//        FilterCallbacks,                    //  Operation Registration
-//
-//        FilterUnload,                       //  FilterUnload
-//
-//        NULL,                               //  InstanceSetup
-//        FilterQueryTeardown,                //  InstanceQueryTeardown
-//        NULL,                               //  InstanceTeardownStart
-//        NULL,                               //  InstanceTeardownComplete
-//
-//        NULL,                               //  GenerateFileName
-//        NULL,                               //  NormalizeNameComponentCallback
-//        NULL,                               //  NormalizeContextCleanupCallback
-//        NULL,                               //  TransactionNotificationCallback
-//        NULL,                               //  NormalizeNameComponentExCallback
-//        NULL,                               //  SectionNotificationCallback
-//    };
-//
-//    Filter::Filter(_In_ DRIVER_OBJECT* DriverObject)
-//    {
-//        Log("Setup DriverObject: %X", DriverObject);
-//        auto status = STATUS_SUCCESS;
-//        defer{ failable_object<NTSTATUS>::_error = status; }; // set error code
-//
-//        status = ::FltRegisterFilter(DriverObject, &FilterRegistration, &_filter);
-//        if (status != STATUS_SUCCESS)
-//        {
-//            Log("FltRegisterFilter failed -> Status: %X", status);
-//            return;
-//        }
-//        defer{ if (status != STATUS_SUCCESS) ::FltUnregisterFilter(_filter); }; // Rollback
-//
-//        status = FltStartFiltering(_filter);
-//        if (status != STATUS_SUCCESS)
-//            Log("FltStartFiltering failed -> Status: %X", status);
-//
-//        g_filter = this;
-//    }
-//
-//    Filter::~Filter()
-//    {
-//        if (error() == STATUS_SUCCESS)
-//        {
-//            Log("Filter: %p", _filter);
-//
-//            // Close ports to stop accepting new connection
-//            _ports.clear();
-//            
-//            // Close connections before FltUnregisterFilter() waiting for all connections to be closed
-//            {
-//                std::lock_guard<eresource_lock> lock(_connections_lock);
-//                _connections.clear();
-//            }
-//
-//            // Unregister filter
-//            FltUnregisterFilter(_filter);
-//        }
-//    }
-//
-//    NTSTATUS Filter::InitAuthenticator()
-//    {
-//        auto new_authenticator = std::make_unique<Authenticator>(nullptr);
-//        if (new_authenticator == nullptr)
-//            return STATUS_NO_MEMORY;
-//        if (new_authenticator->error() != STATUS_SUCCESS)
-//            return new_authenticator->error();
-//        _authenticator = std::move(new_authenticator);
-//        return STATUS_SUCCESS;
-//    }
-//
-//    NTSTATUS Filter::OpenPort(_In_ UNICODE_STRING* PortName)
-//    {
-//        Log("OpenPort: %wZ", PortName);
-//        auto port = Port(_filter, PortName, this);
-//        if (port.error() != STATUS_SUCCESS)
-//            return port.error();
-//        
-//        if (_ports.push_back(std::move(port)) == _ports.end())
-//            return STATUS_NO_MEMORY;
-//
-//        return STATUS_SUCCESS;
-//    }
-//
-//    NTSTATUS Filter::OnConnect(_In_ PFLT_PORT ClientPort, _In_ const Communication::Credential& Credential)
-//    {
-//        Log("%p", ClientPort);
-//
-//        if (_authenticator->Authenticate(Credential) == false)
-//            return STATUS_ACCESS_DENIED;
-//
-//        std::lock_guard<eresource_lock> lock(_connections_lock);
-//        if (_connections.push_back(Connection(_filter, ClientPort)) == _connections.end())
-//            return STATUS_NO_MEMORY;
-//        return STATUS_SUCCESS;
-//    }
-//    
-//    void Filter::OnDisconnect(_In_ PFLT_PORT ClientPort)
-//    {
-//        Log("%p", ClientPort);
-//        std::lock_guard<eresource_lock> lock(_connections_lock);
-//        for (auto it = _connections.begin(); it != _connections.end(); ++it)
-//            if (*it == ClientPort)
-//            {
-//                _connections.erase(it);
-//                break;
-//            }
-//    }
-//
-//    NTSTATUS Filter::AddProtectedFile(_In_ const WCHAR* FileName)
-//    {
-//        unicode_string input(2000);
-//        if (input.error())
-//            return STATUS_NO_MEMORY;
-//        RtlUnicodeStringCatString(&input.raw(), L"\\??\\");
-//        RtlUnicodeStringCatString(&input.raw(), FileName);
-//
-//        unicode_string path(2000);
-//        if (input.error())
-//            return STATUS_NO_MEMORY;
-//        Win32::Path::QueryAbsoluteTarget(&input.raw(), &path.raw());
-//
-//        {
-//            auto ws = std::wstring(path.raw().Buffer, path.raw().Length / 2);
-//            std::lock_guard<eresource_lock> lock(_protected_files_lock);
-//            if (_protected_files.push_back(std::move(ws)) == _protected_files.end())
-//                return STATUS_NO_MEMORY;
-//            Log("Added %wZ", &path.raw());
-//        }
-//        return STATUS_SUCCESS;
-//    }
-//    NTSTATUS Filter::RemoveProtectedFile(_In_ const WCHAR* FileName)
-//    {
-//        unicode_string input(2000);
-//        if (input.error())
-//            return STATUS_NO_MEMORY;
-//        RtlUnicodeStringCatString(&input.raw(), L"\\??\\");
-//        RtlUnicodeStringCatString(&input.raw(), FileName);
-//
-//        unicode_string path(2000);
-//        if (input.error())
-//            return STATUS_NO_MEMORY;
-//        Win32::Path::QueryAbsoluteTarget(&input.raw(), &path.raw());
-//        auto nt_path = std::wstring(path.raw().Buffer, path.raw().Length / 2);
-//        if (nt_path.error())
-//            return STATUS_NO_MEMORY;
-//
-//        {
-//            std::lock_guard<eresource_lock> lock(_protected_files_lock);
-//            for (auto it = _protected_files.begin(); it != _protected_files.end(); ++it)
-//                if (*it == nt_path)
-//                {
-//                    _protected_files.erase(it);
-//                    Log("Removed %ws", nt_path.c_str());
-//                    return STATUS_SUCCESS;
-//                }
-//        }
-//        return STATUS_NOT_FOUND;
-//    }
-//    bool Filter::IsFileProtected(_In_ UNICODE_STRING* FileName)
-//    {
-//        auto nt_path = std::wstring(FileName->Buffer, FileName->Length / 2);
-//        if (nt_path.error())
-//            return false;
-//
-//        std::lock_guard<eresource_lock> lock(_protected_files_lock);
-//        for (auto it = _protected_files.begin(); it != _protected_files.end(); ++it)
-//            if (*it == nt_path)
-//                return true;
-//        return false;
-//    }
-//}
-//
+// Filter
+namespace MiniFilter
+{
+    static Filter* g_filter = nullptr;
+
+    NTSTATUS FLTAPI FilterUnload(_In_ FLT_FILTER_UNLOAD_FLAGS Flags)
+    {
+        Log("Flags: %X", Flags);
+        return STATUS_SUCCESS;
+    }
+
+    NTSTATUS FLTAPI FilterInstanceSetupCallback(
+        _In_ PCFLT_RELATED_OBJECTS FltObjects,
+        _In_ FLT_INSTANCE_SETUP_FLAGS Flags,
+        _In_ DEVICE_TYPE VolumeDeviceType,
+        _In_ FLT_FILESYSTEM_TYPE VolumeFilesystemType)
+    {
+        UNREFERENCED_PARAMETER(Flags);
+        Log("Instance: %p, VolumeType: %X, FileSystemType: %X",
+            FltObjects->Instance,
+            VolumeDeviceType,
+            VolumeFilesystemType);
+
+        // Let's instance attach to volume device
+        return STATUS_SUCCESS;
+    }
+
+    void FLTAPI FilterInstanceTeardownCompleteCallback(
+        _In_ PCFLT_RELATED_OBJECTS FltObjects,
+        _In_ FLT_INSTANCE_TEARDOWN_FLAGS Reason)
+    {
+        Log("Instance: %p, Reason: %X",
+            FltObjects->Instance,
+            Reason);
+    }
+
+    FLT_PREOP_CALLBACK_STATUS FLTAPI FilterOperation_Pre_Create(
+        _Inout_ PFLT_CALLBACK_DATA Data,
+        _In_ PCFLT_RELATED_OBJECTS FltObjects,
+        _In_ PVOID* CompletionContext)
+    {
+        UNREFERENCED_PARAMETER(FltObjects);
+        UNREFERENCED_PARAMETER(CompletionContext);
+
+        PFLT_FILE_NAME_INFORMATION file_name_info;
+        auto status = FltGetFileNameInformation(
+            Data,
+            FLT_FILE_NAME_NORMALIZED | FLT_FILE_NAME_QUERY_DEFAULT,
+            &file_name_info);
+        if (NT_SUCCESS(status))
+        {
+            defer{ FltReleaseFileNameInformation(file_name_info); };
+            Log("[Instance: %p] File: %wZ", FltObjects->Instance, &file_name_info->Name);
+            /*if (g_filter->IsFileProtected(&file_name_info->Name))
+            {
+                Log("[Denied] FileName: %wZ", &file_name_info->Name);
+                Data->IoStatus.Status = STATUS_ACCESS_DENIED;
+                return FLT_PREOP_COMPLETE;
+            }*/
+        }
+
+        // No post operator needed
+        return FLT_PREOP_SUCCESS_NO_CALLBACK;
+    }
+
+    /* Static data declarations */
+    static const FLT_CONTEXT_REGISTRATION FilterContextRegistration[] = {
+        {
+            FLT_INSTANCE_CONTEXT,           //  ContextType
+            0,                              //  Flags
+            NULL,                           //  ContextCleanupCallback
+            FLT_VARIABLE_SIZED_CONTEXTS,    //  SizeOfContext
+            'TLF0',                         //  PoolTag
+            NULL,                           //  ContextAllocateCallback
+            NULL,                           //  ContextFreeCallback
+            NULL                            //  Reserved
+        },
+        {
+            FLT_FILE_CONTEXT,               //  ContextType
+            0,                              //  Flags
+            NULL,                           //  ContextCleanupCallback
+            FLT_VARIABLE_SIZED_CONTEXTS,    //  SizeOfContext
+            'TLF1',                         //  PoolTag
+            NULL,                           //  ContextAllocateCallback
+            NULL,                           //  ContextFreeCallback
+            NULL                            //  Reserved
+        },
+        { FLT_CONTEXT_END }
+    };
+
+    static FLT_OPERATION_REGISTRATION FilterCallbacks[] = {
+        {
+            IRP_MJ_CREATE,                  //  MajorFunction
+            0,                              //  Flags
+            FilterOperation_Pre_Create,     //  PreOperation
+            NULL,                           //  PostOperation
+        },
+        { IRP_MJ_OPERATION_END }
+    };
+
+    static const FLT_REGISTRATION FilterRegistration = {
+        sizeof(FLT_REGISTRATION),               //  Size
+        FLT_REGISTRATION_VERSION,               //  Version
+        0,                                      //  Flags
+
+        FilterContextRegistration,              //  Context Registration
+        FilterCallbacks,                        //  Operation Registration
+
+        FilterUnload,                           //  FilterUnload
+
+        FilterInstanceSetupCallback,            //  InstanceSetup
+        NULL,                                   //  InstanceQueryTeardown
+        NULL,                                   //  InstanceTeardownStart
+        FilterInstanceTeardownCompleteCallback, //  InstanceTeardownComplete
+
+        NULL,                                   //  GenerateFileName
+        NULL,                                   //  NormalizeNameComponentCallback
+        NULL,                                   //  NormalizeContextCleanupCallback
+        NULL,                                   //  TransactionNotificationCallback
+        NULL,                                   //  NormalizeNameComponentExCallback
+        NULL,                                   //  SectionNotificationCallback
+    };
+
+    Filter::Filter(_In_ DRIVER_OBJECT* DriverObject)
+    {
+        LogDebug("");
+        auto& status = failable::_status;
+
+        status = ::FltRegisterFilter(DriverObject, &FilterRegistration, &_filter);
+        if (status != STATUS_SUCCESS)
+        {
+            LogError("FltRegisterFilter() -> status: %X", status);
+            return;
+        }
+        // Rollback
+        defer{ if (status != STATUS_SUCCESS) ::FltUnregisterFilter(_filter); };
+
+        status = FltStartFiltering(_filter);
+        if (status != STATUS_SUCCESS)
+            LogError("FltStartFiltering() -> status: %X", status);
+    }
+
+    Filter::~Filter()
+    {
+        LogDebug("");
+        if (this->status() != STATUS_SUCCESS)
+            return;
+
+        // Unregister filter
+        FltUnregisterFilter(_filter);
+    }
+
+    //NTSTATUS Filter::InitAuthenticator()
+    //{
+    //    auto new_authenticator = std::make_unique<Authenticator>(nullptr);
+    //    if (new_authenticator == nullptr)
+    //        return STATUS_NO_MEMORY;
+    //    if (new_authenticator->error() != STATUS_SUCCESS)
+    //        return new_authenticator->error();
+    //    _authenticator = std::move(new_authenticator);
+    //    return STATUS_SUCCESS;
+    //}
+
+    //NTSTATUS Filter::OpenPort(_In_ UNICODE_STRING* PortName)
+    //{
+    //    Log("OpenPort: %wZ", PortName);
+    //    auto port = Port(_filter, PortName, this);
+    //    if (port.error() != STATUS_SUCCESS)
+    //        return port.error();
+    //    
+    //    if (_ports.push_back(std::move(port)) == _ports.end())
+    //        return STATUS_NO_MEMORY;
+
+    //    return STATUS_SUCCESS;
+    //}
+
+    //NTSTATUS Filter::OnConnect(_In_ PFLT_PORT ClientPort, _In_ const Communication::Credential& Credential)
+    //{
+    //    Log("%p", ClientPort);
+
+    //    if (_authenticator->Authenticate(Credential) == false)
+    //        return STATUS_ACCESS_DENIED;
+
+    //    std::lock_guard<eresource_lock> lock(_connections_lock);
+    //    if (_connections.push_back(Connection(_filter, ClientPort)) == _connections.end())
+    //        return STATUS_NO_MEMORY;
+    //    return STATUS_SUCCESS;
+    //}
+    //
+    //void Filter::OnDisconnect(_In_ PFLT_PORT ClientPort)
+    //{
+    //    Log("%p", ClientPort);
+    //    std::lock_guard<eresource_lock> lock(_connections_lock);
+    //    for (auto it = _connections.begin(); it != _connections.end(); ++it)
+    //        if (*it == ClientPort)
+    //        {
+    //            _connections.erase(it);
+    //            break;
+    //        }
+    //}
+
+    //NTSTATUS Filter::AddProtectedFile(_In_ const WCHAR* FileName)
+    //{
+    //    unicode_string input(2000);
+    //    if (input.error())
+    //        return STATUS_NO_MEMORY;
+    //    RtlUnicodeStringCatString(&input.raw(), L"\\??\\");
+    //    RtlUnicodeStringCatString(&input.raw(), FileName);
+
+    //    unicode_string path(2000);
+    //    if (input.error())
+    //        return STATUS_NO_MEMORY;
+    //    Win32::Path::QueryAbsoluteTarget(&input.raw(), &path.raw());
+
+    //    {
+    //        auto ws = std::wstring(path.raw().Buffer, path.raw().Length / 2);
+    //        std::lock_guard<eresource_lock> lock(_protected_files_lock);
+    //        if (_protected_files.push_back(std::move(ws)) == _protected_files.end())
+    //            return STATUS_NO_MEMORY;
+    //        Log("Added %wZ", &path.raw());
+    //    }
+    //    return STATUS_SUCCESS;
+    //}
+    //NTSTATUS Filter::RemoveProtectedFile(_In_ const WCHAR* FileName)
+    //{
+    //    unicode_string input(2000);
+    //    if (input.error())
+    //        return STATUS_NO_MEMORY;
+    //    RtlUnicodeStringCatString(&input.raw(), L"\\??\\");
+    //    RtlUnicodeStringCatString(&input.raw(), FileName);
+
+    //    unicode_string path(2000);
+    //    if (input.error())
+    //        return STATUS_NO_MEMORY;
+    //    Win32::Path::QueryAbsoluteTarget(&input.raw(), &path.raw());
+    //    auto nt_path = std::wstring(path.raw().Buffer, path.raw().Length / 2);
+    //    if (nt_path.error())
+    //        return STATUS_NO_MEMORY;
+
+    //    {
+    //        std::lock_guard<eresource_lock> lock(_protected_files_lock);
+    //        for (auto it = _protected_files.begin(); it != _protected_files.end(); ++it)
+    //            if (*it == nt_path)
+    //            {
+    //                _protected_files.erase(it);
+    //                Log("Removed %ws", nt_path.c_str());
+    //                return STATUS_SUCCESS;
+    //            }
+    //    }
+    //    return STATUS_NOT_FOUND;
+    //}
+    //bool Filter::IsFileProtected(_In_ UNICODE_STRING* FileName)
+    //{
+    //    auto nt_path = std::wstring(FileName->Buffer, FileName->Length / 2);
+    //    if (nt_path.error())
+    //        return false;
+
+    //    std::lock_guard<eresource_lock> lock(_protected_files_lock);
+    //    for (auto it = _protected_files.begin(); it != _protected_files.end(); ++it)
+    //        if (*it == nt_path)
+    //            return true;
+    //    return false;
+    //}
+}
+
 //// Comport
 //namespace MiniFilter
 //{

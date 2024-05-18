@@ -16,24 +16,21 @@
     <ClCompile Include="MiniFilter.cpp" />
     <ClCompile Include="Utility\Hash.cpp" />
     <ClCompile Include="Utility\base.cpp" />
-    <ClCompile Include="Utility\Win32.cpp" />
+    <ClCompile Include="Utility\krn.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Driver.h" />
     <ClInclude Include="MiniFilter.h" />
-    <ClInclude Include="Utility\base\defer.h" />
-    <ClInclude Include="Utility\base\memory.h" />
-    <ClInclude Include="Utility\base\object.h" />
-    <ClInclude Include="Utility\base\tag.h" />
     <ClInclude Include="Utility\C++\list.h" />
     <ClInclude Include="Utility\C++\map.h" />
+    <ClInclude Include="Utility\C++\memory.h" />
     <ClInclude Include="Utility\C++\mutex.h" />
     <ClInclude Include="Utility\C++\queue.h" />
     <ClInclude Include="Utility\C++\string.h" />
     <ClInclude Include="Utility\C++\vector.h" />
     <ClInclude Include="Utility\Hash.h" />
     <ClInclude Include="Utility\base.h" />
-    <ClInclude Include="Utility\Win32.h" />
+    <ClInclude Include="Utility\krn.h" />
   </ItemGroup>
   <ItemGroup>
     <Inf Include="BfpDrv.inf" />
@@ -99,7 +96,7 @@
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
     </DriverSign>
     <Link>
-      <AdditionalDependencies>$(DDK_LIB_PATH)\fltMgr.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(DDK_LIB_PATH)\fltMgr.lib;$(DDK_LIB_PATH)\NtosKrnl.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -116,7 +113,7 @@
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
     </DriverSign>
     <Link>
-      <AdditionalDependencies>$(DDK_LIB_PATH)\fltMgr.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(DDK_LIB_PATH)\fltMgr.lib;$(DDK_LIB_PATH)\NtosKrnl.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

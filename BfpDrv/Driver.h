@@ -3,12 +3,12 @@
 #include <fltKernel.h>
 
 #include <base.h>
-//#include "MiniFilter.h"
+#include "MiniFilter.h"
 
-class Driver : public base::failable
+class Driver : public failable
 {
 private:
-    //std::unique_ptr<MiniFilter::Filter> _filter;
+    object<MiniFilter::Filter> _filter;
 public:
     Driver(
         _Inout_ DRIVER_OBJECT*  DriverObject,
