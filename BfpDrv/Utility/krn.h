@@ -40,159 +40,169 @@ namespace krn
 {
     namespace string
     {
-        // A valid unicode has _raw.Buffer != NULL
-        // _status may not be STATUS_SUCCESS even if _raw.Buffer != NULL
         class unicode : failable
         {
         private:
-            
-            UNICODE_STRING _raw;
+            UNICODE_STRING _raw = { 0 };
 
-            // Change capability
-            //inline void resize(USHORT CbSize)
-            //{
-            //    if (CbSize <= _raw.MaximumLength)
-            //        return;
-
-            //    WCHAR* new_allocation = NULL;
-            //    if (_raw.Buffer != NULL && _raw.MaximumLength < CbSize)
-            //    {
-            //        ExFreePool(_raw.Buffer);
-            //        _raw.Buffer = NULL;
-            //    }
-            //    if (_raw.Buffer == NULL)
-            //    {
-            //        _raw.Buffer = static_cast<WCHAR*>(ExAllocatePool2(POOL_FLAG_NON_PAGED, CbSize, 'rts0'));;
-            //        if (_raw.Buffer == NULL)
-            //        {
-            //            _status = STATUS_UNSUCCESSFUL;
-            //            return;
-            //        }
-            //        _raw.MaximumLength = CbSize;
-            //    }
-            //    _status = STATUS_SUCCESS;
-            //}
+            inline WCHAR* alloc(USHORT CbSize) { return static_cast<WCHAR*>(ExAllocatePool2(POOL_FLAG_NON_PAGED, CbSize, 'rts0')); }
+            inline void free(void* address) { ExFreePool(address); }
         public:
+            virtual NTSTATUS status() const noexcept override
+            {
+                return _raw.Buffer == NULL ? STATUS_UNSUCCESSFUL : STATUS_SUCCESS;
+            }
+
+            //
+            // Enums
+            //
+
+            enum { npos = MAXSIZE_T };
+
             //
             // Constructors
             //
 
-            unicode() { failable::_status = STATUS_UNSUCCESSFUL; }
+            unicode() {}
+            unicode(USHORT CbMaximumLength)
+            {
+                if(CbMaximumLength)
+                _raw.Buffer = alloc(CbMaximumLength);
+                if (_raw.Buffer == NULL)
+                    return;
+                _raw.Length = 0;
+                _raw.MaximumLength = CbMaximumLength;
+            }
+            unicode(_In_z_ const WCHAR* WideString)
+            {
+                size_t cchLen = wcslen(WideString);
+                if (cchLen * sizeof(WCHAR) > MAXUSHORT || cchLen == 0)
+                    return;
+                USHORT cbLen = static_cast<USHORT>(cchLen) * sizeof(WCHAR);
+                _raw.Buffer = alloc(cbLen);
+                if (_raw.Buffer == NULL)
+                    return;
+                RtlCopyMemory(_raw.Buffer, WideString, cbLen);
+                _raw.Length = _raw.MaximumLength = cbLen;
+            }
+            unicode(_In_ const UNICODE_STRING& UnicodeString)
+            {
+                if (UnicodeString.Buffer == NULL || UnicodeString.MaximumLength == 0)
+                    return;
+                _raw.Buffer = alloc(UnicodeString.MaximumLength);
+                if (_raw.Buffer == NULL)
+                    return;
+                RtlCopyMemory(_raw.Buffer, UnicodeString.Buffer, UnicodeString.Length);
+                _raw.Length = UnicodeString.Length;
+                _raw.MaximumLength = UnicodeString.MaximumLength;
+            }
             ~unicode()
             {
                 if (_raw.Buffer != NULL)
-                    ExFreePool(_raw.Buffer);
+                    free(_raw.Buffer);
             }
-
-            // Take ownership of WideString.
-            // WideString must be freeable by ExFreePool().
-            unicode(_In_z_ _When_(this->_status == STATUS_SUCCESS, _Post_null_) WCHAR*&& WideString)
-            {
-                size_t cchLen = wcslen(WideString);
-                if (cchLen > MAXUSHORT)
-                {
-                    _status = STATUS_INVALID_PARAMETER;
-                    return;
-                }
-                _raw.Buffer = WideString;
-                _raw.Length =  static_cast<USHORT>(cchLen) * sizeof(WCHAR);
-                _raw.MaximumLength = _raw.Length;
-                WideString = nullptr;
-            }
-
-            // Take ownership of UnicodeString.
-            // UnicodeString.Buffer must be freeable by ExFreePool().
-            unicode(_In_z_ _When_(this->_status == STATUS_SUCCESS, _Post_invalid_) UNICODE_STRING&& UnicodeString)
-            {
-                _raw = UnicodeString;
-                UnicodeString.Buffer = NULL;
-                UnicodeString.Length = UnicodeString.MaximumLength = 0;
-            }
-
 
             //
             // Assignments
             //
 
-            //inline unicode& operator=(unicode&& other) noexcept
-            //{
-            //    if (_raw.Buffer != NULL)
-            //        ExFreePool(_raw.Buffer);
-            //    _raw = other._raw;
-            //    _status = other._status;
-            //    other._raw.Buffer = NULL;
-            //    other._raw.Length = other._raw.MaximumLength = 0;
-            //    other._status = STATUS_UNSUCCESSFUL;
-            //    return *this;
-            //}
+            inline unicode& operator=(unicode&& other) noexcept
+            {
+                if (_raw.Buffer != NULL)
+                    free(_raw.Buffer);
+                _raw = other._raw;
+                other._raw = { 0 };
+                return *this;
+            }
+            inline unicode& operator=(const unicode& other) noexcept
+            {
+                // Validify
+                if (other._raw.Buffer == NULL)
+                {
+                    _raw = { 0 };
+                    return *this;
+                }
 
-            //// this would be invalid if other is invalid
-            //inline unicode& operator=(const unicode& other)
-            //{
-            //    if (other._status != STATUS_SUCCESS)
-            //    {
-            //        _status = STATUS_INVALID_PARAMETER;
-            //        return;
-            //    }
-            //        
-            //    realloc_if_needed(other._raw.Length);
-            //    if (_status != STATUS_SUCCESS)
-            //        return;
-            //    RtlCopyMemory(_raw.Buffer, other._raw.Buffer, other._raw.Length);
-            //    _raw.Length = other._raw.Length;
-            //    return *this;
-            //}
+                // Realloc
+                if (_raw.Buffer != NULL && _raw.MaximumLength < other._raw.Length)
+                {
+                    free(_raw.Buffer);
+                    _raw.Buffer = NULL;
+                }
+                if (_raw.Buffer == NULL)
+                {
+                    _raw.Buffer = alloc(other._raw.Length);
+                    if (_raw.Buffer == NULL)
+                        return *this;
+                }
+                
+                // Copy value
+                RtlCopyMemory(_raw.Buffer, other._raw.Buffer, other._raw.Length);
+                _raw.Length = _raw.MaximumLength = other._raw.Length;
+                return *this;
+            }
 
             //
             // Modifiers
             //
 
-            //unicode& operator+=(const unicode& other)
-            //{
-            //    if (_status != STATUS_SUCCESS)
-            //        return;
-            //    if (other._status != STATUS_SUCCESS)
-            //    {
-            //        _status = STATUS_INVALID_PARAMETER;
-            //        return;
-            //    }
+            inline unicode& operator+=(const unicode& other)
+            {
+                *this += other._raw;
+                return *this;
+            }
+            inline unicode& operator+=(const UNICODE_STRING& other)
+            {
+                // Validify inputs
+                if (_raw.Buffer == NULL)
+                    return *this;
+                if (other.Buffer == NULL)
+                {
+                    _raw = { 0 };
+                    return *this;
+                }
 
-            //    size_t new_size = static_cast<size_t>(_raw.Length) + other._raw.Length;
-            //    if (new_size > MAXUSHORT)
-            //    {
-            //        _status = STATUS_INVALID_PARAMETER;
-            //        return;
-            //    }
+                // Validify output
+                USHORT cbLen1 = _raw.Length - (_raw.Length & 1);
+                USHORT cbLen2 = other.Length - (other.Length & 1);
+                if (static_cast<size_t>(cbLen1) + cbLen2 > MAXUSHORT)
+                {
+                    _raw = { 0 };
+                    return *this;
+                }
+                USHORT cbNewSize = cbLen1 + cbLen2;
 
-            //    realloc_if_needed(new_size);
-            //    if (_status != STATUS_SUCCESS)
-            //        return;
-            //    RtlCopyMemory(_raw.Buffer, other._raw.Buffer, other._raw.Length);
-            //    _raw.Length = other._raw.Length;
-            //    return *this;
-            //}
+                // No need to realloc
+                if (_raw.Buffer != NULL && _raw.MaximumLength >= cbNewSize)
+                {
+                    RtlCopyMemory(reinterpret_cast<char*>(_raw.Buffer) + cbLen1, other.Buffer, cbLen2);
+                    _raw.Length = cbNewSize;
+                    return *this;
+                }
+                auto buffer = alloc(cbNewSize);
+                if (buffer == NULL)
+                {
+                    _raw = { 0 };
+                    return *this;
+                }
+                RtlCopyMemory(buffer, _raw.Buffer, cbLen1);
+                RtlCopyMemory(reinterpret_cast<char*>(buffer) + cbLen1, other.Buffer, cbLen2);
+                free(_raw.Buffer);
+                _raw.Buffer = buffer;
+                _raw.Length = _raw.MaximumLength = cbNewSize;
+                return *this;
+            }
 
             // Observers
-            inline UNICODE_STRING& raw() { return _raw; }
+            inline const UNICODE_STRING& raw() { return _raw; }
 
-            //// Dereferences
-            //inline T* operator->() const { return _t; }
-
-            //// Comparisons
-            //inline bool operator==(const object<T>& other) const { return *_t == *other._t; }
-            //inline bool operator!=(const object<T>& other) const { return *_t != *other._t; }
-            //inline bool operator< (const object<T>& other) const { return *_t < *other._t; }
-            //inline bool operator> (const object<T>& other) const { return *_t > *other._t; }
-            //inline bool operator<=(const object<T>& other) const { return *_t <= *other._t; }
-            //inline bool operator>=(const object<T>& other) const { return *_t >= *other._t; }
-
-            //inline bool operator==(const T& other) const { return *_t == other; }
-            //inline bool operator!=(const T& other) const { return *_t != other; }
-            //inline bool operator< (const T& other) const { return *_t < other; }
-            //inline bool operator> (const T& other) const { return *_t > other; }
-            //inline bool operator<=(const T& other) const { return *_t <= other; }
-            //inline bool operator>=(const T& other) const { return *_t >= other; }
-
+            // Comparisons
+            inline bool operator==(const unicode& other) const { return RtlEqualUnicodeString(&_raw, &other._raw, FALSE) == TRUE; }
+            inline bool operator!=(const unicode& other) const { return RtlEqualUnicodeString(&_raw, &other._raw, FALSE) == FALSE; }
+            inline bool operator< (const unicode& other) const { return RtlCompareUnicodeString(&_raw, &other._raw, FALSE) < 0; }
+            inline bool operator> (const unicode& other) const { return RtlCompareUnicodeString(&_raw, &other._raw, FALSE) > 0; }
+            inline bool operator<=(const unicode& other) const { return RtlCompareUnicodeString(&_raw, &other._raw, FALSE) <= 0; }
+            inline bool operator>=(const unicode& other) const { return RtlCompareUnicodeString(&_raw, &other._raw, FALSE) >= 0; }
         };
 
         class ansi : failable

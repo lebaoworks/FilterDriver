@@ -82,13 +82,32 @@ NTSTATUS DriverEntry(
     Log("x == 5 -> %d", x == 5);
     Log("x == y -> %d", x == y);
 
-    
-    WCHAR* str = static_cast<WCHAR*>(ExAllocatePool2(POOL_FLAG_NON_PAGED, 20, '++C0'));
-    RtlStringCchCopyW(str, 10, L"bao");
-    krn::string::unicode unicode(std::move(str));
-    Log("unicode -> %wZ", &unicode.raw());
-    
-
+    // Construct unicode
+    {
+        krn::string::unicode unicode(L"bao");
+        Log("unicode -> %wZ", &unicode.raw());
+    }
+    // Construct with UNICODE_STRING
+    {
+        UNICODE_STRING str = { 0 };
+        krn::string::unicode unicode(str);
+        Log("unicode + empty UNICODE_STRING -> %wZ", &unicode.raw());
+    }
+    // Append string: valid + valid UNICODE_STRING
+    {
+        krn::string::unicode unicode(L"bao");
+        UNICODE_STRING str = RTL_CONSTANT_STRING(L"_test");
+        unicode += str;
+        Log("unicode + valid UNICODE_STRING -> %wZ", &unicode.raw());
+    }
+    // Append string: valid + invalid UNICODE_STRING
+    {
+        krn::string::unicode unicode(L"bao");
+        UNICODE_STRING str = {0};
+        str.Buffer = reinterpret_cast<WCHAR*>(1);
+        unicode += str;
+        Log("unicode + invalid UNICODE_STRING -> %wZ", &unicode.raw());
+    }
 
     return STATUS_SUCCESS;
 #endif

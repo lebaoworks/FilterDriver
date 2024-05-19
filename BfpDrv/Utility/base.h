@@ -107,7 +107,7 @@ struct failable
 protected:
     NTSTATUS _status = STATUS_SUCCESS;
 public:
-    inline NTSTATUS status() const noexcept { return _status; };
+    virtual NTSTATUS status() const noexcept { return _status; };
 };
 
 // Type holder
