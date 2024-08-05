@@ -1,4 +1,7 @@
 #pragma once
+#include <ntifs.h>
+#include <mountmgr.h>
+
 #include <base.h>
 
 namespace krn
@@ -63,10 +66,9 @@ namespace krn
             // Constructors
             //
 
-            unicode() {}
             unicode(USHORT CbMaximumLength)
             {
-                if(CbMaximumLength)
+                if (CbMaximumLength < 2)
                 _raw.Buffer = alloc(CbMaximumLength);
                 if (_raw.Buffer == NULL)
                     return;
@@ -240,3 +242,23 @@ namespace krn
 //        NTSTATUS QueryAbsoluteTarget(_In_ UNICODE_STRING* SymbolicPath, _Out_ UNICODE_STRING* TargetPath);
 //    }
 //}
+
+
+namespace krn
+{
+    namespace path
+    {
+        NTSTATUS FinalizePath(
+            _In_ UNICODE_STRING& NtPath,
+            _When_(return == STATUS_SUCCESS, __drv_allocatesMem(Mem) _Outptr_) PUNICODE_STRING& FinalPath);
+    }
+}
+
+#ifdef _TEST
+
+namespace krn
+{
+    NTSTATUS test();
+}
+
+#endif

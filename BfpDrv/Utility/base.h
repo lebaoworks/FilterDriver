@@ -61,7 +61,9 @@ namespace base
         return deferer<F>(std::move(f));
     }
 }
-#define defer auto defer_at_##__LINE__ = base::defer_dummy{} *[&]()
+#define DEFER_(LINE) zz_defer##LINE
+#define DEFER(LINE) DEFER_(LINE)
+#define defer auto DEFER(__LINE__) = base::defer_dummy{} *[&]()
 
 /*********************
 *     Base Types     *
