@@ -341,7 +341,6 @@ namespace krn
             if (status != STATUS_SUCCESS)
                 return status;
 
-            //Log("%wZ", path);
             USHORT i = 0;
             while (i <= path->Length / 2)
             {
@@ -351,7 +350,7 @@ namespace krn
                     tmp.Buffer = path->Buffer;
                     tmp.MaximumLength = tmp.Length = i*2;
 
-                    Log("Path -> %wZ", &tmp);
+                    Log("tmp -> %wZ", &tmp);
 
                     auto replace_path_prefix = [&](UNICODE_STRING& Replace) -> NTSTATUS {
                         // Check if able to replace
@@ -396,11 +395,22 @@ namespace krn
                         defer{ ExFreePool(reparse); };
                         switch (reparse->ReparseTag)
                         {
+                        case IO_REPARSE_TAG_SYMLINK:
+                        {
+                            // TODO: Parse filesystem symbolic link
+
+                            //UNICODE_STRING raw;
+                            //raw.Buffer = (wchar_t*)((UCHAR*)reparse->SymbolicLinkReparseBuffer.PathBuffer + reparse->SymbolicLinkReparseBuffer.SubstituteNameOffset);
+                            //raw.MaximumLength = raw.Length = reparse->SymbolicLinkReparseBuffer.SubstituteNameLength;
+                            
+                            break;
+                        }
                         case IO_REPARSE_TAG_MOUNT_POINT:
                         {
                             UNICODE_STRING raw;
                             raw.Buffer = (wchar_t*)((UCHAR*)reparse->MountPointReparseBuffer.PathBuffer + reparse->MountPointReparseBuffer.SubstituteNameOffset);
                             raw.MaximumLength = raw.Length = reparse->MountPointReparseBuffer.SubstituteNameLength;
+
                             if (RtlPrefixUnicodeString(&VOLUME_PREFIX, &raw, TRUE) == TRUE)
                             {
                                 MOUNTDEV_NAME* device = NULL;
