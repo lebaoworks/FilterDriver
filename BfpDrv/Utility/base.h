@@ -5,24 +5,23 @@
 #include <ntstrsafe.h>
 
 /*********************
-*       Memory       *
+*      Allocator     *
 *********************/
 
-struct nothrow_t{};
-constexpr nothrow_t nothrow;
-
-__drv_allocatesMem(Mem)
-_Post_writable_byte_size_(size)
-_Check_return_
-_Ret_maybenull_
+_When_(return != nullptr, __drv_allocatesMem(Mem))
 void* _cdecl operator new(_In_ size_t size);
 
 _Ret_notnull_
 void* _cdecl operator new(_In_ size_t size, _Inout_updates_(size) void* buffer);
 
-void _cdecl operator delete(_Pre_notnull_ __drv_freesMem(Mem) void* object);
+void _cdecl operator delete(_Notnull_ __drv_freesMem(Mem) void* object);
 
 void _cdecl operator delete(_Inout_updates_(size) void* object, _In_ size_t size);
+
+
+/*********************
+*       Memory       *
+*********************/
 
 namespace std
 {
@@ -37,7 +36,162 @@ namespace std
     // Swap objects' value
     template<typename T>
     inline void swap(T& a, T& b) noexcept { auto x = std::move(a); a = std::move(b); b = std::move(x); }
+
+    template<typename T>
+    class unique_ptr
+    {
+    private:
+        T* _ptr = nullptr;
+    public:
+        // Constructors
+        unique_ptr() noexcept {}
+        unique_ptr(T* p) noexcept : _ptr(p) {}
+        unique_ptr(const unique_ptr<T>& uptr) = delete;
+        unique_ptr(unique_ptr<T>&& uptr) noexcept : _ptr(uptr._ptr) { uptr._ptr = nullptr; }
+        ~unique_ptr() { if (_ptr != nullptr) delete _ptr; }
+
+        // Assignments
+        inline unique_ptr<T>& operator=(unique_ptr<T>&& uptr) noexcept { std::swap(_ptr, uptr._ptr); return *this; }
+        unique_ptr<T>& operator=(const unique_ptr<T>& uptr) = delete;
+
+        // Modifiers
+        inline T* release() { auto p = _ptr; _ptr = nullptr; return p; }
+        inline void reset(T* p) { if (_ptr != nullptr) delete _ptr; _ptr = p; }
+        inline void swap(unique_ptr<T>& other) { swap(_ptr, other._ptr); }
+
+        // Observers
+        inline T* get() const { return _ptr; }
+        inline operator bool() const { return _ptr != nullptr; }
+
+        // Dereference
+        inline T& operator*() const { return *_ptr; }
+        inline T* operator->() const { return _ptr; }
+
+        // Comparisons
+        inline bool operator==(const unique_ptr& other) const { return _ptr == other._ptr; }
+        inline bool operator!=(const unique_ptr& other) const { return _ptr != other._ptr; }
+        inline bool operator<(const unique_ptr& other) const { return _ptr < other._ptr; }
+        inline bool operator>(const unique_ptr& other) const { return _ptr > other._ptr; }
+        inline bool operator<=(const unique_ptr& other) const { return _ptr <= other._ptr; }
+        inline bool operator>=(const unique_ptr& other) const { return _ptr >= other._ptr; }
+    };
 }
+
+
+/*********************
+*        Types       *
+*********************/
+
+struct failable
+{
+protected:
+    NTSTATUS _status = STATUS_SUCCESS;
+public:
+    virtual NTSTATUS status() const noexcept { return _status; };
+};
+
+// Traits
+namespace base
+{
+    template<typename Base, typename Derived>
+    class is_base_of
+    {
+    private:
+        constexpr static bool Test(Base*) noexcept { return true; };
+        constexpr static bool Test(...) noexcept { return false; };
+    public:
+        constexpr operator bool() const noexcept { return Test(static_cast<Derived*>(nullptr)); }
+    };
+
+    template<typename T>
+    struct is_array { constexpr operator bool() const noexcept { return false; } };
+
+    template<typename T>
+    struct is_array<T[]> { constexpr operator bool() const noexcept { return true; } };
+
+    template<typename T, size_t N>
+    struct is_array<T[N]> { constexpr operator bool() const noexcept { return true; } };
+
+}
+
+// Tags
+namespace base
+{
+    template<ULONG TAG>
+    struct tag
+    {
+        void* _cdecl operator new(_In_ size_t size) { return ExAllocatePool2(POOL_FLAG_NON_PAGED, size, TAG); }
+        void* _cdecl operator new(_In_ size_t size, _In_ void* ptr) { size; return ptr; }
+
+        void _cdecl operator delete(_In_ void* object) { ExFreePool(object); }
+        void _cdecl operator delete(_In_ void* object, _In_ size_t size) { size; ExFreePool(object); }
+    };
+}
+
+
+/*********************
+*       Utility      *
+*********************/
+
+namespace base
+{
+    template<typename T>
+    class result
+    {
+        static_assert(base::is_array<T>() == false);
+    private:
+        T* val = nullptr;
+        NTSTATUS err = STATUS_SUCCESS;
+    
+    public:
+        result(T* v) : val(v) {}
+        result(NTSTATUS e) : err(e) {}
+        result(const result&) = delete;
+        ~result() { if (val != nullptr) delete val; }
+
+        NTSTATUS error() const noexcept { return err; }
+        T* release() { auto ret = val; val = nullptr; return ret; }
+    };
+
+    template<typename T, typename... Args>
+    result<T> make(const Args&... args)
+    {
+        static_assert(base::is_array<T>() == false);
+
+        auto val = new T(args...);
+        if (val == nullptr)
+            return STATUS_NO_MEMORY;
+        if (base::is_base_of<failable, T>() == false)
+            return val;
+        
+        auto err = reinterpret_cast<failable*>(val)->status();
+        if (err == STATUS_SUCCESS)
+            return val;
+
+        delete val;
+        return err;
+    }
+
+    template<typename T, typename... Args>
+    result<T> make(Args&&... args)
+    {
+        static_assert(base::is_array<T>() == false);
+
+        auto val = new T(std::move(args)...);
+        if (val == nullptr)
+            return STATUS_NO_MEMORY;
+        if (base::is_base_of<failable, T>() == false)
+            return val;
+
+        auto err = reinterpret_cast<failable*>(val)->status();
+        if (err == STATUS_SUCCESS)
+            return val;
+
+        delete val;
+        return err;
+    }
+}
+
 
 /*********************
 *       Defer        *
@@ -65,134 +219,6 @@ namespace base
 #define DEFER(LINE) DEFER_(LINE)
 #define defer auto DEFER(__LINE__) = base::defer_dummy{} *[&]()
 
-/*********************
-*     Base Types     *
-*********************/
-
-// Type traits
-
-namespace base
-{
-    template<typename Base, typename Derived>
-    class is_base_of
-    {
-    private:
-        constexpr static bool Test(Base*) noexcept { return true; };
-        constexpr static bool Test(...) noexcept { return false; };
-    public:
-        constexpr operator bool() const noexcept { return Test(static_cast<Derived*>(nullptr)); }
-
-    };
-
-    template<typename T>
-    struct is_array { constexpr operator bool() const noexcept { return false; } };
-
-    template<typename T>
-    struct is_array<T[]> { constexpr operator bool() const noexcept { return true; } };
-
-    template<typename T, size_t N>
-    struct is_array<T[N]> { constexpr operator bool() const noexcept { return true; } };
-}
-
-template<ULONG TAG>
-struct tag
-{
-    void* _cdecl operator new(_In_ size_t size) { return ExAllocatePool2(POOL_FLAG_NON_PAGED, size, TAG); }
-    void* _cdecl operator new(_In_ size_t size, _In_ void* ptr) { size; return ptr; }
-
-    void _cdecl operator delete(_In_ void* object) { ExFreePool(object); }
-    void _cdecl operator delete(_In_ void* object, _In_ size_t size) { size; ExFreePool(object); }
-};
-
-struct failable
-{
-protected:
-    NTSTATUS _status = STATUS_SUCCESS;
-public:
-    virtual NTSTATUS status() const noexcept { return _status; };
-};
-
-// Type holder
-
-template<typename T>
-struct object
-{
-    // Do not support array
-    static_assert(base::is_array<T>() == false);
-
-private:
-    __drv_aliasesMem T* _t = nullptr;
-    NTSTATUS _status = STATUS_UNSUCCESSFUL;
-
-    static inline NTSTATUS _get_status(failable& obj) noexcept { return obj.status(); }
-    static inline NTSTATUS _get_status(...) noexcept { return STATUS_SUCCESS; }
-public:
-    // Constructors
-    object() noexcept {}
-    object(T*&& t) noexcept : _t(t) { t = nullptr;}
-    object(const object<T>& obj) = delete;
-    object(object<T>&& obj) noexcept : _t(obj._t), _status(obj._status) { obj._t = nullptr; obj._status = STATUS_UNSUCCESSFUL; }
-    ~object() { if (_t != nullptr) delete _t; }
-
-    template<typename... Args>
-    object(const Args&... args)
-    {
-        T* t = new T(args...);
-        if (t == nullptr)
-        {
-            _status = STATUS_NO_MEMORY;
-            return;
-        }
-        _status = _get_status(*t);
-        if (_status != STATUS_SUCCESS)
-        {
-            delete t;
-            return;
-        }
-        _t = t;
-    }
-
-    // Assignments
-    inline object<T>& operator=(object<T>&& obj) noexcept
-    {
-        if (_t != nullptr)
-            delete _t;
-        _t = obj._t;
-        _status = obj._status;
-        obj._t = nullptr;
-        obj._status = STATUS_UNSUCCESSFUL;
-        return *this;
-    }
-    inline object<T>& operator=(const object<T>& obj) = delete;
-
-    // Modifiers
-    inline T* release() noexcept { auto t = _t; _t = nullptr; return t; }
-    inline void reset(T* p) noexcept { if (_t != nullptr) delete _t; _t = p; }
-    inline void swap(object<T>& other) noexcept { std::swap(_t, other._t); std::swap(_status, other._status); }
-
-    // Observers
-    inline T& get() const noexcept { return *_t; }
-    inline NTSTATUS status() { return _status; };
-
-    // Dereferences
-    inline T* operator->() const { return _t; }
-
-    // Comparisons
-    inline bool operator==(const object<T>& other) const { return *_t == *other._t; }
-    inline bool operator!=(const object<T>& other) const { return *_t != *other._t; }
-    inline bool operator< (const object<T>& other) const { return *_t <  *other._t; }
-    inline bool operator> (const object<T>& other) const { return *_t >  *other._t; }
-    inline bool operator<=(const object<T>& other) const { return *_t <= *other._t; }
-    inline bool operator>=(const object<T>& other) const { return *_t >= *other._t; }
-
-    inline bool operator==(const T& other) const { return *_t == other; }
-    inline bool operator!=(const T& other) const { return *_t != other; }
-    inline bool operator< (const T& other) const { return *_t <  other; }
-    inline bool operator> (const T& other) const { return *_t >  other; }
-    inline bool operator<=(const T& other) const { return *_t <= other; }
-    inline bool operator>=(const T& other) const { return *_t >= other; }
-};
-
 
 /*********************
 *      Logging       *
@@ -201,13 +227,14 @@ public:
 namespace logging
 {
     template<typename... T>
-    void log_caller(
+    _IRQL_requires_(PASSIVE_LEVEL)
+    void log_passive(
         _In_z_ const char* level,
         _In_z_ const char* caller,
         _In_z_ const char* format,
-        _In_z_ T&&... args)
+        _In_ T&&... args)
     {
-        CHAR* buffer = reinterpret_cast<CHAR*>(ExAllocatePool2(POOL_FLAG_NON_PAGED, 512, 'gol0'));
+        CHAR* buffer = reinterpret_cast<CHAR*>(ExAllocatePool2(POOL_FLAG_PAGED, 512, 'gol0'));
         if (buffer == NULL)
             return;
         defer { ExFreePool(buffer); };
@@ -237,7 +264,23 @@ namespace logging
 
 }
 
-#define Log(format, ...)        logging::log_caller("INFO",    __FUNCTION__"() ", format"\n", __VA_ARGS__)
-#define LogDebug(format, ...)   logging::log_caller("DEBUG",   __FUNCTION__"() ", format"\n", __VA_ARGS__)
-#define LogWarning(format, ...) logging::log_caller("WARNING", __FUNCTION__"() ", format"\n", __VA_ARGS__)
-#define LogError(format, ...)   logging::log_caller("ERROR",   __FUNCTION__"() ", format"\n", __VA_ARGS__)
+#define Log(format, ...)        logging::log_passive("INFO",    __FUNCTION__"() ", format"\n", __VA_ARGS__)
+#define LogDebug(format, ...)   logging::log_passive("DEBUG",   __FUNCTION__"() ", format"\n", __VA_ARGS__)
+#define LogWarning(format, ...) logging::log_passive("WARNING", __FUNCTION__"() ", format"\n", __VA_ARGS__)
+#define LogError(format, ...)   logging::log_passive("ERROR",   __FUNCTION__"() ", format"\n", __VA_ARGS__)
+
+
+/*********************
+*        TEST        *
+*********************/
+
+#if _TEST
+
+#define ASSERT_EQ(x, y, msg) { if (x != y) { Log(msg); return STATUS_UNSUCCESSFUL; } }
+namespace base
+{
+    _IRQL_requires_(PASSIVE_LEVEL)
+    NTSTATUS test();
+}
+
+#endif

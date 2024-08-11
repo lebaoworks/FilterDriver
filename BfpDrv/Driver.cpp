@@ -2,50 +2,35 @@
 
 Driver::Driver(
     _Inout_ DRIVER_OBJECT*  DriverObject,
-    _In_    UNICODE_STRING* RegistryPath,
-    _In_    UNICODE_STRING* ComportName)
+    _In_    UNICODE_STRING* RegistryPath)
 {
-    LogDebug("Setup DriverObject: %p, RegistryPath: %wZ, ComportName: %wZ", DriverObject, RegistryPath, ComportName);
+    Log("Init Driver: [DriverObject: %p] [RegistryPath: %wZ]", DriverObject, RegistryPath);
+
     auto& status = failable::_status;
 
-    _filter = object<MiniFilter::Filter>(DriverObject);
-    status = _filter.status();
+    auto result = base::make<MiniFilter::Filter>(DriverObject);
+    status = result.error();
     if (status != STATUS_SUCCESS)
     {
-        LogDebug("object failable -> %X", status);
+        LogError("Make Filter -> status: %X", status);
         return;
     }
-    //auto status = STATUS_SUCCESS;
-    //defer{ failable_object<NTSTATUS>::_error = status; }; // set error code
+    _filter = result.release();
 
-    //_filter = std::make_unique<MiniFilter::Filter>(DriverObject);
-    //if (_filter->error() != STATUS_SUCCESS)
-    //{
-    //    status = _filter->error();
-    //    Log("Setup MiniFilter failed: %X", status);
-    //    return;
-    //}
-    //defer{ if (status != STATUS_SUCCESS) _filter.reset(nullptr); }; // Rollback
-
-    //status = _filter->OpenPort(ComportName);
-    //if (status != STATUS_SUCCESS)
-    //{
-    //    Log("OpenPort failed: %X", status);
-    //    return;
-    //}
-
-    //status = _filter->InitAuthenticator();
-    //if (status != STATUS_SUCCESS)
-    //{
-    //    Log("InitAuthenticator failed: %X", status);
-    //    return;
-    //}
+    Log("Done!");
 }
 
 Driver::~Driver()
 {
-    if (this->status() != STATUS_SUCCESS)
-        return;
+    LogDebug("Cleanup Driver...");
 
-    //_filter.reset(nullptr);
+    if (this->status() != STATUS_SUCCESS)
+    {
+        Log("Skip!");
+        return;
+    }
+
+    delete _filter;
+
+    Log("Done!");
 }

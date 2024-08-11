@@ -18,6 +18,7 @@
     <ClCompile Include="Driver.cpp" />
     <ClCompile Include="Entry.cpp" />
     <ClCompile Include="MiniFilter.cpp" />
+    <ClCompile Include="Utility\base_test.cpp" />
     <ClCompile Include="Utility\Hash.cpp" />
     <ClCompile Include="Utility\base.cpp" />
     <ClCompile Include="Utility\krn.cpp" />
@@ -27,7 +28,6 @@
     <ClInclude Include="MiniFilter.h" />
     <ClInclude Include="Utility\C++\list.h" />
     <ClInclude Include="Utility\C++\map.h" />
-    <ClInclude Include="Utility\C++\memory.h" />
     <ClInclude Include="Utility\C++\mutex.h" />
     <ClInclude Include="Utility\C++\queue.h" />
     <ClInclude Include="Utility\C++\string.h" />
@@ -109,6 +109,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir)Utility;$(SolutionDir)Shared;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WppMinimalRebuildFromTracking>false</WppMinimalRebuildFromTracking>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/kernel %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <DriverSign>
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
@@ -127,6 +128,7 @@
       <WppMinimalRebuildFromTracking>false</WppMinimalRebuildFromTracking>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PreprocessorDefinitions>_TEST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>/kernel %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <DriverSign>
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
@@ -144,6 +146,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir)Utility;$(SolutionDir)Shared;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WppMinimalRebuildFromTracking>false</WppMinimalRebuildFromTracking>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/kernel %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <DriverSign>
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>

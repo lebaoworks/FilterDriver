@@ -60,9 +60,6 @@
     <ClInclude Include="Utility\Hash.h">
       <Filter>Utility</Filter>
     </ClInclude>
-    <ClInclude Include="Utility\C++\memory.h">
-      <Filter>Utility\C++</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Entry.cpp">
@@ -81,6 +78,9 @@
       <Filter>Utility</Filter>
     </ClCompile>
     <ClCompile Include="Utility\Hash.cpp">
+      <Filter>Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="Utility\base_test.cpp">
       <Filter>Utility</Filter>
     </ClCompile>
   </ItemGroup>

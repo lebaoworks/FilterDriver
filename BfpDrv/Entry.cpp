@@ -2,7 +2,6 @@
 #include <fltKernel.h>
 
 #include <base.h>
-#include <Communication.h>
 
 #include "Driver.h"
 
@@ -24,7 +23,6 @@ static DRIVER_UNLOAD DriverUnload;
 *********************/
 
 static Driver* _Driver;
-static UNICODE_STRING _ComportName = RTL_CONSTANT_STRING(COMPORT_NAME);
 
 
 /*********************
@@ -40,24 +38,19 @@ NTSTATUS DriverEntry(
     _In_ DRIVER_OBJECT* DriverObject,
     _In_ UNICODE_STRING* RegistryPath)
 {
-    Log("Loading... %wZ", RegistryPath);
+    Log("Loading %wZ", RegistryPath);
 
     // Set up the unload routine
     DriverObject->DriverUnload = DriverUnload;
 
-    NTSTATUS status = STATUS_SUCCESS;
-
-    _Driver = new Driver(DriverObject, RegistryPath, &_ComportName);
-    if (_Driver == nullptr)
-        return STATUS_NO_MEMORY;
-    defer { if (status != STATUS_SUCCESS) delete _Driver; };
-
-    status = _Driver->status();
+    auto result = base::make<Driver>(DriverObject, RegistryPath);
+    auto status = result.error();
     if (status != STATUS_SUCCESS)
     {
-        LogError("Load driver status -> %X", status);
+        LogError("Load driver -> status: %X", status);
         return status;
     };
+    _Driver = result.release();
 
     Log("Done!");
     return STATUS_SUCCESS;
@@ -94,29 +87,16 @@ NTSTATUS DriverEntry(
     _In_ DRIVER_OBJECT* DriverObject,
     _In_ UNICODE_STRING* RegistryPath)
 {
-    Log("Testing... %wZ", RegistryPath);
+    Log("Test %wZ", RegistryPath);
 
     // Set up the unload routine
     DriverObject->DriverUnload = DriverUnload;
 
-    //int i;
-    //RtlCopyMemory(&i, NULL, 0);
-
-    //Log("is_array<int>() -> %d", (bool)base::is_array<int>());
-    //Log("is_array<int[]>() -> %d", (bool)base::is_array<int[]>());
-    //Log("is_array<int[5]>() -> %d", (bool)base::is_array<int[5]>());
-
-    //Log("is_base_of<failable, Driver>() -> %d", (bool)base::is_base_of<failable, Driver>());
-    //Log("is_base_of<Driver, failable>() -> %d", (bool)base::is_base_of<Driver, failable>());
-    //Log("is_base_of<int, double>() -> %d", (bool)base::is_base_of<int, double>());
-
-    //int* p = new int(5);
-    //object<int> x(std::move(p));
-    //object<int> y(5);
-    //Log("x == 5 -> %d", x == 5);
-    //Log("x == y -> %d", x == y);
-
-    krn::test();
+    if (auto status = base::test(); status != STATUS_SUCCESS)
+        LogError("[!] Test base error: %X", status);
+    else
+        Log("[+] Test base success");
+    //krn::test();
 
     return STATUS_SUCCESS;
 }
@@ -127,7 +107,6 @@ _IRQL_requires_same_
 VOID DriverUnload(_In_ DRIVER_OBJECT* DriverObject)
 {
     UNREFERENCED_PARAMETER(DriverObject);
-
 }
 
 #endif
