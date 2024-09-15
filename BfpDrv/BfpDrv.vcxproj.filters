@@ -30,7 +30,7 @@
     <ClInclude Include="MiniFilter.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Utility\base.h">
+    <ClInclude Include="Utility\krn.hpp">
       <Filter>Utility</Filter>
     </ClInclude>
     <ClInclude Include="Utility\C++\queue.h">
@@ -51,13 +51,16 @@
     <ClInclude Include="Utility\C++\vector.h">
       <Filter>Utility\C++</Filter>
     </ClInclude>
-    <ClInclude Include="Utility\krn.h">
+    <ClInclude Include="Utility\nt.h">
       <Filter>Utility</Filter>
     </ClInclude>
     <ClInclude Include="Utility\C++\mutex.h">
       <Filter>Utility\C++</Filter>
     </ClInclude>
     <ClInclude Include="Utility\Hash.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\std.hpp">
       <Filter>Utility</Filter>
     </ClInclude>
   </ItemGroup>
@@ -68,19 +71,19 @@
     <ClCompile Include="MiniFilter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Utility\base.cpp">
+    <ClCompile Include="Utility\krn.cpp">
       <Filter>Utility</Filter>
     </ClCompile>
     <ClCompile Include="Driver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Utility\krn.cpp">
+    <ClCompile Include="Utility\nt.cpp">
       <Filter>Utility</Filter>
     </ClCompile>
     <ClCompile Include="Utility\Hash.cpp">
       <Filter>Utility</Filter>
     </ClCompile>
-    <ClCompile Include="Utility\base_test.cpp">
+    <ClCompile Include="Utility\std.cpp">
       <Filter>Utility</Filter>
     </ClCompile>
   </ItemGroup>

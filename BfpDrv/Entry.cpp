@@ -1,7 +1,7 @@
 
 #include <fltKernel.h>
 
-#include <base.h>
+#include <krn.hpp>
 
 #include "Driver.h"
 
@@ -22,7 +22,7 @@ static DRIVER_UNLOAD DriverUnload;
 *     Global Vars    *
 *********************/
 
-static Driver* _Driver;
+//static Driver* _Driver;
 
 
 /*********************
@@ -78,7 +78,6 @@ VOID DriverUnload(_In_ DRIVER_OBJECT* DriverObject)
 
 #ifdef _TEST
 
-#include <krn.h>
 
 _Function_class_(DRIVER_INITIALIZE)
 _IRQL_requires_same_
@@ -92,13 +91,10 @@ NTSTATUS DriverEntry(
     // Set up the unload routine
     DriverObject->DriverUnload = DriverUnload;
 
-    if (auto status = base::test(); status != STATUS_SUCCESS)
-        LogError("[!] Test base error: %X", status);
-    else
-        Log("[+] Test base success");
-    //krn::test();
+    std::test();
+    krn::test();
 
-    return STATUS_SUCCESS;
+    return STATUS_UNSUCCESSFUL;
 }
 
 _Function_class_(DRIVER_UNLOAD)
