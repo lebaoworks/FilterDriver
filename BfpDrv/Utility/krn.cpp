@@ -33,9 +33,28 @@ static void test_expected()
     ASSERT(d.status() == STATUS_INVALID_PARAMETER);
 }
 
+static void test_make()
+{
+    struct A : public krn::failable
+    {
+        int _x;
+        A(int x)
+        {
+            if (x == 0)
+                krn::failable::_status = STATUS_INVALID_PARAMETER;
+            _x = x;
+        }
+    };
+
+    auto a = krn::make<A>(5);
+    ASSERT(a.error() == false);
+    ASSERT(a.value()._x == 5);
+}
+
 void krn::test()
 {
     test_expected();
+    test_make();
 }
 
 #endif

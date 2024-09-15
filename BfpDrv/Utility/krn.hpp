@@ -62,8 +62,8 @@ namespace krn
         explicit expected(unexpected&& error) : _status(error._status) { _has_value = false; }
         ~expected() { if (_has_value) reinterpret_cast<T*>(&_value_data[0])->~T(); }
 
-        NTSTATUS status() const noexcept { return _status; }
-        T& value() { return *reinterpret_cast<T*>(&_value_data[0]); };
+        inline NTSTATUS status() const noexcept { return _status; }
+        inline T& value() { return *reinterpret_cast<T*>(&_value_data[0]); };
     };
 }
 
@@ -71,64 +71,47 @@ namespace krn
 *       Utility      *
 *********************/
 
-//namespace base
-//{
-//    template<typename T>
-//    class result
-//    {
-//        static_assert(base::is_array<T>() == false);
-//    private:
-//        T* val = nullptr;
-//        NTSTATUS err = STATUS_SUCCESS;
-//    
-//    public:
-//        result(T* v) : val(v) {}
-//        result(NTSTATUS e) : err(e) {}
-//        result(const result&) = delete;
-//        ~result() { if (val != nullptr) delete val; }
-//
-//        NTSTATUS error() const noexcept { return err; }
-//        T* release() { auto ret = val; val = nullptr; return ret; }
-//    };
-//
-//    template<typename T, typename... Args>
-//    result<T> make(const Args&... args)
-//    {
-//        static_assert(base::is_array<T>() == false);
-//
-//        auto val = new T(args...);
-//        if (val == nullptr)
-//            return STATUS_NO_MEMORY;
-//        if (base::is_base_of<failable, T>() == false)
-//            return val;
-//        
-//        auto err = reinterpret_cast<failable*>(val)->status();
-//        if (err == STATUS_SUCCESS)
-//            return val;
-//
-//        delete val;
-//        return err;
-//    }
-//
-//    template<typename T, typename... Args>
-//    result<T> make(Args&&... args)
-//    {
-//        static_assert(base::is_array<T>() == false);
-//
-//        auto val = new T(std::move(args)...);
-//        if (val == nullptr)
-//            return STATUS_NO_MEMORY;
-//        if (base::is_base_of<failable, T>() == false)
-//            return val;
-//
-//        auto err = reinterpret_cast<failable*>(val)->status();
-//        if (err == STATUS_SUCCESS)
-//            return val;
-//
-//        delete val;
-//        return err;
-//    }
-//}
+namespace krn
+{
+    template<typename T>
+    struct make_result : std::unique_ptr<T>
+    {
+        template<typename T, typename... Args>
+        friend make_result<T> make(Args&&...);
+    private:
+        NTSTATUS _status = STATUS_SUCCESS;
+
+        make_result(T* ptr) : std::unique_ptr<T>(ptr) {}
+        make_result(NTSTATUS status) : _status(status) {}
+    
+    public:
+        ~make_result() = default;
+
+        inline bool error() const noexcept { return _status != STATUS_SUCCESS; }
+        inline NTSTATUS status() const noexcept { return _status; }
+        inline T* release() noexcept { return std::unique_ptr<T>::release(); }
+        inline T& value() noexcept { return *std::unique_ptr<T>::get(); }
+    };
+
+    template<typename T, typename... Args>
+    make_result<T> make(Args&&... args)
+    {
+        static_assert(std::is_base_of<krn::failable, T>::value, "T must be derived from krn::failable");
+
+        auto val = new T(std::forward<Args>(args)...);
+        if (val == nullptr)
+            return STATUS_NO_MEMORY;
+        
+        auto err = val->status();
+        if (err != STATUS_SUCCESS)
+        {
+            delete val;
+            return err;
+        }
+
+        return val;
+    }
+}
 
 /*********************
 *      Logging       *

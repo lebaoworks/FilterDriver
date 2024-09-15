@@ -22,7 +22,7 @@ static DRIVER_UNLOAD DriverUnload;
 *     Global Vars    *
 *********************/
 
-//static Driver* _Driver;
+static Driver* _Driver;
 
 
 /*********************
@@ -43,12 +43,11 @@ NTSTATUS DriverEntry(
     // Set up the unload routine
     DriverObject->DriverUnload = DriverUnload;
 
-    auto result = base::make<Driver>(DriverObject, RegistryPath);
-    auto status = result.error();
-    if (status != STATUS_SUCCESS)
+    auto result = krn::make<Driver>(DriverObject, RegistryPath);
+    if (result.error() == true)
     {
-        LogError("Load driver -> status: %X", status);
-        return status;
+        LogError("Load driver -> status: %X", result.status());
+        return result.status();
     };
     _Driver = result.release();
 
