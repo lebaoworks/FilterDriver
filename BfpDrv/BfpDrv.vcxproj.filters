@@ -20,12 +20,6 @@
     <Filter Include="Utility\C++">
       <UniqueIdentifier>{ff97a810-3181-49b5-8909-efb351957192}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shared">
-      <UniqueIdentifier>{c6eb89af-aa70-4855-b36a-c12a75869bde}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Utility\CustomFeature">
-      <UniqueIdentifier>{acdf056a-0ad1-4225-a449-fe67e6df5b14}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Inf Include="BfpDrv.inf">
@@ -36,29 +30,17 @@
     <ClInclude Include="MiniFilter.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Utility\Shared.h">
+    <ClInclude Include="Utility\krn.hpp">
       <Filter>Utility</Filter>
-    </ClInclude>
-    <ClInclude Include="Utility\C++\memory.h">
-      <Filter>Utility\C++</Filter>
     </ClInclude>
     <ClInclude Include="Utility\C++\queue.h">
       <Filter>Utility\C++</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Shared\Communication.h">
-      <Filter>Shared</Filter>
     </ClInclude>
     <ClInclude Include="Driver.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Utility\C++\string.h">
       <Filter>Utility\C++</Filter>
-    </ClInclude>
-    <ClInclude Include="Utility\CustomFeature\object.h">
-      <Filter>Utility\CustomFeature</Filter>
-    </ClInclude>
-    <ClInclude Include="Utility\CustomFeature\defer.h">
-      <Filter>Utility\CustomFeature</Filter>
     </ClInclude>
     <ClInclude Include="Utility\C++\map.h">
       <Filter>Utility\C++</Filter>
@@ -69,16 +51,16 @@
     <ClInclude Include="Utility\C++\vector.h">
       <Filter>Utility\C++</Filter>
     </ClInclude>
-    <ClInclude Include="Utility\CustomFeature\tag.h">
-      <Filter>Utility\CustomFeature</Filter>
-    </ClInclude>
-    <ClInclude Include="Utility\Win32.h">
+    <ClInclude Include="Utility\nt.h">
       <Filter>Utility</Filter>
     </ClInclude>
     <ClInclude Include="Utility\C++\mutex.h">
       <Filter>Utility\C++</Filter>
     </ClInclude>
     <ClInclude Include="Utility\Hash.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\std.hpp">
       <Filter>Utility</Filter>
     </ClInclude>
   </ItemGroup>
@@ -89,20 +71,20 @@
     <ClCompile Include="MiniFilter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Utility\Shared.cpp">
+    <ClCompile Include="Utility\krn.cpp">
       <Filter>Utility</Filter>
     </ClCompile>
     <ClCompile Include="Driver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Utility\Win32.cpp">
+    <ClCompile Include="Utility\nt.cpp">
       <Filter>Utility</Filter>
     </ClCompile>
     <ClCompile Include="Utility\Hash.cpp">
       <Filter>Utility</Filter>
     </ClCompile>
-    <ClCompile Include="..\Shared\Communication.cpp">
-      <Filter>Shared</Filter>
+    <ClCompile Include="Utility\std.cpp">
+      <Filter>Utility</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

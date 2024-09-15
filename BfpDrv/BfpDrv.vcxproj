@@ -9,33 +9,33 @@
       <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="Test|x64">
+      <Configuration>Test</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Shared\Communication.cpp" />
     <ClCompile Include="Driver.cpp" />
     <ClCompile Include="Entry.cpp" />
     <ClCompile Include="MiniFilter.cpp" />
     <ClCompile Include="Utility\Hash.cpp" />
-    <ClCompile Include="Utility\Shared.cpp" />
-    <ClCompile Include="Utility\Win32.cpp" />
+    <ClCompile Include="Utility\krn.cpp" />
+    <ClCompile Include="Utility\nt.cpp" />
+    <ClCompile Include="Utility\std.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Shared\Communication.h" />
     <ClInclude Include="Driver.h" />
     <ClInclude Include="MiniFilter.h" />
     <ClInclude Include="Utility\C++\list.h" />
     <ClInclude Include="Utility\C++\map.h" />
-    <ClInclude Include="Utility\C++\memory.h" />
     <ClInclude Include="Utility\C++\mutex.h" />
     <ClInclude Include="Utility\C++\queue.h" />
     <ClInclude Include="Utility\C++\string.h" />
     <ClInclude Include="Utility\C++\vector.h" />
-    <ClInclude Include="Utility\CustomFeature\defer.h" />
-    <ClInclude Include="Utility\CustomFeature\object.h" />
-    <ClInclude Include="Utility\CustomFeature\tag.h" />
     <ClInclude Include="Utility\Hash.h" />
-    <ClInclude Include="Utility\Shared.h" />
-    <ClInclude Include="Utility\Win32.h" />
+    <ClInclude Include="Utility\krn.hpp" />
+    <ClInclude Include="Utility\nt.h" />
+    <ClInclude Include="Utility\std.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Inf Include="BfpDrv.inf" />
@@ -52,6 +52,15 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <TargetVersion>Windows10</TargetVersion>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+    <ConfigurationType>Driver</ConfigurationType>
+    <DriverType>KMDF</DriverType>
+    <DriverTargetPlatform>Desktop</DriverTargetPlatform>
+    <Driver_SpectreMitigation>false</Driver_SpectreMitigation>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Test|x64'" Label="Configuration">
     <TargetVersion>Windows10</TargetVersion>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
@@ -80,12 +89,17 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
     <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
-    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>analysis_rules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Test|x64'">
+    <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
+    <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
+    <CodeAnalysisRuleSet>analysis_rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
     <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
-    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>analysis_rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -96,12 +110,32 @@
       <AdditionalIncludeDirectories>$(ProjectDir)Utility;$(SolutionDir)Shared;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WppMinimalRebuildFromTracking>false</WppMinimalRebuildFromTracking>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/kernel %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <DriverSign>
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
     </DriverSign>
     <Link>
-      <AdditionalDependencies>$(DDK_LIB_PATH)\fltMgr.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(DDK_LIB_PATH)\fltMgr.lib;$(DDK_LIB_PATH)\NtosKrnl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Test|x64'">
+    <ClCompile>
+      <WppEnabled>false</WppEnabled>
+      <WppRecorderEnabled>true</WppRecorderEnabled>
+      <WppScanConfigurationData Condition="'%(ClCompile.ScanConfigurationData)' == ''">trace.h</WppScanConfigurationData>
+      <WppKernelMode>true</WppKernelMode>
+      <AdditionalIncludeDirectories>$(ProjectDir)Utility;$(SolutionDir)Shared;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <WppMinimalRebuildFromTracking>false</WppMinimalRebuildFromTracking>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <PreprocessorDefinitions>_TEST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>/kernel %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <DriverSign>
+      <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
+    </DriverSign>
+    <Link>
+      <AdditionalDependencies>$(DDK_LIB_PATH)\fltMgr.lib;$(DDK_LIB_PATH)\NtosKrnl.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -113,12 +147,13 @@
       <AdditionalIncludeDirectories>$(ProjectDir)Utility;$(SolutionDir)Shared;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WppMinimalRebuildFromTracking>false</WppMinimalRebuildFromTracking>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/kernel %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <DriverSign>
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
     </DriverSign>
     <Link>
-      <AdditionalDependencies>$(DDK_LIB_PATH)\fltMgr.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(DDK_LIB_PATH)\fltMgr.lib;$(DDK_LIB_PATH)\NtosKrnl.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

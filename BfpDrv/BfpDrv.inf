@@ -10,11 +10,12 @@ ClassGuid   = {b86dff51-a31e-4bac-b3cf-e8cfe75c9fc2}
 Provider    = %ProviderString%
 DriverVer   = 06/01/2023,1.0.0.0
 CatalogFile = BfpDrv.cat
-;PnpLockDown = 1
+PnpLockDown = 0
 
 [DestinationDirs]
 DefaultDestDir      = 12
 BfpDrv.DriverFiles  = 12            ;%windir%\system32\drivers
+BfpDrv.DriverFiles2 = 12
 
 ;;
 ;; Default install sections
@@ -32,7 +33,7 @@ AddService          = %ServiceName%,,BfpDrv.Service
 ;;
 
 [DefaultUninstall.NTamd64]
-DelFiles   = BfpDrv.DriverFiles
+DelFiles   = BfpDrv.DriverFiles2
 LegacyUninstall = 1
 
 [DefaultUninstall.NTamd64.Services]
@@ -69,6 +70,9 @@ HKR,"Parameters","Authenticator",0x00010001,0x0
 ;
 
 [BfpDrv.DriverFiles]
+%DriverName%.sys
+
+[BfpDrv.DriverFiles2]
 %DriverName%.sys
 
 [SourceDisksFiles]

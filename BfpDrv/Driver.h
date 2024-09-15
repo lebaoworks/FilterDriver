@@ -1,17 +1,18 @@
 #pragma once
 
-#include <Shared.h>
+#include <fltKernel.h>
+
+#include <krn.hpp>
 #include "MiniFilter.h"
 
-class Driver : public failable_object<NTSTATUS>
+class Driver : public krn::failable
 {
 private:
-    std::unique_ptr<MiniFilter::Filter> _filter;
+    MiniFilter::Filter* _filter;
 public:
     Driver(
         _Inout_ DRIVER_OBJECT*  DriverObject,
-        _In_    UNICODE_STRING* RegistryPath,
-        _In_    UNICODE_STRING* ComportName);
+        _In_    UNICODE_STRING* RegistryPath);
     ~Driver();
 };
 
