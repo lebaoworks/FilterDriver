@@ -213,6 +213,6 @@ namespace std
         inline iterator push_back(const T& t) { return linked_list<T>::insert(linked_list<T>::end(), t); }
         inline iterator push_back(T&& t) { return linked_list<T>::insert(linked_list<T>::end(), std::move(t)); }
         inline void pop_front() { linked_list<T>::erase(linked_list<T>::begin()); }
-        inline void pop_back() { linked_list<T>::erase(--linked_list<T>::end()); }
+        inline void pop_back() { linked_list<T>::erase(linked_list<T>::end()); }
     };
 }

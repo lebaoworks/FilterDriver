@@ -9,15 +9,19 @@
 *      Allocator     *
 *********************/
 
+// Allocating new: returns allocated memory or nullptr on failure
 _When_(return != nullptr, __drv_allocatesMem(Mem))
 void* _cdecl operator new(_In_ size_t size);
 
+// Placement new: returns the same pointer passed in (no allocation)
 _Ret_notnull_
 void* _cdecl operator new(_In_ size_t size, _Inout_updates_(size) void* buffer);
 
+// Delete: destroy object and free memory
 void _cdecl operator delete(_Notnull_ __drv_freesMem(Mem) void* object);
 
-void _cdecl operator delete(_Inout_updates_(size) void* object, _In_ size_t size);
+// Delete with size: destroy object and free memory
+void operator delete(_Notnull_ __drv_freesMem(Mem) void* ptr, size_t size);
 
 
 /*********************
@@ -62,11 +66,13 @@ namespace std
     template <typename T>
     struct is_same<T, T> : true_type {};
 
+
     template<typename T>
     struct is_lvalue_reference : false_type {};
 
     template<typename T>
     struct is_lvalue_reference<T&> : true_type {};
+
 
     template <typename T>
     struct is_class {
@@ -84,6 +90,7 @@ namespace std
         static constexpr bool value = sizeof(test<T>(0)) == sizeof(char);
     };
 
+
     template<typename Base, typename Derived>
     class is_base_of
     {
@@ -93,7 +100,6 @@ namespace std
     public:
         static constexpr bool value = Test(static_cast<Derived*>(nullptr));
     };
-
 
 
     template<typename T>

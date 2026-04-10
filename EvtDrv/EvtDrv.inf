@@ -1,5 +1,5 @@
 ;
-; BfpDrv.inf
+; EvtDrv.inf
 ;
 
 ;https://learn.microsoft.com/en-us/windows-hardware/drivers/ifs/file-system-filter-driver-classes-and-class-guids
@@ -9,13 +9,13 @@ Class       = "ActivityMonitor"
 ClassGuid   = {b86dff51-a31e-4bac-b3cf-e8cfe75c9fc2}
 Provider    = %ProviderString%
 DriverVer   = 06/01/2023,1.0.0.0
-CatalogFile = BfpDrv.cat
-PnpLockDown = 0
+CatalogFile = EvtDrv.cat
+PnpLockDown = 1
 
 [DestinationDirs]
-DefaultDestDir      = 12
-BfpDrv.DriverFiles  = 12            ;%windir%\system32\drivers
-BfpDrv.DriverFiles2 = 12
+DefaultDestDir     = 12
+EvtDrv.DriverFiles  = 12            ;%windir%\system32\drivers
+EvtDrv.DriverFiles2 = 12
 
 ;;
 ;; Default install sections
@@ -23,17 +23,17 @@ BfpDrv.DriverFiles2 = 12
 
 [DefaultInstall.NTamd64]
 OptionDesc          = %ServiceDescription%
-CopyFiles           = BfpDrv.DriverFiles
+CopyFiles           = EvtDrv.DriverFiles
 
 [DefaultInstall.NTamd64.Services]
-AddService          = %ServiceName%,,BfpDrv.Service
+AddService          = %ServiceName%,,EvtDrv.Service
 
 ;;
 ;; Default uninstall sections
 ;;
 
 [DefaultUninstall.NTamd64]
-DelFiles   = BfpDrv.DriverFiles2
+DelFiles   = EvtDrv.DriverFiles2
 LegacyUninstall = 1
 
 [DefaultUninstall.NTamd64.Services]
@@ -43,40 +43,39 @@ DelService = %ServiceName%,0x200      ;Ensure service is stopped before deleting
 ; Services Section
 ;
 
-[BfpDrv.Service]
+[EvtDrv.Service]
 DisplayName      = %ServiceName%
 Description      = %ServiceDescription%
 ServiceBinary    = %12%\%DriverName%.sys        ;%windir%\system32\drivers\
-Dependencies     = "FltMgr"
+Dependencies     = FltMgr
 ServiceType      = 2                            ;SERVICE_FILE_SYSTEM_DRIVER
 StartType        = 3                            ;SERVICE_DEMAND_START
 ErrorControl     = 1                            ;SERVICE_ERROR_NORMAL
 LoadOrderGroup   = "FSFilter Activity Monitor"
-AddReg           = BfpDrv.AddRegistry
+AddReg           = EvtDrv.AddRegistry
 
 ;
 ; Registry Modifications
 ;
 
-[BfpDrv.AddRegistry]
-HKR,,"DebugFlags",0x00010001 ,0x0
-HKR,"Instances","DefaultInstance",0x00000000,%DefaultInstance%
-HKR,"Instances\"%Instance1.Name%,"Altitude",0x00000000,%Instance1.Altitude%
-HKR,"Instances\"%Instance1.Name%,"Flags",0x00010001,%Instance1.Flags%
-HKR,"Parameters","Authenticator",0x00010001,0x0
+[EvtDrv.AddRegistry]
+HKR,"Parameters\Instances","DefaultInstance",0x00000000,%DefaultInstance%
+HKR,"Parameters\Instances\"%Instance1.Name%,"Altitude",0x00000000,%Instance1.Altitude%
+HKR,"Parameters\Instances\"%Instance1.Name%,"Flags",0x00010001,%Instance1.Flags%
+
 
 ;
 ; Copy Files
 ;
 
-[BfpDrv.DriverFiles]
+[EvtDrv.DriverFiles]
 %DriverName%.sys
 
-[BfpDrv.DriverFiles2]
+[EvtDrv.DriverFiles2]
 %DriverName%.sys
 
 [SourceDisksFiles]
-BfpDrv.sys = 1,,
+EvtDrv.sys = 1,,
 
 [SourceDisksNames]
 1 = %DiskId1%,,,
@@ -88,12 +87,12 @@ BfpDrv.sys = 1,,
 [Strings]
 ProviderString          = "lebaoworks@gmail.com"
 ServiceDescription      = "Monitoring Mini-Filter Driver"
-ServiceName             = "BfpDrv"
-DriverName              = "BfpDrv"
+ServiceName             = "EvtDrv"
+DriverName              = "EvtDrv"
 DiskId1                 = "Monitoring Device Installation Disk"
 
 ;Instances specific information.
-DefaultInstance         = "BfpDrv Instance"
-Instance1.Name          = "BfpDrv Instance"
+DefaultInstance         = "EvtDrv Instance"
+Instance1.Name          = "EvtDrv Instance"
 Instance1.Altitude      = "370160"
 Instance1.Flags         = 0x0              ; Allow all attachments
