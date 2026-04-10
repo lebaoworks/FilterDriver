@@ -39,6 +39,9 @@
     <ClCompile Include="MiniFilter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Worker.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="trace.h">
@@ -50,7 +53,7 @@
     <ClInclude Include="Utilities\krn.hpp">
       <Filter>Utilities</Filter>
     </ClInclude>
-    <ClInclude Include="MiniFilter.h">
+    <ClInclude Include="MiniFilter.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Utilities\c++\list.hpp">
@@ -61,6 +64,12 @@
     </ClInclude>
     <ClInclude Include="Utilities\c++\mutex.hpp">
       <Filter>Utilities\c++</Filter>
+    </ClInclude>
+    <ClInclude Include="Worker.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Event.hpp">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

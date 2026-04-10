@@ -59,6 +59,9 @@ namespace MiniFilter
         PFLT_PORT _port = NULL;
 
     public:
+        using ConnectNotifyCallback = NTSTATUS(*)(std::unique_ptr<Connection>&);
+
+
         /// @brief Creates a communication port for the filter.
         /// @param Filter The filter to which the port will be attached.
         /// @param PortName The name of the port, which will be used by user-mode applications to connect to it.
@@ -68,15 +71,16 @@ namespace MiniFilter
         _IRQL_requires_same_
         Port(
             _Inout_ MiniFilter::Filter& Filter,
-            _In_    UNICODE_STRING* PortName
+            _In_    UNICODE_STRING* PortName,
+			_In_    ConnectNotifyCallback ConnectNotifyCallback
         ) noexcept;
 
         _IRQL_requires_(PASSIVE_LEVEL)
         _IRQL_requires_same_
-        ~Port() noexcept;
+        ~Port();
     };
 
-    /*class Connection
+    class Connection
     {
     private:
         PFLT_FILTER _filter = NULL;
@@ -84,9 +88,11 @@ namespace MiniFilter
 
     public:
         Connection(_In_ PFLT_FILTER Filter, _In_ PFLT_PORT Port) noexcept;
-        Connection(Connection&& Other) noexcept;
-        ~Connection() noexcept;
+        ~Connection();
 
-        inline bool operator==(PFLT_PORT Port) const noexcept { return _port == Port; }
-    };*/
+        // Send a message to the connected client. Returns the NTSTATUS from FltSendMessage.
+        NTSTATUS SendMessage(
+            _In_reads_bytes_(InputBufferLength) PVOID InputBuffer,
+            _In_ ULONG InputBufferLength) noexcept;
+    };
 }

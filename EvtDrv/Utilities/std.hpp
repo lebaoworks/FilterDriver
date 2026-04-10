@@ -158,39 +158,31 @@ namespace std
 
 namespace std
 {
-    template <typename T>
-    struct default_delete
-    {
-        void operator()(T* ptr) const { delete ptr; }
-    };
-
-    template<typename T, typename Deleter = default_delete<T>>
+    template<typename T>
     class unique_ptr
     {
         static_assert(is_array<T>::value == false, "unique_ptr does not support arrays");
     private:
         T* _ptr = nullptr;
-        Deleter _deleter;
     public:
         // Constructors
-        explicit unique_ptr(T* p = nullptr, Deleter d = Deleter()) noexcept : _ptr(p), _deleter(d) {}
+        explicit unique_ptr(T* p = nullptr) noexcept : _ptr(p) {}
         unique_ptr(const unique_ptr& uptr) = delete;
-        unique_ptr(unique_ptr&& uptr) noexcept : _ptr(uptr._ptr), _deleter(uptr._deleter) { uptr._ptr = nullptr; }
-        ~unique_ptr() { if (_ptr != nullptr) _deleter(_ptr); }
+        unique_ptr(unique_ptr&& uptr) noexcept : _ptr(uptr._ptr) { uptr._ptr = nullptr; }
+        ~unique_ptr() { if (_ptr != nullptr) delete _ptr; }
 
         // Assignments
         inline unique_ptr& operator=(unique_ptr&& uptr) noexcept
         {
             std::swap(_ptr, uptr._ptr);
-            std::swap(_deleter, uptr._deleter);
             return *this;
         }
         unique_ptr& operator=(const unique_ptr& uptr) = delete;
 
         // Modifiers
         inline T* release() { auto p = _ptr; _ptr = nullptr; return p; }
-        inline void reset(T* p) { if (_ptr != nullptr) _deleter(_ptr); _ptr = p; }
-        inline void swap(unique_ptr& other) { swap(_ptr, other._ptr); }
+        inline void reset(T* p) { if (_ptr != nullptr) delete _ptr; _ptr = p; }
+        inline void swap(unique_ptr& other) { auto t = _ptr; _ptr = other._ptr; other._ptr = t; }
 
         // Observers
         inline T* get() const { return _ptr; }

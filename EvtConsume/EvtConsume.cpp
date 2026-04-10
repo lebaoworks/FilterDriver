@@ -25,6 +25,14 @@ int wmain(int argc, wchar_t* argv[])
 
 	std::cout << "Connected to filter port" << std::endl;
 
+    //byte buffer[256];
+    //result = FilterGetMessage(
+    //    port,                           // Port
+    //    reinterpret_cast<PFILTER_MESSAGE_HEADER>(buffer),// Buffer
+    //    sizeof(buffer),                 // BufferSize
+    //    NULL);                          // BytesRead
+    //std::cout << "FilterGetMessage result: " << std::hex << result << std::endl;
+
     CloseHandle(port);
 
     return 0;

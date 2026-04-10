@@ -12,7 +12,8 @@
 #include "krn.hpp"
 
 // Functional
-#include "MiniFilter.h"
+#include "MiniFilter.hpp"
+#include "Worker.hpp"
 
 /*********************
 *    Declarations    *
@@ -52,12 +53,16 @@ NTSTATUS DriverEntry(
 {
 	UNREFERENCED_PARAMETER(RegistryPath);
 
+    // Declare status variable for the initialization process
+    NTSTATUS status = STATUS_SUCCESS;
+
     //
 	// Initialize essential driver components
     //
 
     // Initialize WPP Tracing
     WPP_INIT_TRACING(DriverObject, RegistryPath);
+    defer{ if (status != STATUS_SUCCESS) { WPP_CLEANUP(DriverObject); } };
 
     // Allow driver unload
     DriverObject->DriverUnload = DriverUnload;
@@ -65,11 +70,19 @@ NTSTATUS DriverEntry(
     //
 	// Initialize functional components
     //
-    
-    // Declare status variable for the initialization process
-    NTSTATUS status = STATUS_SUCCESS;
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "Initializing");
+
+    // Create Worker object
+    {
+        status = Worker::Initialize();
+        if (status != STATUS_SUCCESS)
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Initialized Worker -> status: %!STATUS!", status);
+            return status;
+        };
+    }
+    defer{ if (status != STATUS_SUCCESS) { Worker::Uninitialize(); } };
 	
     // Create the MiniFilter object
     {
@@ -88,7 +101,7 @@ NTSTATUS DriverEntry(
 	// Create MiniPort object
     {
 		UNICODE_STRING port_name = RTL_CONSTANT_STRING(L"\\EvtDrvPort");
-		auto result = krn::make<MiniFilter::Port>(*g_MiniFilter, &port_name);
+		auto result = krn::make<MiniFilter::Port>(*g_MiniFilter, &port_name, Worker::ConnectNotify);
 		status = result.status();
         if (status != STATUS_SUCCESS)
         {
@@ -110,9 +123,15 @@ _IRQL_requires_same_
 VOID DriverUnload(_In_ DRIVER_OBJECT* DriverObject)
 {
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "Unloading");
-    
+
+    // Stop worker thread and cleanup
+    Worker::Uninitialize();
+
+    // Close the MiniPort
+    delete g_MiniPort;
+
     // Delete the MiniFilter object
-	delete g_MiniFilter;
+    delete g_MiniFilter;
 
 	// Clean up WPP Tracing
     WPP_CLEANUP(DriverObject);

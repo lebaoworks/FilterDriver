@@ -2,7 +2,7 @@
 *     Includes      *
 ********************/
 
-#include "MiniFilter.h"
+#include "MiniFilter.hpp"
 
 // Logging vie tracing
 #include "trace.h"
@@ -195,11 +195,17 @@ namespace MiniFilter
 // Filter Communication Port
 namespace MiniFilter
 {
+    struct PortCookie
+    {
+        Port::ConnectNotifyCallback ConnectNotify;
+        PFLT_FILTER Filter;
+        PortCookie(Port::ConnectNotifyCallback ConnectNotify, PFLT_FILTER Filter) : ConnectNotify(ConnectNotify), Filter(Filter) {}
+    };
     struct Cookie
     {
-        Filter& Filter;
-        PFLT_PORT ClientPort = NULL;
-        Cookie(MiniFilter::Filter& Filter, PFLT_PORT Port) : Filter(Filter), ClientPort(Port) {}
+        PFLT_FILTER Filter;
+        PFLT_PORT   ClientPort = NULL;
+        Cookie(PFLT_FILTER Filter, PFLT_PORT Port) : Filter(Filter), ClientPort(Port) {}
     };
 
     _IRQL_requires_(PASSIVE_LEVEL)
@@ -215,18 +221,31 @@ namespace MiniFilter
 
         TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "MiniPort: Client connected: %p", ClientPort);
 
-        // Setup connection data
-        auto& filter = *reinterpret_cast<Filter*>(ServerPortCookie);
-        auto cookie = new Cookie(filter, ClientPort);
-        if (!cookie)
-            return STATUS_NO_MEMORY;
+        auto portCookie = reinterpret_cast<PortCookie*>(ServerPortCookie);
+        defer{ delete portCookie; };
+
+        NTSTATUS status = STATUS_SUCCESS;
+
+        // Create a cookie to keep track of the connection, which will be freed on disconnect.
+        auto cookie = new Cookie(portCookie->Filter, ClientPort);
+        if (cookie == nullptr)
+        {
+            status = STATUS_NO_MEMORY;
+            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "MiniPort: Create Connection Cookie failed -> Status: %!STATUS!", status);
+            return status;
+        }
         *ConnectionCookie = cookie;
+        defer{ if (status != STATUS_SUCCESS) { delete cookie; } };
 
-        // Save connection to filter
-        auto status = filter.OnClientConnect(ClientPort);
-        if (status != STATUS_SUCCESS)
-            delete cookie;
-
+        // Create a connection object to represent this connection, which will be freed on disconnect.
+        auto connection =  krn::make<Connection>(portCookie->Filter, ClientPort);
+        if (connection.status() != STATUS_SUCCESS)
+        {
+            status = connection.status();
+            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "MiniPort: Create Connection failed -> Status: %!STATUS!", status);
+            return status;
+        }
+        status = portCookie->ConnectNotify(connection);
         return status;
     }
 
@@ -235,35 +254,15 @@ namespace MiniFilter
     {
         auto cookie = reinterpret_cast<Cookie*>(ConnectionCookie);
         TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "MiniPort: Client disconnected: %p", cookie->ClientPort);
-        cookie->Filter.OnClientDisconnect(cookie->ClientPort);
         delete cookie;
-    }
-
-    _IRQL_requires_(PASSIVE_LEVEL)
-    NTSTATUS FLTAPI FilterMessageNotify(
-            _In_ PVOID ConnectionCookie,
-            _In_reads_bytes_opt_(InputBufferSize) PVOID InputBuffer,
-            _In_ ULONG InputBufferSize,
-            _Out_writes_bytes_to_opt_(OutputBufferSize, *ReturnOutputBufferLength) PVOID OutputBuffer,
-            _In_ ULONG OutputBufferSize,
-            _Out_ PULONG ReturnOutputBufferLength)
-    {
-        auto cookie = reinterpret_cast<Cookie*>(ConnectionCookie);
-        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DRIVER, "MiniPort: Message from client: %p, InputBuffer: %p, InputBufferSize: %u",
-            cookie->ClientPort,
-            InputBuffer,
-            InputBufferSize);
-        UNREFERENCED_PARAMETER(OutputBuffer);
-        UNREFERENCED_PARAMETER(OutputBufferSize);
-        *ReturnOutputBufferLength = 0;
-        return STATUS_SUCCESS;
     }
 
     _IRQL_requires_(PASSIVE_LEVEL)
     _IRQL_requires_same_
     Port::Port(
         _Inout_ MiniFilter::Filter& Filter,
-        _In_    UNICODE_STRING* PortName
+        _In_    UNICODE_STRING* PortName,
+        _In_    ConnectNotifyCallback ConnectNotifyCallback
     ) noexcept
     {
         auto status = STATUS_SUCCESS;
@@ -284,15 +283,24 @@ namespace MiniFilter
         OBJECT_ATTRIBUTES oa;
         InitializeObjectAttributes(&oa, PortName, OBJ_KERNEL_HANDLE | OBJ_CASE_INSENSITIVE, NULL, sd);
 
+        // Create a cookie to pass the connect
+        auto cookie = new PortCookie(ConnectNotifyCallback, Filter._filter);
+        if (cookie == nullptr)
+        {
+            status = STATUS_NO_MEMORY;
+            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "MiniPort: Create Port Cookie failed -> Status: %X", status);
+            return;
+        }
+
         // Open Communication Port
         status = ::FltCreateCommunicationPort(
-            Filter._filter,            // Filter
+            Filter._filter,             // Filter
             &_port,                     // ServerPort
             &oa,                        // ObjectAttributes
-            (PVOID)&Filter,              // ServerPortCookie
+            cookie,                     // ServerPortCookie
             FilterConnectNotify,        // ConnectNotifyCallback
             FilterDisconnectNotify,     // DisconnectNotifyCallback
-            FilterMessageNotify,        // MessageNotifyCallback
+            NULL,                       // MessageNotifyCallback
             1);                         // MaxConnections
         if (status != STATUS_SUCCESS)
         {
@@ -301,7 +309,7 @@ namespace MiniFilter
         }
     }
 
-    Port::~Port() noexcept
+    Port::~Port()
     {
         if (this->status() != STATUS_SUCCESS)
             return;
@@ -310,23 +318,21 @@ namespace MiniFilter
 }
 
 // Connection
-//namespace MiniFilter
-//{
-//    Connection::Connection(
-//        _In_ PFLT_FILTER Filter,
-//        _In_ PFLT_PORT Port) noexcept : _filter(Filter), _port(Port)
-//    {
-//    }
-//
-//    Connection::Connection(Connection&& Other) noexcept : _filter(Other._filter), _port(Other._port)
-//    {
-//        Other._filter = nullptr;
-//        Other._port = nullptr;
-//    }
-//
-//    Connection::~Connection() noexcept
-//    {
-//        if (_filter && _port)
-//            FltCloseClientPort(_filter, &_port);
-//    }
-//}
+namespace MiniFilter
+{
+    Connection::Connection(
+        _In_ PFLT_FILTER Filter,
+        _In_ PFLT_PORT   Port) noexcept : _filter(Filter), _port(Port) {}
+
+    Connection::~Connection()
+    {
+        FltCloseClientPort(_filter, &_port);
+    }
+
+    NTSTATUS Connection::SendMessage(
+        _In_reads_bytes_(InputBufferLength) PVOID InputBuffer,
+        _In_ ULONG InputBufferLength) noexcept
+    {
+        return FltSendMessage(_filter, &_port, InputBuffer, InputBufferLength, NULL, 0, NULL);
+    }
+}

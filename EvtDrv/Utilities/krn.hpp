@@ -42,44 +42,6 @@ namespace krn
     };
 }
 
-//namespace krn
-//{
-//    template<typename T>
-//    struct expected;
-//
-//    struct unexpected
-//    {
-//        template<typename T>
-//        friend struct expected;
-//    private:
-//        NTSTATUS _status = STATUS_SUCCESS;
-//    public:
-//        explicit unexpected(const NTSTATUS& status) : _status(status) {}
-//
-//        template<typename T>
-//        operator expected<T>() const { return expected<T>(*this); }
-//    };
-//
-//    template<typename T>
-//    struct expected
-//    {
-//    private:
-//        NTSTATUS _status = STATUS_SUCCESS;
-//        CHAR _value_data[sizeof(T)];
-//        bool _has_value = true;
-//
-//    public:
-//        expected(const T& value) { new (reinterpret_cast<T*>(&_value_data[0])) T(value); }
-//        expected(T&& value) { new (reinterpret_cast<T*>(&_value_data[0])) T(std::move(value)); }
-//        explicit expected(const unexpected& error) : _status(error._status) { _has_value = false; }
-//        explicit expected(unexpected&& error) : _status(error._status) { _has_value = false; }
-//        ~expected() { if (_has_value) reinterpret_cast<T*>(&_value_data[0])->~T(); }
-//
-//        inline NTSTATUS status() const noexcept { return _status; }
-//        inline T& value() { return *reinterpret_cast<T*>(&_value_data[0]); };
-//    };
-//}
-//
 /*********************
 *       Utility      *
 *********************/
