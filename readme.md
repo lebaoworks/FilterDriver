@@ -4,50 +4,71 @@ This repository contains a kernel-mode filter driver solution. The primary proje
 
 ---
 
-## High-level components
+## Solution overview
 
-* **`Entry.cpp` / `Driver`**: Driver entry point and lifetime management. Initializes and owns the main components at boot (queue, worker, filter, port).
-* **`MiniFilter.cpp` / `MiniFilter.hpp`**: Minifilter registration, pre-operation callback for `IRP_MJ_CREATE`, creation of `Event::FileOpenEvent`, and communication port management.
-* **`Worker.cpp` / `Worker.hpp`**: Kernel worker thread that batches and serializes events and sends them to a connected user-mode client using `MiniFilter::Connection`.
-* **`Event.hpp`**: Event object hierarchy and serialization (`Event::Event`, `Event::FileOpenEvent`).
-* **`Utilities/`**: Small kernel-friendly utility containers and helpers (queues, pointer, etc.).
+The solution contains a single driver project `EvtDrv/` and a set of kernel-friendly utility headers under `EvtDrv/Utilities/`.
 
----
-
-## Runtime data path (concise)
-
-1. **File open** occurs in the kernel $\rightarrow$ minifilter pre-op callback runs.
-2. **Minifilter** builds an `Event::Event` and forwards it to `Worker::Queue` (via a global callback).
-3. **`Worker::Worker`** wakes, pops events from `Worker::Queue`, serializes them into a fixed buffer and sends the buffer to the connected user-mode client through `MiniFilter::Connection` (calls `FltSendMessage`).
+Key source files and responsibilities:
+- `Entry.cpp` / `Driver` — driver initialization, lifetime management and ownership of core objects.
+- `MiniFilter.cpp` / `MiniFilter.hpp` — minifilter registration, pre-op callbacks (e.g., `IRP_MJ_CREATE`), and communication port creation (`FltCreateCommunicationPort`).
+- `Worker.cpp` / `Worker.hpp` — kernel worker thread that batches, serializes and sends events to a user-mode client via `FltSendMessage`.
+- `Event.hpp` — event object types and serialization logic.
+- `Utilities/` — lightweight containers and helpers (e.g., `queue.hpp`, `list.hpp`, `mutex.hpp`, `krn.hpp`).
 
 ---
 
-## General architecture diagram
+## Runtime data path
+
+1. A file-open occurs and the minifilter pre-operation (`IRP_MJ_CREATE`) callback executes.
+2. The minifilter collects file information, constructs an `Event::FileOpenEvent` and calls the global event callback.
+3. The global callback pushes the event into `Worker::Queue` and signals the worker thread.
+4. `Worker::Worker` pops events, serializes them into a fixed buffer and sends them to the connected user-mode client via `MiniFilter::Connection` (`FltSendMessage`).
+
+---
+
+## Solution-level architecture (mermaid)
 
 ```mermaid
 flowchart LR
-    Driver[Driver]
-    subgraph Core
-        Driver --> Queue[Worker::Queue]
-        Driver --> Worker[Worker::Worker]
-        Driver --> Filter[MiniFilter::Filter]
-        Driver --> Port[MiniFilter::Port]
+    subgraph Solution[FilterDriver Solution]
+        direction TB
+        EvtDrv[EvtDrv Project]
     end
 
-    Filter -->|creates| Event[Event::Event]
-    Event -->|pushes to| Queue
-    Queue -->|signals| Worker
-    Port -->|on connect creates| Connection[MiniFilter::Connection]
-    Worker -->|sends via| Connection
-    Connection -->|FltSendMessage| User[User-mode client]
+    subgraph EvtDrvProj[EvtDrv]
+        direction LR
+        Entry[Entry.cpp \n Driver]
+        Filter[MiniFilter.cpp/h \n Filter]
+        WorkerComp[Worker.cpp/h \n Worker]
+        QueueComp[Worker::Queue \n queue.hpp]
+        Events[Event.hpp \n Event types]
+        Utilities[Utilities/ \n (queue, list, mutex, krn)]
+        PortConn[Port / Connection \n (FltCreateCommunicationPort)]
+    end
 
-    classDef kernel fill:#f2f9ff,stroke:#333,stroke-width:1px;
-    class Driver,Filter,kernel;
+    Kernel[Kernel / File System]
+    User[User-mode client]
+
+    Kernel -->|IRP_MJ_CREATE| Filter
+    Filter -->|create event| Events
+    Events -->|push| QueueComp
+    QueueComp -->|signal| WorkerComp
+    WorkerComp -->|use| Utilities
+    WorkerComp -->|send via| PortConn
+    PortConn -->|FltSendMessage| User
+    User -->|connect| PortConn
+
+    classDef comp fill:#eef7ff,stroke:#2b6cb0,stroke-width:1px;
+    class EvtDrvProj,Entry,Filter,WorkerComp,QueueComp,Events,Utilities,PortConn comp;
 ```
 
 ---
 
+Build & test notes
+- Requires Visual Studio + Windows Driver Kit (WDK).
+- Build configurations are in the `EvtDrv` project files. Test in a VM with test-signing enabled.
+
 Tested platforms
 - Windows 11 (verified in a test VM)
 
-More detailed component documentation and diagrams are available in `EvtDrv/readme.md`.
+For component-level diagrams and sequence flows see `EvtDrv/readme.md`.
