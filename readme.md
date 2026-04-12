@@ -30,36 +30,19 @@ Key source files and responsibilities:
 
 ```mermaid
 flowchart LR
-    subgraph Solution[FilterDriver Solution]
-        direction TB
-        EvtDrv[EvtDrv Project]
-    end
+    Engines["Kernel Engines<br/>(Filter System, Callbacks, Other)"]
+    Events["Event objects<br/>(Event::FileOpenEvent, ...)" ]
+    Queue["Worker::Queue<br/>(krn::queue)"]
+    Worker["Worker::Worker<br/>(kernel thread)"]
+    User["User-mode client\n(application)"]
 
-    subgraph EvtDrvProj[EvtDrv]
-        direction LR
-        Entry["Entry.cpp<br/>Driver"]
-        Filter["MiniFilter.cpp/h<br/>Filter"]
-        WorkerComp["Worker.cpp/h<br/>Worker"]
-        QueueComp["Worker::Queue<br/>queue.hpp"]
-        Events["Event.hpp<br/>Event types"]
-        Utilities["Utilities/ - queue list mutex krn"]
-        PortConn["Port / Connection<br/>FltCreateCommunicationPort"]
-    end
+    Engines -->|produce events| Events
+    Events -->|enqueue| Queue
+    Queue -->|dequeue & serialize| Worker
+    Worker -->|send (FltSendMessage)| User
 
-    Kernel["Kernel / File System"]
-    User["User-mode client"]
-
-    Kernel -->|IRP_MJ_CREATE| Filter
-    Filter -->|create event| Events
-    Events -->|push| QueueComp
-    QueueComp -->|signal| WorkerComp
-    WorkerComp -->|use| Utilities
-    WorkerComp -->|send via| PortConn
-    PortConn -->|FltSendMessage| User
-    User -->|connect| PortConn
-
-    classDef comp fill:#eef7ff,stroke:#2b6cb0,stroke-width:1px;
-    class EvtDrvProj,Entry,Filter,WorkerComp,QueueComp,Events,Utilities,PortConn comp;
+    classDef kernel fill:#fff7e6,stroke:#b36b00,stroke-width:1px;
+    class Engines,Queue,Worker,kernel;
 ```
 
 ---
