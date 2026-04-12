@@ -33,16 +33,16 @@ flowchart LR
     Engines["Kernel Engines<br/>(Filter System, Callbacks, Other)"]
     Events["Event objects<br/>(Event::FileOpenEvent, ...)" ]
     Queue["Worker::Queue<br/>(krn::queue)"]
-    Worker["Worker::Worker<br/>(kernel thread)"]
+    WorkerN["Worker::Worker<br/>(kernel thread)"]
     User["User-mode client\n(application)"]
 
     Engines -->|produce events| Events
     Events -->|enqueue| Queue
-    Queue -->|dequeue & serialize| Worker
-    Worker -->|send (FltSendMessage)| User
+    Queue -->|"dequeue & serialize"| WorkerN
+    WorkerN -->|"send via FltSendMessage"| User
 
     classDef kernel fill:#fff7e6,stroke:#b36b00,stroke-width:1px;
-    class Engines,Queue,Worker,kernel;
+    class Engines,Events,Queue,WorkerN kernel;
 ```
 
 ---
