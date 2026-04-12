@@ -25,25 +25,29 @@ This repository contains a kernel-mode filter driver solution. The primary proje
 ## General architecture diagram
 
 ```mermaid
-flowchart TD
-    Kernel[Kernel / File System]
-    MF[MiniFilter::Filter]
-    Event[Event::Event types]
-    Queue[Worker::Queue]
-    Worker[Worker::Worker]
-    Port[MiniFilter::Port]
-    Conn[MiniFilter::Connection]
-    User[User-mode client]
+flowchart LR
+    Driver[Driver]
+    subgraph Core
+        Driver --> Queue[Worker::Queue]
+        Driver --> Worker[Worker::Worker]
+        Driver --> Filter[MiniFilter::Filter]
+        Driver --> Port[MiniFilter::Port]
+    end
 
-    Kernel -->|IRP_MJ_CREATE| MF
-    MF -->|create Event| Event
-    Event -->|push| Queue
-    Queue -->|signal| Worker
-    Worker -->|serialize| Conn
-    Conn -->|FltSendMessage| User
-    User -->|connect| Port
-    Port -->|create| Conn
-    MF --> Port
+    Filter -->|creates| Event[Event::Event]
+    Event -->|pushes to| Queue
+    Queue -->|signals| Worker
+    Port -->|on connect creates| Connection[MiniFilter::Connection]
+    Worker -->|sends via| Connection
+    Connection -->|FltSendMessage| User[User-mode client]
 
-    classDef kernel fill:#f9f,stroke:#333,stroke-width:1px;
-    class Kernel,MF,kernel;
+    classDef kernel fill:#f2f9ff,stroke:#333,stroke-width:1px;
+    class Driver,Filter,kernel;
+```
+
+---
+
+Tested platforms
+- Windows 11 (verified in a test VM)
+
+More detailed component documentation and diagrams are available in `EvtDrv/readme.md`.
