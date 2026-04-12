@@ -37,17 +37,17 @@ flowchart LR
 
     subgraph EvtDrvProj[EvtDrv]
         direction LR
-        Entry[Entry.cpp \n Driver]
-        Filter[MiniFilter.cpp/h \n Filter]
-        WorkerComp[Worker.cpp/h \n Worker]
-        QueueComp[Worker::Queue \n queue.hpp]
-        Events[Event.hpp \n Event types]
-        Utilities[Utilities/ \n (queue, list, mutex, krn)]
-        PortConn[Port / Connection \n (FltCreateCommunicationPort)]
+        Entry["Entry.cpp<br/>Driver"]
+        Filter["MiniFilter.cpp/h<br/>Filter"]
+        WorkerComp["Worker.cpp/h<br/>Worker"]
+        QueueComp["Worker::Queue<br/>queue.hpp"]
+        Events["Event.hpp<br/>Event types"]
+        Utilities["Utilities/ - queue list mutex krn"]
+        PortConn["Port / Connection<br/>FltCreateCommunicationPort"]
     end
 
-    Kernel[Kernel / File System]
-    User[User-mode client]
+    Kernel["Kernel / File System"]
+    User["User-mode client"]
 
     Kernel -->|IRP_MJ_CREATE| Filter
     Filter -->|create event| Events
