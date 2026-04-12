@@ -33,7 +33,10 @@ int wmain(int argc, wchar_t* argv[])
     //    NULL);                          // BytesRead
     //std::cout << "FilterGetMessage result: " << std::hex << result << std::endl;
 
+    //Sleep(50000);
+
     CloseHandle(port);
 
     return 0;
 }
+

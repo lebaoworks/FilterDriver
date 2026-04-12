@@ -33,9 +33,6 @@
     <ClCompile Include="Entry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Utilities\std.cpp">
-      <Filter>Utilities</Filter>
-    </ClCompile>
     <ClCompile Include="MiniFilter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -59,9 +56,6 @@
     <ClInclude Include="Utilities\c++\list.hpp">
       <Filter>Utilities\c++</Filter>
     </ClInclude>
-    <ClInclude Include="Utilities\c++\queue.hpp">
-      <Filter>Utilities\c++</Filter>
-    </ClInclude>
     <ClInclude Include="Utilities\c++\mutex.hpp">
       <Filter>Utilities\c++</Filter>
     </ClInclude>
@@ -71,5 +65,11 @@
     <ClInclude Include="Event.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Utilities\queue.hpp">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="readme.md" />
   </ItemGroup>
 </Project>

@@ -4,9 +4,10 @@
 *     Includes      *
 ********************/
 
-#include <fltKernel.h>
 #include <krn.hpp>
-#include <c++/list.hpp>
+
+// Events
+#include "Event.hpp"
 
 /*********************
 *    Declarations    *
@@ -21,47 +22,47 @@ namespace MiniFilter
 
 namespace MiniFilter
 {
-    class Filter : public krn::failable
+    class Filter : public krn::failable, public krn::tag<'EVT0'>
     {
         friend class MiniFilter::Port;
+    public:
+        using EventNotifyCallback = NTSTATUS(*)(krn::unique_ptr<Event::Event>&);
 
     private:
         PFLT_FILTER _filter = NULL;
-
-        // Keeps track of active connections to the filter here.
-        //      as they may persist even after the port is closed.
-        // FltUnregisterFilter() will wait for all connections to be closed before it returns.
-        //std::list<MiniFilter::Connection> _connections;
+        
 
     public:
+
         /// @brief Sets up the filter and starts filtering.
         /// @param DriverObject 
-        /// @remarks On success, status will be STATUS_SUCCESS.
-        /// @remarks On failure, status will be set to the error code, rewind any partial initialization.
+        /// @remarks On success, status() will be STATUS_SUCCESS.
+        /// @remarks On failure, status() will be set to the error code, rewind any partial initialization.
         _IRQL_requires_(PASSIVE_LEVEL)
         _IRQL_requires_same_
-        Filter(_In_ DRIVER_OBJECT* DriverObject);
+        Filter(
+            _In_ DRIVER_OBJECT* DriverObject,
+            _In_ EventNotifyCallback Callback
+        );
         
         _IRQL_requires_(PASSIVE_LEVEL)
         _IRQL_requires_same_
         ~Filter();
-
-        NTSTATUS OnClientConnect(_In_ PFLT_PORT ClientPort);
-        void     OnClientDisconnect(_Inout_ PFLT_PORT ClientPort);
     };
 }
 
 namespace MiniFilter
 {
-    class Port : public krn::failable
+    class Port : public krn::failable, public krn::tag<'EVT0'>
     {
+    public:
+        using ConnectNotifyCallback = NTSTATUS(*)(krn::unique_ptr<Connection>&);
+
     private:
         PFLT_PORT _port = NULL;
+        PVOID     _cookie = nullptr;
 
     public:
-        using ConnectNotifyCallback = NTSTATUS(*)(std::unique_ptr<Connection>&);
-
-
         /// @brief Creates a communication port for the filter.
         /// @param Filter The filter to which the port will be attached.
         /// @param PortName The name of the port, which will be used by user-mode applications to connect to it.
@@ -70,9 +71,9 @@ namespace MiniFilter
         _IRQL_requires_(PASSIVE_LEVEL)
         _IRQL_requires_same_
         Port(
-            _Inout_ MiniFilter::Filter& Filter,
-            _In_    UNICODE_STRING* PortName,
-			_In_    ConnectNotifyCallback ConnectNotifyCallback
+            _In_ const Filter&          Filter,
+            _In_ UNICODE_STRING*        PortName,
+            _In_ ConnectNotifyCallback  ConnectNotifyCallback
         ) noexcept;
 
         _IRQL_requires_(PASSIVE_LEVEL)
@@ -80,19 +81,29 @@ namespace MiniFilter
         ~Port();
     };
 
-    class Connection
+    class Connection : public krn::tag<'EVT0'>
     {
     private:
         PFLT_FILTER _filter = NULL;
-        PFLT_PORT _port = NULL;
+        PFLT_PORT   _port   = NULL;
 
     public:
-        Connection(_In_ PFLT_FILTER Filter, _In_ PFLT_PORT Port) noexcept;
+        /// @brief Wraps a MiniPort connection
+        /// @param Filter The filter to which the port is attached.
+        /// @param ClientPort The port representing the connection to the user-mode application.
+        Connection(
+            _In_ PFLT_FILTER Filter,
+            _In_ PFLT_PORT ClientPort
+        ) noexcept;
         ~Connection();
 
-        // Send a message to the connected client. Returns the NTSTATUS from FltSendMessage.
-        NTSTATUS SendMessage(
-            _In_reads_bytes_(InputBufferLength) PVOID InputBuffer,
-            _In_ ULONG InputBufferLength) noexcept;
+        /// @brief Send data to the connected user-mode application.
+        /// @param Buffer The buffer containing the data to send. 
+        /// @param BufferSize The size of the buffer in bytes.
+        /// @return [TODO]
+        NTSTATUS Send(
+            _In_reads_bytes_(BufferSize) PVOID Buffer,
+            _In_ ULONG BufferSize
+        ) noexcept;
     };
 }

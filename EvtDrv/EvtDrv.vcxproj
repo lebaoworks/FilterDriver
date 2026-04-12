@@ -116,7 +116,6 @@
   <ItemGroup>
     <ClCompile Include="Entry.cpp" />
     <ClCompile Include="MiniFilter.cpp" />
-    <ClCompile Include="Utilities\std.cpp" />
     <ClCompile Include="Worker.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -125,10 +124,13 @@
     <ClInclude Include="trace.h" />
     <ClInclude Include="Utilities\c++\list.hpp" />
     <ClInclude Include="Utilities\c++\mutex.hpp" />
-    <ClInclude Include="Utilities\c++\queue.hpp" />
     <ClInclude Include="Utilities\krn.hpp" />
+    <ClInclude Include="Utilities\queue.hpp" />
     <ClInclude Include="Utilities\std.hpp" />
     <ClInclude Include="Worker.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="readme.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

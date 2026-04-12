@@ -1,12 +1,14 @@
 #pragma once
 
-namespace std
+#include <std.hpp>
+
+namespace krn
 {
-    template<typename T>
-    class queue
+    template<typename T, typename alloc_trait>
+    class queue : public alloc_trait
     {
     private:
-        struct node
+        struct node : public alloc_trait
         {
             T _data;
             node* _next = nullptr;
@@ -42,17 +44,17 @@ namespace std
     public:
         // Constructors
         queue() {}
-        queue(const queue<T>&) = delete;
-        queue(queue<T>&& q) : _size(q._size), _front(q._front), _rear(q._rear) { q._size = 0; q._front = q._rear = nullptr; }
+        queue(const queue<T, alloc_trait>&) = delete;
+        queue(queue<T, alloc_trait>&& q) : _size(q._size), _front(q._front), _rear(q._rear) { q._size = 0; q._front = q._rear = nullptr; }
         ~queue() { while (!empty()) pop(); }
 
         // Assignments
-        queue<T>& operator=(const queue<T>&) = delete;
-        queue<T>& operator=(queue<T>&& q) { _size = q._size; _front = q._front; _rear = q._rear; q._size = 0; q._front = q._rear = nullptr; return *this; }
+        queue<T, alloc_trait>& operator=(const queue<T, alloc_trait>&) = delete;
+        queue<T, alloc_trait>& operator=(queue<T, alloc_trait>&& q) { _size = q._size; _front = q._front; _rear = q._rear; q._size = 0; q._front = q._rear = nullptr; return *this; }
 
         // Modifiers
         inline void push(const T& data) { _push(new node(data)); }
-        inline void push(T&& data) { _push(new node(move(data))); }
+        inline void push(T&& data) { _push(new node(std::move(data))); }
         inline void pop() { return _pop(); }
 
         // Observers
@@ -64,7 +66,7 @@ namespace std
         // Iterators
         struct iterator
         {
-            friend class queue<T>;
+            friend class queue<T, alloc_trait>;
         private:
             node* n;
             iterator(node* n) : n(n) {}

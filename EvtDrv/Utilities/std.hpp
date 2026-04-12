@@ -1,29 +1,5 @@
 #pragma once
 
-// Windows Headers
-#include <sal.h>
-#include <ntddk.h>
-#include <wdm.h>
-
-/*********************
-*      Allocator     *
-*********************/
-
-// Allocating new: returns allocated memory or nullptr on failure
-_When_(return != nullptr, __drv_allocatesMem(Mem))
-void* _cdecl operator new(_In_ size_t size);
-
-// Placement new: returns the same pointer passed in (no allocation)
-_Ret_notnull_
-void* _cdecl operator new(_In_ size_t size, _Inout_updates_(size) void* buffer);
-
-// Delete: destroy object and free memory
-void _cdecl operator delete(_Notnull_ __drv_freesMem(Mem) void* object);
-
-// Delete with size: destroy object and free memory
-void operator delete(_Notnull_ __drv_freesMem(Mem) void* ptr, size_t size);
-
-
 /*********************
 *       Traits       *
 *********************/
@@ -146,93 +122,7 @@ namespace std
         static_assert(is_lvalue_reference<T>::value == false, "bad forward call");
         return static_cast<T&&>(t);
     }
-
-    template<typename T>
-    inline void swap(T& a, T& b) noexcept { auto x = move(a); a = move(b); b = move(x); }
 }
 
 
-/*********************
-*       Memory       *
-*********************/
 
-namespace std
-{
-    template<typename T>
-    class unique_ptr
-    {
-        static_assert(is_array<T>::value == false, "unique_ptr does not support arrays");
-    private:
-        T* _ptr = nullptr;
-    public:
-        // Constructors
-        explicit unique_ptr(T* p = nullptr) noexcept : _ptr(p) {}
-        unique_ptr(const unique_ptr& uptr) = delete;
-        unique_ptr(unique_ptr&& uptr) noexcept : _ptr(uptr._ptr) { uptr._ptr = nullptr; }
-        ~unique_ptr() { if (_ptr != nullptr) delete _ptr; }
-
-        // Assignments
-        inline unique_ptr& operator=(unique_ptr&& uptr) noexcept
-        {
-            std::swap(_ptr, uptr._ptr);
-            return *this;
-        }
-        unique_ptr& operator=(const unique_ptr& uptr) = delete;
-
-        // Modifiers
-        inline T* release() { auto p = _ptr; _ptr = nullptr; return p; }
-        inline void reset(T* p) { if (_ptr != nullptr) delete _ptr; _ptr = p; }
-        inline void swap(unique_ptr& other) { auto t = _ptr; _ptr = other._ptr; other._ptr = t; }
-
-        // Observers
-        inline T* get() const { return _ptr; }
-        inline operator bool() const { return _ptr != nullptr; }
-
-        // Dereference
-        inline T& operator*() const { return *_ptr; }
-        inline T* operator->() const { return _ptr; }
-
-        // Comparisons
-        inline bool operator==(const unique_ptr& other) const { return _ptr == other._ptr; }
-        inline bool operator!=(const unique_ptr& other) const { return _ptr != other._ptr; }
-    };
-}
-
-
-/*********************
-*        Defer       *
-*********************/
-
-namespace std
-{
-    // Source: https://stackoverflow.com/a/42060129
-    // Modified for rvalue
-    struct defer_dummy {};
-    template<class F>
-    struct deferer
-    {
-        F _f;
-        deferer(F&& f) : _f(std::forward<F>(f)) {}
-        ~deferer() { _f(); }
-    };
-    template<class F>
-    inline deferer<F> operator*(defer_dummy&&, F&& f)
-    {
-        return deferer<F>(std::forward<F>(f));
-    }
-}
-#define DEFER_(LINE) zz_defer##LINE
-#define DEFER(LINE) DEFER_(LINE)
-#define defer auto DEFER(__LINE__) = std::defer_dummy{} *[&]()
-
-
-/*********************
-*        TEST        *
-*********************/
-
-#if _TEST
-namespace std
-{
-    void test();
-}
-#endif

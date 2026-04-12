@@ -8,12 +8,12 @@
 #include "trace.h"
 #include "MiniFilter.tmh"
 
-
 /*********************
 *     Global Vars    *
 *********************/
-
-static MiniFilter::Filter* g_filter = nullptr;
+#pragma data_seg("NONPAGED")
+static MiniFilter::Filter::EventNotifyCallback GlobalEventCallback = nullptr;
+#pragma data_seg()
 
 
 /*********************
@@ -27,7 +27,7 @@ namespace MiniFilter
     _IRQL_requires_same_
     NTSTATUS FLTAPI FilterUnload(_In_ FLT_FILTER_UNLOAD_FLAGS Flags)
     {
-        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DRIVER, "Unload with flags: %X", Flags);
+        TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "MiniFilter: Unload with flags: %X", Flags);
 
         // Allow filter unload
         return STATUS_SUCCESS;
@@ -42,7 +42,7 @@ namespace MiniFilter
         _In_ FLT_FILESYSTEM_TYPE VolumeFilesystemType)
     {
         UNREFERENCED_PARAMETER(Flags);
-        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DRIVER, "Instance Setup: %p, VolumeType: %X, FileSystemType: %X",
+        TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "MiniFilter: Setup Instance: %p, VolumeType: %X, FileSystemType: %X",
             FltObjects->Instance,
             VolumeDeviceType,
             VolumeFilesystemType);
@@ -57,7 +57,7 @@ namespace MiniFilter
         _In_ PCFLT_RELATED_OBJECTS FltObjects,
         _In_ FLT_INSTANCE_QUERY_TEARDOWN_FLAGS Flags)
     {
-        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DRIVER, "Instance Query Teardown: %p, Flags: %X, Volume: %p",
+        TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "Instance Query Teardown: %p, Flags: %X, Volume: %p",
             FltObjects,
             Flags,
             FltObjects->Volume);
@@ -96,14 +96,23 @@ namespace MiniFilter
         if (status == STATUS_SUCCESS)
         {
             defer{ FltReleaseFileNameInformation(file_name_info); };
-            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DRIVER, "[Instance: %p] File: %wZ", FltObjects->Instance, &file_name_info->Name);
+            // TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DRIVER, "PreOpen File: %wZ", &file_name_info->Name);
+            auto result = krn::make<Event::FileOpenEvent>();
+            if (result.status() == STATUS_SUCCESS)
+            {
+                auto& event = result.value();
+                event.ProcessId = HandleToUlong(PsGetCurrentProcessId());
+                event.FileName = file_name_info->Name;
+                krn::unique_ptr<Event::Event> evt(result.release());
+                GlobalEventCallback(evt);
+            }
         }
 
         // No post operator needed
         return FLT_PREOP_SUCCESS_NO_CALLBACK;
     }
 
-    /* Static data declarations */
+    #pragma data_seg("NONPAGED")
     static const FLT_CONTEXT_REGISTRATION FilterContextRegistration[] = {
         {
             FLT_FILE_CONTEXT,               //  ContextType
@@ -150,12 +159,17 @@ namespace MiniFilter
         NULL,                                   //  NormalizeNameComponentExCallback
         NULL,                                   //  SectionNotificationCallback
     };
+    #pragma data_seg()
+
 
     _IRQL_requires_(PASSIVE_LEVEL)
     _IRQL_requires_same_
-    Filter::Filter(_In_ DRIVER_OBJECT* DriverObject)
+    Filter::Filter(
+        _In_ DRIVER_OBJECT* DriverObject,
+        _In_ EventNotifyCallback Callback)
     {
         auto& status = failable::_status;
+        GlobalEventCallback = Callback;
 
         status = ::FltRegisterFilter(DriverObject, &FilterRegistration, &_filter);
         if (status != STATUS_SUCCESS)
@@ -179,29 +193,18 @@ namespace MiniFilter
 
         FltUnregisterFilter(_filter);
     }
-
-    NTSTATUS Filter::OnClientConnect(_In_ PFLT_PORT ClientPort)
-    {
-        UNREFERENCED_PARAMETER(ClientPort);
-        return STATUS_SUCCESS;
-	}
-
-    void Filter::OnClientDisconnect(_Inout_ PFLT_PORT ClientPort)
-    {
-        FltCloseClientPort(_filter, &ClientPort);
-    }
 }
 
-// Filter Communication Port
+// Port
 namespace MiniFilter
 {
-    struct PortCookie
+    struct PortCookie : public krn::tag<'EVT0'>
     {
         Port::ConnectNotifyCallback ConnectNotify;
         PFLT_FILTER Filter;
         PortCookie(Port::ConnectNotifyCallback ConnectNotify, PFLT_FILTER Filter) : ConnectNotify(ConnectNotify), Filter(Filter) {}
     };
-    struct Cookie
+    struct Cookie : public krn::tag<'EVT0'>
     {
         PFLT_FILTER Filter;
         PFLT_PORT   ClientPort = NULL;
@@ -209,6 +212,7 @@ namespace MiniFilter
     };
 
     _IRQL_requires_(PASSIVE_LEVEL)
+    _IRQL_requires_same_
     NTSTATUS FLTAPI FilterConnectNotify(
         _In_ PFLT_PORT ClientPort,
         _In_ PVOID ServerPortCookie,
@@ -221,52 +225,50 @@ namespace MiniFilter
 
         TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "MiniPort: Client connected: %p", ClientPort);
 
+        // Set Port as connection cookie to be used in disconnect 
+        *ConnectionCookie = ClientPort;
+
+        // Retrieve port cookie to get filter and connect notify callback
         auto portCookie = reinterpret_cast<PortCookie*>(ServerPortCookie);
-        defer{ delete portCookie; };
-
-        NTSTATUS status = STATUS_SUCCESS;
-
-        // Create a cookie to keep track of the connection, which will be freed on disconnect.
-        auto cookie = new Cookie(portCookie->Filter, ClientPort);
-        if (cookie == nullptr)
-        {
-            status = STATUS_NO_MEMORY;
-            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "MiniPort: Create Connection Cookie failed -> Status: %!STATUS!", status);
-            return status;
-        }
-        *ConnectionCookie = cookie;
-        defer{ if (status != STATUS_SUCCESS) { delete cookie; } };
 
         // Create a connection object to represent this connection, which will be freed on disconnect.
         auto connection =  krn::make<Connection>(portCookie->Filter, ClientPort);
         if (connection.status() != STATUS_SUCCESS)
         {
-            status = connection.status();
-            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "MiniPort: Create Connection failed -> Status: %!STATUS!", status);
-            return status;
+            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "MiniPort: Create Connection failed -> Status: %!STATUS!", connection.status());
+            return connection.status();
         }
-        status = portCookie->ConnectNotify(connection);
-        return status;
+        return portCookie->ConnectNotify(connection);
     }
 
     _IRQL_requires_(PASSIVE_LEVEL)
+    _IRQL_requires_same_
     VOID FLTAPI FilterDisconnectNotify(_In_ PVOID ConnectionCookie)
     {
-        auto cookie = reinterpret_cast<Cookie*>(ConnectionCookie);
-        TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "MiniPort: Client disconnected: %p", cookie->ClientPort);
-        delete cookie;
+        auto ClientPort = reinterpret_cast<PFLT_PORT>(ConnectionCookie);
+        TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "MiniPort: Client disconnected: %p", ClientPort);
     }
 
     _IRQL_requires_(PASSIVE_LEVEL)
     _IRQL_requires_same_
     Port::Port(
-        _Inout_ MiniFilter::Filter& Filter,
-        _In_    UNICODE_STRING* PortName,
-        _In_    ConnectNotifyCallback ConnectNotifyCallback
+        _In_ const Filter&          Filter,
+        _In_ UNICODE_STRING*        PortName,
+        _In_ ConnectNotifyCallback  ConnectNotifyCallback
     ) noexcept
     {
-        auto status = STATUS_SUCCESS;
-        defer{ krn::failable::_status = status; }; // set error code
+        auto& status = failable::_status;
+
+        // Create port cookie 
+        auto result = krn::make<PortCookie>(ConnectNotifyCallback, Filter._filter);
+        status = result.status();
+        if (status != STATUS_SUCCESS)
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "MiniPort: Create Port Cookie failed -> Status: %X", status);
+            return;
+        }
+        _cookie = result.release();
+        defer{ if (status != STATUS_SUCCESS) delete reinterpret_cast<PortCookie*>(_cookie); };
 
         // Build Security Descriptor
         PSECURITY_DESCRIPTOR sd;
@@ -283,21 +285,12 @@ namespace MiniFilter
         OBJECT_ATTRIBUTES oa;
         InitializeObjectAttributes(&oa, PortName, OBJ_KERNEL_HANDLE | OBJ_CASE_INSENSITIVE, NULL, sd);
 
-        // Create a cookie to pass the connect
-        auto cookie = new PortCookie(ConnectNotifyCallback, Filter._filter);
-        if (cookie == nullptr)
-        {
-            status = STATUS_NO_MEMORY;
-            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "MiniPort: Create Port Cookie failed -> Status: %X", status);
-            return;
-        }
-
         // Open Communication Port
         status = ::FltCreateCommunicationPort(
             Filter._filter,             // Filter
             &_port,                     // ServerPort
             &oa,                        // ObjectAttributes
-            cookie,                     // ServerPortCookie
+            _cookie,                     // ServerPortCookie
             FilterConnectNotify,        // ConnectNotifyCallback
             FilterDisconnectNotify,     // DisconnectNotifyCallback
             NULL,                       // MessageNotifyCallback
@@ -313,7 +306,9 @@ namespace MiniFilter
     {
         if (this->status() != STATUS_SUCCESS)
             return;
+
         FltCloseCommunicationPort(_port);
+        delete reinterpret_cast<PortCookie*>(_cookie);
     }
 }
 
@@ -326,13 +321,14 @@ namespace MiniFilter
 
     Connection::~Connection()
     {
+        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DRIVER, "Connection: Closing connection: %p", _port);
         FltCloseClientPort(_filter, &_port);
     }
 
-    NTSTATUS Connection::SendMessage(
-        _In_reads_bytes_(InputBufferLength) PVOID InputBuffer,
-        _In_ ULONG InputBufferLength) noexcept
+    NTSTATUS Connection::Send(
+        _In_reads_bytes_(BufferSize) PVOID Buffer,
+        _In_ ULONG BufferSize) noexcept
     {
-        return FltSendMessage(_filter, &_port, InputBuffer, InputBufferLength, NULL, 0, NULL);
+        return FltSendMessage(_filter, &_port, Buffer, BufferSize, NULL, 0, NULL);
     }
 }

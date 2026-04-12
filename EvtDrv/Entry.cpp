@@ -2,14 +2,11 @@
 *     Includes      *
 ********************/
 
-#include <fltKernel.h>
+#include "krn.hpp"
 
 // Logging vie tracing
 #include "trace.h"
 #include "Entry.tmh"
-
-// Utilities
-#include "krn.hpp"
 
 // Functional
 #include "MiniFilter.hpp"
@@ -28,6 +25,8 @@ extern "C" { DRIVER_INITIALIZE DriverEntry; }
 
 static DRIVER_UNLOAD DriverUnload;
 
+struct Driver;
+
 // Free up the memory taken by DriverEntry after initialization
 #pragma alloc_text (INIT, DriverEntry)
 
@@ -36,13 +35,98 @@ static DRIVER_UNLOAD DriverUnload;
 *********************/
 
 #pragma data_seg("NONPAGED")
-static MiniFilter::Filter* g_MiniFilter = nullptr;
-static MiniFilter::Port* g_MiniPort = nullptr;
+static Driver* GlobalDriver = nullptr;
 #pragma data_seg()
 
 /*********************
 *   Implementations  *
 *********************/
+
+struct Driver : public krn::failable, public krn::tag<'EVT0'>
+{
+private:
+    MiniFilter::Filter* _filter = nullptr;
+    MiniFilter::Port*   _port   = nullptr;
+    Worker::Queue*      _queue  = nullptr;
+    Worker::Worker*     _worker = nullptr;
+    
+
+public:
+    Driver(DRIVER_OBJECT* DriverObject) noexcept
+    {
+        NTSTATUS& status = krn::failable::_status;
+
+        // Initialize Queue
+        {
+            auto result = krn::make<Worker::Queue>();
+            status = result.status();
+            if (status != STATUS_SUCCESS)
+            {
+                TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Initialized Queue -> status: %!STATUS!", status);
+                return;
+            }
+            _queue = result.release();
+        }
+        defer{ if (status != STATUS_SUCCESS) { delete _queue; _queue = nullptr; } };
+        
+        // Initialize Worker
+        {
+            auto result = krn::make<Worker::Worker>();
+            status = result.status();
+            if (status != STATUS_SUCCESS)
+            {
+                TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Initialized Worker -> status: %!STATUS!", status);
+                return;
+            }
+            _worker = result.release();
+        }
+        defer{ if (status != STATUS_SUCCESS) { delete _worker; _worker = nullptr; } };
+
+        // Initialize MiniFilter
+        {
+            auto result = krn::make<MiniFilter::Filter>(DriverObject, [](krn::unique_ptr<Event::Event>& event) -> NTSTATUS {
+                // [UPGRADABLE] _queue pointer can be stored in global to reduce the number of deferences when invoking callback from 2 to 1.
+                return GlobalDriver->_queue->Push(event);
+            });
+            status = result.status();
+            if (status != STATUS_SUCCESS)
+            {
+                TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Initialized MiniFilter -> status: %!STATUS!", status);
+                return;
+            }
+            _filter = result.release();
+        }
+        defer{ if (status != STATUS_SUCCESS) { delete _filter; _filter = nullptr; } };
+
+        // Create MiniPort object
+        {
+   	        UNICODE_STRING port_name = RTL_CONSTANT_STRING(L"\\EvtDrvPort");
+   	        auto result = krn::make<MiniFilter::Port>(*_filter, &port_name, [](krn::unique_ptr<MiniFilter::Connection>& conn) -> NTSTATUS {
+                // [UPGRADABLE] _worker pointer can be stored in global to reduce the number of deferences when invoking callback from 2 to 1.
+                return GlobalDriver->_worker->ConnectNotify(conn);
+            });
+   	        status = result.status();
+            if (status != STATUS_SUCCESS)
+            {
+                TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Initialized MiniPort -> status: %!STATUS!", status);
+                return;
+            };
+            _port = result.release();
+        }
+        defer{ if (status != STATUS_SUCCESS) { delete _port; _port = nullptr; } };
+    }
+
+    ~Driver()
+    {
+        if (failable::status() != STATUS_SUCCESS)
+            return;
+
+        delete _port;   // Stop accepting new connections
+        delete _worker; // Stop worker thread and cleanup existing connection
+        delete _filter; // Close the filter => stop accepting new events
+        delete _queue;  // Cleanup event queue
+    }
+};
 
 _Function_class_(DRIVER_INITIALIZE)
 _IRQL_requires_(PASSIVE_LEVEL)
@@ -73,46 +157,13 @@ NTSTATUS DriverEntry(
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "Initializing");
 
-    // Create Worker object
+    auto result = krn::make<Driver>(DriverObject);
+    if (result.status() != STATUS_SUCCESS)
     {
-        status = Worker::Initialize();
-        if (status != STATUS_SUCCESS)
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Initialized Worker -> status: %!STATUS!", status);
-            return status;
-        };
+        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Initialized Driver -> status: %!STATUS!", result.status());
+        return result.status();
     }
-    defer{ if (status != STATUS_SUCCESS) { Worker::Uninitialize(); } };
-	
-    // Create the MiniFilter object
-    {
-        auto result = krn::make<MiniFilter::Filter>(DriverObject);
-        status = result.status();
-        if (status != STATUS_SUCCESS)
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Initialized MiniFilter -> status: %!STATUS!", status);
-            WPP_CLEANUP(DriverObject);
-            return status;
-        };
-        g_MiniFilter = result.release();
-    }
-	defer{ if (status != STATUS_SUCCESS) { delete g_MiniFilter; g_MiniFilter = nullptr; } };
-
-	// Create MiniPort object
-    {
-		UNICODE_STRING port_name = RTL_CONSTANT_STRING(L"\\EvtDrvPort");
-		auto result = krn::make<MiniFilter::Port>(*g_MiniFilter, &port_name, Worker::ConnectNotify);
-		status = result.status();
-        if (status != STATUS_SUCCESS)
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Initialized MiniPort -> status: %!STATUS!", status);
-            WPP_CLEANUP(DriverObject);
-            return status;
-        };
-        g_MiniPort = result.release();
-    }
-    defer{ if (status != STATUS_SUCCESS) { delete g_MiniPort; g_MiniPort = nullptr; } };
-
+    GlobalDriver = result.release();
 
     return STATUS_SUCCESS;
 }
@@ -124,14 +175,8 @@ VOID DriverUnload(_In_ DRIVER_OBJECT* DriverObject)
 {
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "Unloading");
 
-    // Stop worker thread and cleanup
-    Worker::Uninitialize();
-
-    // Close the MiniPort
-    delete g_MiniPort;
-
-    // Delete the MiniFilter object
-    delete g_MiniFilter;
+    // Clean up functional components
+    delete GlobalDriver;
 
 	// Clean up WPP Tracing
     WPP_CLEANUP(DriverObject);
