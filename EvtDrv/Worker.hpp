@@ -32,6 +32,10 @@ namespace Worker
         KEVENT _push_event;
 
     public:
+
+        /// @brief Initializes the event queue.
+        /// @remarks On success, status() will be STATUS_SUCCESS.
+        /// @remarks On failure, status() will be set to the error code, rewind any partial initialization.
         _IRQL_requires_(PASSIVE_LEVEL)
         _IRQL_requires_same_
         Queue() noexcept;
@@ -55,18 +59,28 @@ namespace Worker
     {
     private:
         // Buffer for serializing events before sending to user-mode
-        //PVOID _serialized_buffer;
+        PVOID _serialized_buffer;
 
         // Current active connection to the filter (if any)
         krn::unique_ptr<MiniFilter::Connection> _connection;
-        //static ERESOURCE ConnectionLock;
-        //static KEVENT ConnectEvent;
+        ERESOURCE _lock;
+        KEVENT _connect_event;
+
+        // Handle for the worker thread
+        PETHREAD _worker_object = NULL;
+        KEVENT   _stop_event;
+
+        // Reference to the event queue shared between the driver and worker
+        Queue& _queue;
 
     public:
 
+        /// @brief Initializes the worker.
+        /// @remarks On success, status() will be STATUS_SUCCESS.
+        /// @remarks On failure, status() will be set to the error code, rewind any partial initialization.
         _IRQL_requires_(PASSIVE_LEVEL)
         _IRQL_requires_same_
-        Worker() noexcept;
+        Worker(Queue& queue) noexcept;
         
         _IRQL_requires_(PASSIVE_LEVEL)
         _IRQL_requires_same_
@@ -78,5 +92,10 @@ namespace Worker
         _IRQL_requires_(PASSIVE_LEVEL)
         _IRQL_requires_same_
         NTSTATUS ConnectNotify(_Inout_ krn::unique_ptr<MiniFilter::Connection>& connection) noexcept;
+
+
+        _IRQL_requires_same_
+        _Function_class_(KSTART_ROUTINE)
+        static VOID Routine(_In_ PVOID Context);
     };
 }

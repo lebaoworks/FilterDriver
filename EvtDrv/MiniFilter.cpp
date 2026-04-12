@@ -96,19 +96,21 @@ namespace MiniFilter
         if (status == STATUS_SUCCESS)
         {
             defer{ FltReleaseFileNameInformation(file_name_info); };
-            // TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DRIVER, "PreOpen File: %wZ", &file_name_info->Name);
+            //TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DRIVER, "PreOpen File: %wZ | Length: %d", &file_name_info->Name, file_name_info->Name.Length);
             auto result = krn::make<Event::FileOpenEvent>();
             if (result.status() == STATUS_SUCCESS)
             {
                 auto& event = result.value();
                 event.ProcessId = HandleToUlong(PsGetCurrentProcessId());
                 event.FileName = file_name_info->Name;
+
                 krn::unique_ptr<Event::Event> evt(result.release());
                 GlobalEventCallback(evt);
             }
         }
 
         // No post operator needed
+        *CompletionContext = NULL;
         return FLT_PREOP_SUCCESS_NO_CALLBACK;
     }
 
@@ -321,7 +323,6 @@ namespace MiniFilter
 
     Connection::~Connection()
     {
-        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DRIVER, "Connection: Closing connection: %p", _port);
         FltCloseClientPort(_filter, &_port);
     }
 

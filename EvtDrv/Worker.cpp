@@ -7,144 +7,27 @@
 #include "trace.h"
 #include "Worker.tmh"
 
-///*********************
-//*    Declarations    *
-//*********************/
-//
-//VOID WorkerRoutine(_In_ PVOID Context);
-//
-///*********************
-//*     Global Vars    *
-//*********************/
-//
-//#pragma data_seg("NONPAGED")
+/*********************
+*    Declarations    *
+*********************/
 
-//
+#define MAX_EVENT_QUEUE_SIZE 1000
+#define SERIALIZED_BUFFER_SIZE (512 * 1024) // 512 KB
 
-//
-//// Worker thread
-//static HANDLE WorkerHandle = NULL;
-//static KEVENT WorkerStopEvent;
-//
-//#pragma data_seg()
-//
-///*********************
-//*   Implementations  *
-//*********************/
-//
-//NTSTATUS Worker::Initialize() noexcept
-//{
-//    
-//}
-//
-//_IRQL_requires_(PASSIVE_LEVEL)
-//_IRQL_requires_same_
-//void Worker::Uninitialize() noexcept
-//{
-//    // Signal worker to stop and wait for thread to exit
-//    KeSetEvent(&WorkerStopEvent, 0, FALSE);
-//    if (WorkerHandle != NULL)
-//    {
-//        ZwWaitForSingleObject(WorkerHandle, FALSE, NULL);
-//        ZwClose(WorkerHandle);
-//        WorkerHandle = NULL;
-//    }
-//
-//    // Free all events in the queue
-//    ExAcquireResourceExclusiveLite(&EventsLock, TRUE);
-//    defer{ ExReleaseResourceLite(&EventsLock); };
-//    delete Events;
-//    Events = nullptr;
-//    ExDeleteResourceLite(&EventsLock);
-//
-//    // Free serialized buffer
-//    ExFreePool(SerializedBuffer);
-//    SerializedBuffer = NULL;
-//}
-//
+#pragma warning(disable : 4200)
+namespace
+{
+    struct Header
+    {
+        ULONG TotalSize = sizeof(Header);
+        BYTE Data[0]; // Flexible array member for serialized event data
+    };
+    static_assert(sizeof(Header) < SERIALIZED_BUFFER_SIZE, "Header size must be less than the total serialized buffer size");
+}
 
-//
-//
-//VOID WorkerRoutine(_In_ PVOID Context)
-//{
-//    UNREFERENCED_PARAMETER(Context);
-//    defer{ PsTerminateSystemThread(STATUS_SUCCESS); };
-//
-//    BYTE* ptr = (BYTE*)SerializedBuffer;
-//    ULONG remaining_size = 512 * 1024;
-//
-//    while (true)
-//    {
-//        PVOID events[] = { &WorkerStopEvent, &ConnectEvent };
-//        auto status = KeWaitForMultipleObjects(
-//            2,          // Count
-//            events,     // Objects to wait on
-//            WaitAny,    // Wait type
-//            Executive,  // Wait reason
-//            KernelMode, // Wait mode
-//            FALSE,      // Alertable
-//            NULL,       // Timeout
-//            NULL        // Wait block array
-//        );
-//        
-//        if (status == STATUS_WAIT_0) // WorkerStopEvent signaled
-//            break;
-//        if (status == STATUS_WAIT_0 + 1) // ConnectEvent signaled
-//        {
-//            ExAcquireResourceExclusiveLite(&ConnectionLock, TRUE);
-//            std::unique_ptr<MiniFilter::Connection> connection(Connection);
-//            Connection = nullptr;
-//            ExReleaseResourceLite(&ConnectionLock);
-//
-//            while (true)
-//            {
-//                LARGE_INTEGER timeout;
-//                timeout.QuadPart = -1 * 1000 * 1000 * 10; // 1 second
-//
-//                PVOID events2[] = { &WorkerStopEvent, &PushEvent };
-//                auto status2 = KeWaitForMultipleObjects(
-//                    2,          // Count
-//                    events2,     // Objects to wait on
-//                    WaitAny,    // Wait type
-//                    Executive,  // Wait reason
-//                    KernelMode, // Wait mode
-//                    FALSE,      // Alertable
-//                    &timeout,   // Timeout
-//                    NULL        // Wait block array
-//                );
-//                if (status2 == STATUS_WAIT_0) // WorkerStopEvent signaled
-//                    return;
-//                if (status2 == STATUS_WAIT_0 + 1) // PushEvent signaled
-//                {
-//                    KeResetEvent(&PushEvent); // Reset event
-//                    // Serialize as many events as possible
-//                    ExAcquireResourceExclusiveLite(&EventsLock, TRUE);
-//                    while (!Events->empty())
-//                    {
-//                        auto& event = Events->front();
-//                        if (event->SerializedSize() > remaining_size)
-//                            break; // No more events can fit in the buffer, process what we have so far
-//                        event->Serialize(ptr, remaining_size);
-//                        ptr += event->SerializedSize();
-//                        remaining_size -= event->SerializedSize();
-//                        Events->pop();
-//                    }
-//                    ExReleaseResourceLite(&EventsLock);
-//                }
-//                if (remaining_size != 512 * 1024) // We have events to send
-//                {
-//                    auto send_status = connection->SendMessage(SerializedBuffer, 512 * 1024 - remaining_size);
-//                    if (send_status != STATUS_SUCCESS)
-//                    {
-//                        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Worker: Failed to send message to client -> status: %!STATUS!", send_status);
-//                        break;
-//                    }
-//                }
-//            }
-//        }
-//    }
-//    
-//}
+/*********************
+*   Implementations  *
+*********************/
 
 namespace Worker
 {
@@ -152,7 +35,14 @@ namespace Worker
     _IRQL_requires_same_
     Queue::Queue() noexcept
     {
-        ExInitializeResourceLite(&_lock);
+        auto& status = krn::failable::_status;
+        
+        status = ExInitializeResourceLite(&_lock);
+        if (status != STATUS_SUCCESS)
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Worker: Failed to initialize queue lock -> status: %!STATUS!", status);
+            return;
+        }
         KeInitializeEvent(&_push_event, NotificationEvent, FALSE);
     }
 
@@ -160,6 +50,9 @@ namespace Worker
     _IRQL_requires_same_
     Queue::~Queue()
     {
+        if (status() != STATUS_SUCCESS)
+            return; // If constructor failed, we may be in a partially initialized state, only clean up what was initialized
+
         ExDeleteResourceLite(&_lock);
     }
 
@@ -170,9 +63,9 @@ namespace Worker
         ExAcquireResourceExclusiveLite(&_lock, TRUE);
         defer{ ExReleaseResourceLite(&_lock); };
 
-        if (_events.size() >= 10000)
+        if (_events.size() >= MAX_EVENT_QUEUE_SIZE)
         {
-            TraceEvents(TRACE_LEVEL_WARNING, TRACE_DRIVER, "Worker: Event queue is full");
+            //TraceEvents(TRACE_LEVEL_WARNING, TRACE_DRIVER, "Worker: Event queue is full");
             return STATUS_TOO_MANY_NODES;
         }
 
@@ -190,47 +83,198 @@ namespace Worker
 
 namespace Worker
 {
-    Worker::Worker() noexcept
+    _IRQL_requires_(PASSIVE_LEVEL)
+    _IRQL_requires_same_
+    Worker::Worker(Queue& queue) noexcept
+        : _queue(queue)
     {
-        //auto& status = krn::failable::_status;
+        auto& status = krn::failable::_status;
 
         // Initialize serialized buffer
-        //_serialized_buffer = ExAllocatePool2(POOL_FLAG_NON_PAGED, 512*1024, 'EVT1');
-        //if (_serialized_buffer == NULL)
-        //{
-        //    status = STATUS_NO_MEMORY;
-        //    TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Worker: Failed to allocate serialized buffer -> status: %!STATUS!", status);
-        //    return;
-        //}
-        //defer{ if (status != STATUS_SUCCESS) { ExFreePool( _serialized_buffer); _serialized_buffer = NULL; } };
+        _serialized_buffer = Worker::operator new(SERIALIZED_BUFFER_SIZE);
+        if (_serialized_buffer == NULL)
+        {
+            status = STATUS_NO_MEMORY;
+            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Worker: Failed to allocate serialized buffer -> status: %!STATUS!", status);
+            return;
+        }
+        defer{ if (status != STATUS_SUCCESS) { Worker::operator delete(_serialized_buffer); _serialized_buffer = NULL; } };
         
-        // Initialize connection
-        //ExInitializeResourceLite(&ConnectionLock);
-        //KeInitializeEvent(&ConnectEvent, SynchronizationEvent, FALSE);
-        //
-        //    // Create worker system thread
-        //    KeInitializeEvent(&WorkerStopEvent, NotificationEvent, FALSE);
-        //    status = PsCreateSystemThread(&WorkerHandle, THREAD_ALL_ACCESS, NULL, NULL, NULL, WorkerRoutine, NULL);
-        //    if (status != STATUS_SUCCESS)
-        //    {
-        //        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Worker: Failed to create system thread -> status: %!STATUS!", status);
-        //        return status;
-        //    }
-        //
-        //    return status;
+        // Initialize connection management
+        status = ExInitializeResourceLite(&_lock);
+        if (status != STATUS_SUCCESS)
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Worker: Failed to initialize connection lock -> status: %!STATUS!", status);
+            return;
+        }
+        defer{ if (status != STATUS_SUCCESS) ExDeleteResourceLite(&_lock); };
+        KeInitializeEvent(&_connect_event, SynchronizationEvent, FALSE);
+        
+        // Create worker system thread
+        KeInitializeEvent(&_stop_event, NotificationEvent, FALSE);
+        HANDLE hThread;
+        status = PsCreateSystemThread(
+            &hThread,               // ThreadHandle
+            THREAD_ALL_ACCESS,      // DesiredAccess
+            NULL,                   // ObjectAttributes
+            NULL,                   // ProcessHandle
+            NULL,                   // ClientId
+            Routine,                // StartRoutine
+            this);                  // StartContext  
+        if (status != STATUS_SUCCESS)
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Worker: Failed to create system thread -> status: %!STATUS!", status);
+            return;
+        }
+        defer{ if (status != STATUS_SUCCESS) { KeSetEvent(&_stop_event, 0, FALSE); ZwWaitForSingleObject(hThread, FALSE, NULL); ZwClose(hThread); } };
+
+        // Get thread object from handle for later synchronization when stopping the worker
+        status = ObReferenceObjectByHandle(
+            hThread,                        // Handle
+            THREAD_ALL_ACCESS,              // DesiredAccess
+            *PsThreadType,                  // ObjectType
+            KernelMode,                     // AccessMode
+            (PVOID*)&_worker_object,        // Object
+            NULL);                          // HandleInformation
+        if (status != STATUS_SUCCESS)
+        {
+            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Worker: Failed to reference thread object -> status: %!STATUS!", status);
+            return;
+        };
+        // We have the thread object, close the handle
+        ZwClose(hThread);
     }
+
     _IRQL_requires_(PASSIVE_LEVEL)
     _IRQL_requires_same_
     Worker::~Worker()
     {
+        if (status() != STATUS_SUCCESS)
+            return; // If constructor failed, we may be in a partially initialized state, only clean up what was initialized
 
+        // Signal worker to stop
+        KeSetEvent(&_stop_event, 0, FALSE);
+
+        // Wait for thread to exit
+        KeWaitForSingleObject(_worker_object, Executive, KernelMode, FALSE, NULL);
+        ObDereferenceObject(_worker_object);
+        
+        ExDeleteResourceLite(&_lock);
+
+        Worker::operator delete(_serialized_buffer);
     }
 
     _IRQL_requires_(PASSIVE_LEVEL)
     _IRQL_requires_same_
     NTSTATUS Worker::ConnectNotify(_Inout_ krn::unique_ptr<MiniFilter::Connection>& connection) noexcept
     {
+        ExAcquireResourceExclusiveLite(&_lock, TRUE);
+        defer{ ExReleaseResourceLite(&_lock); };
+
         _connection = std::move(connection);
+        KeSetEvent(&_connect_event, 0, FALSE); // Signal worker of new connection
         return STATUS_SUCCESS;
+    }
+
+    _IRQL_requires_same_
+    _Function_class_(KSTART_ROUTINE)
+    VOID Worker::Routine(_In_ PVOID Context)
+    {
+        auto& worker = *reinterpret_cast<Worker*>(Context);
+        auto& queue = worker._queue;
+        defer{ PsTerminateSystemThread(STATUS_SUCCESS); };
+
+        Header* header = (Header*)worker._serialized_buffer;
+        BYTE* data = header->Data;
+
+        while (true)
+        {
+            PVOID events[] = { &worker._stop_event, &worker._connect_event };
+            auto status = KeWaitForMultipleObjects(
+                2,          // Count
+                events,     // Objects to wait on
+                WaitAny,    // Wait type
+                Executive,  // Wait reason
+                KernelMode, // Wait mode
+                FALSE,      // Alertable
+                NULL,       // Timeout
+                NULL        // Wait block array
+            );
+
+            if (status == STATUS_WAIT_0) // WorkerStopEvent signaled
+            {
+                TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "Worker: Stop event signaled, exiting worker thread");
+                return;
+            }
+            if (status == STATUS_WAIT_0 + 1) // _connect_event signaled
+            {
+                ExAcquireResourceExclusiveLite(&worker._lock, TRUE);
+                krn::unique_ptr<MiniFilter::Connection> connection(std::move(worker._connection));
+                ExReleaseResourceLite(&worker._lock);
+
+                TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "Worker: Connect event signaled, processing connection");
+                while (true)
+                {
+                    LARGE_INTEGER timeout;
+                    timeout.QuadPart = -1 * 1000 * 1000 * 10; // 1 second
+                    PVOID events2[] = { &worker._stop_event, &queue._push_event };
+                    auto status2 = KeWaitForMultipleObjects(
+                        2,          // Count
+                        events2,     // Objects to wait on
+                        WaitAny,    // Wait type
+                        Executive,  // Wait reason
+                        KernelMode, // Wait mode
+                        FALSE,      // Alertable
+                        &timeout,   // Timeout
+                        NULL        // Wait block array
+                    );
+
+                    if (status2 == STATUS_WAIT_0) // WorkerStopEvent signaled
+                    {
+                        TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "Worker: Stop event signaled, exiting worker thread");
+                        return;
+                    }
+
+                    if (status2 == STATUS_WAIT_0 + 1) // PushEvent signaled
+                    {
+                        // Reset event
+                        KeResetEvent(&queue._push_event);
+
+                        // Serialize as many events as possible
+                        ExAcquireResourceExclusiveLite(&queue._lock, TRUE);
+                        defer{ ExReleaseResourceLite(&queue._lock); };
+
+                        while (!queue._events.empty())
+                        {
+                            auto& event = queue._events.front();
+                            if (event->SerializedSize() > SERIALIZED_BUFFER_SIZE - header->TotalSize)
+                                break; // No more events can fit in the buffer, process what we have so far
+
+                            event->Serialize(data, SERIALIZED_BUFFER_SIZE - header->TotalSize);
+                            data += event->SerializedSize();
+                            header->TotalSize += event->SerializedSize();
+                            queue._events.pop();
+                        }
+                    }
+
+                    if (header->TotalSize != sizeof(Header)) // We have events to send
+                    {
+                        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DRIVER, "Worker: Sending %d bytes to client", header->TotalSize);
+
+                        auto send_status = connection->Send(worker._serialized_buffer, header->TotalSize);
+                        if (send_status != STATUS_SUCCESS)
+                        {
+                            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Worker: Failed to send message to client -> status: %!STATUS!", send_status);
+                            break; // Connection likely closed, exit inner loop to wait for next connection
+                        }
+
+                        // Reset buffer state after successful send
+                        *header = Header();
+                        data = header->Data;
+                    }
+                }
+            }
+        }
+
     }
 }

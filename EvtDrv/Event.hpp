@@ -48,15 +48,16 @@ namespace Event
             BYTE* ptr = (BYTE*)Buffer;
 
             // Type
-            *(BYTE*)ptr = Type;
+            RtlCopyMemory(ptr, &Type, sizeof(Type));
             ptr += sizeof(Type);
 
             // TimeStamp
-            *(INT64*)ptr = TimeStamp.QuadPart;
-            ptr += sizeof(TimeStamp);
+            INT64 ts = TimeStamp.QuadPart;
+            RtlCopyMemory(ptr, &ts, sizeof(ts));
+            ptr += sizeof(ts);
 
             // Event-specific data
-            return Serialize_(ptr, BufferSize - sizeof(Type) - sizeof(TimeStamp));
+            return Serialize_(ptr, BufferSize - sizeof(Type) - sizeof(ts));
         }
 
         ULONG SerializedSize() const
@@ -76,7 +77,7 @@ namespace Event
 
         FileOpenEvent() noexcept { Type = Types::FileOpen; }
 
-        virtual ~FileOpenEvent() {};
+        virtual ~FileOpenEvent() {}
 
         virtual NTSTATUS Serialize_(
             _Inout_ PVOID Buffer,

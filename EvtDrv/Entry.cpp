@@ -36,6 +36,8 @@ struct Driver;
 
 #pragma data_seg("NONPAGED")
 static Driver* GlobalDriver = nullptr;
+static Worker::Queue* GlobalQueue = nullptr;
+static Worker::Worker* GlobalWorker = nullptr;
 #pragma data_seg()
 
 /*********************
@@ -68,10 +70,11 @@ public:
             _queue = result.release();
         }
         defer{ if (status != STATUS_SUCCESS) { delete _queue; _queue = nullptr; } };
+        GlobalQueue = _queue; // Store in global for callback access
         
         // Initialize Worker
         {
-            auto result = krn::make<Worker::Worker>();
+            auto result = krn::make<Worker::Worker>(*_queue);
             status = result.status();
             if (status != STATUS_SUCCESS)
             {
@@ -81,12 +84,12 @@ public:
             _worker = result.release();
         }
         defer{ if (status != STATUS_SUCCESS) { delete _worker; _worker = nullptr; } };
+        GlobalWorker = _worker; // Store in global for callback access
 
         // Initialize MiniFilter
         {
             auto result = krn::make<MiniFilter::Filter>(DriverObject, [](krn::unique_ptr<Event::Event>& event) -> NTSTATUS {
-                // [UPGRADABLE] _queue pointer can be stored in global to reduce the number of deferences when invoking callback from 2 to 1.
-                return GlobalDriver->_queue->Push(event);
+                return GlobalQueue->Push(event);
             });
             status = result.status();
             if (status != STATUS_SUCCESS)
@@ -102,8 +105,7 @@ public:
         {
    	        UNICODE_STRING port_name = RTL_CONSTANT_STRING(L"\\EvtDrvPort");
    	        auto result = krn::make<MiniFilter::Port>(*_filter, &port_name, [](krn::unique_ptr<MiniFilter::Connection>& conn) -> NTSTATUS {
-                // [UPGRADABLE] _worker pointer can be stored in global to reduce the number of deferences when invoking callback from 2 to 1.
-                return GlobalDriver->_worker->ConnectNotify(conn);
+                return GlobalWorker->ConnectNotify(conn);
             });
    	        status = result.status();
             if (status != STATUS_SUCCESS)
