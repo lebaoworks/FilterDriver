@@ -292,7 +292,7 @@ namespace MiniFilter
             Filter._filter,             // Filter
             &_port,                     // ServerPort
             &oa,                        // ObjectAttributes
-            _cookie,                     // ServerPortCookie
+            _cookie,                    // ServerPortCookie
             FilterConnectNotify,        // ConnectNotifyCallback
             FilterDisconnectNotify,     // DisconnectNotifyCallback
             NULL,                       // MessageNotifyCallback

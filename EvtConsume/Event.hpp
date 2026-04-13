@@ -47,8 +47,9 @@ namespace Event
             if (!SkipBase)
                 ptr += Event::Deserialize(Buffer, BufferSize);
 
-
-            if (BufferSize < ptr + 6 - Buffer) // ProcessId (4 bytes) + FileName.Length (2 bytes)
+            // Ensure we have at least ProcessId (4) + FileName.Length (2) available after base
+            size_t consumed = ptr - Buffer;
+            if (BufferSize < consumed + sizeof(UINT32) + sizeof(UINT16))
                 throw std::runtime_error("Buffer too small for FileOpenEvent deserialization");
 
             // ProcessId

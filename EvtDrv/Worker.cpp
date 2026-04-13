@@ -185,6 +185,7 @@ namespace Worker
         defer{ PsTerminateSystemThread(STATUS_SUCCESS); };
 
         Header* header = (Header*)worker._serialized_buffer;
+        *header = Header();
         BYTE* data = header->Data;
 
         while (true)
@@ -213,6 +214,10 @@ namespace Worker
                 ExReleaseResourceLite(&worker._lock);
 
                 TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "Worker: Connect event signaled, processing connection");
+
+                LARGE_INTEGER last_send_time;
+                KeQuerySystemTime(&last_send_time);
+
                 while (true)
                 {
                     LARGE_INTEGER timeout;
@@ -257,9 +262,16 @@ namespace Worker
                         }
                     }
 
-                    if (header->TotalSize != sizeof(Header)) // We have events to send
+                    if (header->TotalSize != sizeof(Header)) // We have events staged
                     {
-                        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DRIVER, "Worker: Sending %d bytes to client", header->TotalSize);
+                        LARGE_INTEGER now;
+                        KeQuerySystemTime(&now);
+
+                        if (header->TotalSize < SERIALIZED_BUFFER_SIZE * 2 / 3 &&       // Queue too small, wait for more events to batch
+                            now.QuadPart - last_send_time.QuadPart < 10000000LL)        // It's been less than 1 second since last send, give it more time to batch
+                            continue;
+
+                        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DRIVER, "Worker: Sending package (%lu bytes) to client", header->TotalSize);
 
                         auto send_status = connection->Send(worker._serialized_buffer, header->TotalSize);
                         if (send_status != STATUS_SUCCESS)
@@ -268,9 +280,10 @@ namespace Worker
                             break; // Connection likely closed, exit inner loop to wait for next connection
                         }
 
-                        // Reset buffer state after successful send
+                        // Reset buffer state after successful send and update last send time
                         *header = Header();
                         data = header->Data;
+                        KeQuerySystemTime(&last_send_time);
                     }
                 }
             }
