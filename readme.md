@@ -55,3 +55,29 @@ Tested platforms
 - Windows 11 (verified in a test VM)
 
 For component-level diagrams and sequence flows see `EvtDrv/readme.md`.
+
+
+# TODO
+
+- Add more event types:
+    - File Creation
+    - File Modification
+    - File Deletion
+    - File Rename
+    - File Linking
+    - Registry Key Creation
+    - Registry Key Deletion
+    - Registry Value Creation
+    - Registry Value Deletion
+    - Registry Value Modification
+    - Process Creation
+    - Process Termination
+    - Process Open
+    - Image Load
+    - Network Connection
+    - Remote Thread Creation
+    - Access Token Acquisition
+
+- Implement authentication for user-mode clients connecting to the communication port.
+- Implement authentication for unloading the driver
+- Implement authentication events mechanism (e.g., only send events for specific processes or file paths).

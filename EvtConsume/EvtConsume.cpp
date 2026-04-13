@@ -78,10 +78,10 @@ private:
         while (true)
         {
             HRESULT result = FilterGetMessage(
-                port,
-                reinterpret_cast<PFILTER_MESSAGE_HEADER>(_buffer.data()),
-                static_cast<DWORD>(_buffer.size()),
-                &_ov);
+                port,                                                           // Port handle
+                reinterpret_cast<PFILTER_MESSAGE_HEADER>(_buffer.data()),       // Buffer
+                static_cast<DWORD>(_buffer.size()),                             // Buffer size
+                &_ov);                                                          // Overlapped structure for cancellation
 
             if (result != HRESULT_FROM_WIN32(ERROR_IO_PENDING))
             {
