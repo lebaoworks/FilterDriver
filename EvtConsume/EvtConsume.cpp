@@ -6,8 +6,16 @@
 #include <vector>
 #include <cstring>
 
+#include <thread>
+
 #include <utility>
 #include <functional>
+#include <chrono>
+
+#include "utility.hpp"
+#include "Event.hpp"
+
+#include <fstream>
 
 static const LPCWSTR COMPORT_NAME = L"\\EvtDrvPort";
 
@@ -16,111 +24,208 @@ constexpr ULONG SERIALIZED_BUFFER_SIZE = 512 * 1024; // must match kernel serial
 #pragma warning(disable : 4200)
 namespace
 {
-    struct Header
+    struct PackageHeader
     {
-        FILTER_MESSAGE_HEADER FilterHeader;
-
-        ULONG TotalSize = sizeof(Header);
+        UINT32 TotalSize = sizeof(PackageHeader);
         BYTE Data[0]; // Flexible array member for serialized event data
     };
-    static_assert(sizeof(Header) < SERIALIZED_BUFFER_SIZE, "Header size must be less than the total serialized buffer size");
 }
 
 
-class FilterPort
+class EvtConsumer
 {
 private:
-    HANDLE _port = NULL;
+    std::wstring _port_name;
+    std::function<void(const byte*, size_t)> _callback;
     std::vector<byte> _buffer;
+    HANDLE _cancel;
+    OVERLAPPED _ov;
+    std::thread _worker;
+
+    void work() noexcept
+    {
+        HANDLE port;
+        while (true)        // [TODO] Add proper cancellation support instead of infinite loop with sleep
+        {
+            HRESULT result = FilterConnectCommunicationPort(
+                _port_name.c_str(),             // PortName
+                0,                              // Options
+                NULL,                           // Context
+                0,                              // ContextSize
+                NULL,                           // SecurityAttributes
+                &port);                         // ServerPort
+            if (result != S_OK)
+            {
+                printf("Connect port failed -> HRESULT: %08X", result);
+                std::this_thread::sleep_for(std::chrono::seconds(5)); // Wait before retrying
+                continue;
+            }
+            defer{ CloseHandle(port); };
+
+            // Successfully connected to port, start receiving messages
+            bool cancelled = serve(port);
+
+            if (cancelled)
+                return;
+
+            printf("Something went wrong from port, retrying connection...\n");
+            std::this_thread::sleep_for(std::chrono::seconds(5));
+        }
+    }
+
+    bool serve(HANDLE port) noexcept
+    {
+        while (true)
+        {
+            HRESULT result = FilterGetMessage(
+                port,
+                reinterpret_cast<PFILTER_MESSAGE_HEADER>(_buffer.data()),
+                static_cast<DWORD>(_buffer.size()),
+                &_ov);
+
+            if (result != HRESULT_FROM_WIN32(ERROR_IO_PENDING))
+            {
+                printf("Unexpected result from FilterGetMessage -> HRESULT: %08X", result);
+                break;
+            }
+
+            // Wait for either a message to be received or cancellation, cancel first to avoid race condition
+            HANDLE waitHandles[2] = { _cancel, _ov.hEvent};
+            result = WaitForMultipleObjects(2, waitHandles, FALSE, INFINITE);
+
+
+            // Cancellation event
+            if (result == WAIT_OBJECT_0) 
+            {
+                printf("Cancellation requested, exiting serve loop.\n");
+
+                // Cancel any pending I/O
+                CancelIoEx(port, &_ov); 
+
+                // Wait for the I/O operation to complete
+                DWORD bytesTransferred = 0;
+                GetOverlappedResult(port, &_ov, &bytesTransferred, TRUE);
+
+                return true;
+            }
+            // Message received, process it
+            else if (result == WAIT_OBJECT_0 + 1)
+            {
+                DWORD bytesTransferred = 0;
+                if (!GetOverlappedResult(port, &_ov, &bytesTransferred, FALSE))
+                {
+                    printf("GetOverlappedResult failed -> HRESULT: %08X", GetLastError());
+                    return false;
+                }
+                printf("Received message of size %d bytes\n", bytesTransferred);
+                
+                try
+                {
+                    // Invoke the callback with the data from kernel only
+                    _callback(_buffer.data() + sizeof(FILTER_MESSAGE_HEADER), bytesTransferred - sizeof(FILTER_MESSAGE_HEADER));
+                }
+                catch (const std::exception& ex)
+                {
+                    printf("Failed to process message, error: %s\n", ex.what());
+                }
+            }
+            // Unexpected result
+            else
+            {
+                printf("WaitForMultipleObjects failed -> HRESULT: %08X", GetLastError());
+                return false;
+            }
+        }
+    }
 
 public:
-    FilterPort(const std::wstring& comport_name, size_t max_buffer_size)
+    EvtConsumer(const std::wstring& port_name, std::function<void(const byte*, size_t)> callback) :
+        _port_name(port_name),
+        _callback(std::move(callback)),
+        _buffer(sizeof(FILTER_MESSAGE_HEADER) + SERIALIZED_BUFFER_SIZE)
     {
-        _buffer.resize(sizeof(FILTER_MESSAGE_HEADER) + max_buffer_size);
+        bool success = false;
 
-        HRESULT result = FilterConnectCommunicationPort(
-            comport_name.c_str(),           // PortName
-            0,                              // Options
-            NULL,                           // Context
-            0,                              // ContextSize
-            NULL,                           // SecurityAttributes
-            &_port);                        // ServerPort
-        if (result != S_OK)
-            throw std::runtime_error("FilterConnectCommunicationPort failed -> HRESULT: " + std::to_string(result));
-    }
-    ~FilterPort()
-    {
-        CloseHandle(_port);
-    }
-
-    void GetMessage(std::function<void(const std::vector<byte>& data)> callback)
-    {
-        HRESULT result = FilterGetMessage(
-            _port,
-            reinterpret_cast<PFILTER_MESSAGE_HEADER>(_buffer.data()),
-            static_cast<DWORD>(_buffer.size()),
+        _cancel = CreateEventW(
+            NULL,
+            TRUE,
+            FALSE,
             NULL);
-        if (result != S_OK)
-            throw std::runtime_error("FilterGetMessage failed -> HRESULT: " + std::to_string(result));
-        callback(_buffer);
+        if (_cancel == NULL)
+            throw std::runtime_error("Failed to create cancellation event, error: " + std::to_string(GetLastError()));
+        defer{ if (!success) CloseHandle(_cancel); };
+
+        _ov.hEvent = CreateEventW(
+            NULL,
+            TRUE,
+            FALSE,
+            NULL);
+        if (_ov.hEvent == NULL)
+            throw std::runtime_error("Failed to create overlapped event, error: " + std::to_string(GetLastError()));
+        defer{ if (!success) CloseHandle(_cancel); };
+
+        _worker = std::thread([&]() { work(); });
+
+        success = true;
+    }
+
+    ~EvtConsumer()
+    {
+        SetEvent(_cancel); // Signal cancellation
+        _worker.join();
+
+        CloseHandle(_cancel);
+        CloseHandle(_ov.hEvent);
     }
 };
-
-namespace Event
-{
-    enum Types
-    {
-        Invalid = 0,
-        FileOpen = 1,
-    };
-}
 
 int wmain(int argc, wchar_t* argv[])
 {
     try
     {
-        FilterPort port(COMPORT_NAME, SERIALIZED_BUFFER_SIZE);
+        EvtConsumer consumer(COMPORT_NAME, [](const byte* data, size_t size) {
+            auto header = reinterpret_cast<const PackageHeader*>(data);
+            //printf("Received package: %lu bytes\n", header->TotalSize);
 
-        while (true)
-            port.GetMessage([](const std::vector<byte>& data) {
-                auto header = reinterpret_cast<const Header*>(data.data());
-                std::cout << "Received message with total size: " << header->TotalSize << " bytes" << std::endl;
+            const byte* ptr = header->Data;
+            const byte* end_ptr = data + size;
 
-                auto ptr = header->Data;
-                while (ptr < data.data() + header->TotalSize)
+            while (ptr < end_ptr)
+            {
+                BYTE event_type = *ptr;
+                ptr += sizeof(BYTE);
+                //printf("[Offset: %6lld] Event Type: %d\n", ptr - data - sizeof(BYTE), event_type);
+
+                // Extract event-specific data based on event_type
+                switch (event_type)
                 {
-                    // Extract base 
-                    BYTE event_type = *ptr;
-                    ptr += sizeof(BYTE);
-                    INT64 timestamp = *reinterpret_cast<const INT64*>(ptr);
-                    ptr += sizeof(INT64);
+                case Event::FileOpen:
+                {
+                    Event::FileOpenEvent event;
+                    ptr += event.Deserialize(ptr, end_ptr - ptr);
 
-                    std::cout << "[+] Event Type: " << static_cast<int>(event_type) << ", Timestamp: " << timestamp << std::endl;
-                    // Extract event-specific data based on event_type
-                    switch (event_type)
-                    {
-                        case Event::FileOpen:
-                        {
-                            UINT32 process_id = *reinterpret_cast<const UINT32*>(ptr);
-                            ptr += sizeof(UINT32);
-                            UINT16 path_length = *reinterpret_cast<const UINT16*>(ptr);
-                            ptr += sizeof(UINT16);
-                            std::wstring file_path(reinterpret_cast<const wchar_t*>(ptr), path_length / sizeof(wchar_t));
-                            ptr += path_length;
-                            std::wcout << L"\tFileOpen Event - Process ID: " << process_id << L", File Path: " << file_path << std::endl;
-                        }
-                        break;
-                    }
-                    // Process event-specific data based on event_type and advance ptr accordingly
-                    // For example, if event_type == 1 (FileOpen), you might read additional fields specific to that event
+                    std::wcout
+                        << L"    FileOpen Event" << std::endl
+                        << L"        Time: " << std::chrono::system_clock::to_time_t(event.TimeStamp) << std::endl
+                        << L"        Process ID: " << event.ProcessId << std::endl
+                        << L"        File Path: " << event.FileName << std::endl
+                        << std::endl;
                 }
+                break;
+                
+                default:
+                    printf("unknown event type %d at offset %lld, skip package\n", event_type, ptr - header->Data);
+                    return;
+                }
+            }
             });
+        std::cin.get();
     }
-    catch (const std::runtime_error& ex)
+    catch (const std::exception& ex)
     {
         std::cerr << "Error: " << ex.what() << std::endl;
+        return 1;
     }
 
     return 0;
 }
-

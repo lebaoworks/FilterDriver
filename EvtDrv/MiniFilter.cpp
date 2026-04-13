@@ -330,6 +330,11 @@ namespace MiniFilter
         _In_reads_bytes_(BufferSize) PVOID Buffer,
         _In_ ULONG BufferSize) noexcept
     {
-        return FltSendMessage(_filter, &_port, Buffer, BufferSize, NULL, 0, NULL);
+        // Use a relative timeout
+        // A negative LARGE_INTEGER represents relative time in 100-nanosecond units.
+        LARGE_INTEGER timeout;
+        timeout.QuadPart = -5 * 1000 * 1000 * 10; // 5 seconds
+
+        return FltSendMessage(_filter, &_port, Buffer, BufferSize, NULL, 0, &timeout);
     }
 }

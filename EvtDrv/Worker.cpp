@@ -19,7 +19,7 @@ namespace
 {
     struct Header
     {
-        ULONG TotalSize = sizeof(Header);
+        UINT32 TotalSize = sizeof(Header);
         BYTE Data[0]; // Flexible array member for serialized event data
     };
     static_assert(sizeof(Header) < SERIALIZED_BUFFER_SIZE, "Header size must be less than the total serialized buffer size");

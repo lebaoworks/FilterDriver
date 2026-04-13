@@ -7,32 +7,40 @@
 #include <krn.hpp>
 #include <ntintsafe.h>
 
+
+
 namespace Event
 {
+    //
+    //    Enum
+    //
+
+    enum Types
+    {
+        Invalid = 0,
+        FileOpen = 1,
+    };
+
     using String = krn::UnicodeStringBase<krn::tag<'EVT1'>>;
 
+    
+    /* Serialized buffer layout for all events (packed, byte offsets)
+     
+     +--------+------+----------------------+-----------------------------------+
+     | Offset | Size | Field                | Description                       |
+     +--------+------+----------------------+-----------------------------------+
+     | 0      | 1    | Type (BYTE)          | Event::Type                       |
+     | 1      | 8    | TimeStamp (I64)      | 100-ns intervals since 1601-01-01 |
+     +--------------------------------------------------------------------------+
+     | 9      | n    | Event-specific data  | Varies based on event type        |
+     +--------+------+----------------------+-----------------------------------+
+     
+     Total serialized size = 1 + 8 + event-specific data size
+    */
     struct Event : public krn::tag<'EVT1'>
     {
-        //
-        //    Enum
-        //
-
-        enum Types
-        {
-            Invalid = 0,
-            FileOpen = 1,
-        };
-
-        //
-        // Fields
-        //
-
         BYTE Type = Invalid;
         LARGE_INTEGER TimeStamp;
-
-        //
-        // Constructors & Methods
-        //
 
         Event() noexcept { KeQuerySystemTime(&TimeStamp); }
 
@@ -70,6 +78,20 @@ namespace Event
         virtual ULONG    SerializedSize_() const = 0;
     };
 
+    /* Serialized buffer layout (packed, byte offsets)
+
+     +--------+------+----------------------+-----------------------------+
+     | Offset | Size | Field                | Description                 |
+     +--------+------+----------------------+-----------------------------+
+     |     Event Base Fields (9 bytes) - see Event struct layout above    |
+     +--------------------------------------------------------------------+
+     | 9      | 4    | ProcessId (U32)      | FileOpenEvent-specific      |
+     | 13     | 2    | FileName.Length (U16)| Length in bytes (Unicode)   |
+     | 15     | n    | FileName.Buffer      | FileName.Length bytes       |
+     +--------+------+----------------------+-----------------------------+
+
+     Total serialized size = 1 + 8 + event-specific (e.g. 4 + 2 + FileName.Length)
+    */
     struct FileOpenEvent : public Event
     {
         ULONG ProcessId = 0;
