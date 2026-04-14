@@ -11,6 +11,7 @@
 // Functional
 #include "MiniFilter.hpp"
 #include "Worker.hpp"
+#include "ProcessMonitor.hpp"
 
 /*********************
 *    Declarations    *
@@ -51,7 +52,7 @@ private:
     MiniFilter::Port*   _port   = nullptr;
     Worker::Queue*      _queue  = nullptr;
     Worker::Worker*     _worker = nullptr;
-    
+    Process::Monitor*   _monitor = nullptr;
 
 public:
     Driver(DRIVER_OBJECT* DriverObject) noexcept
@@ -88,8 +89,8 @@ public:
 
         // Initialize MiniFilter
         {
-            auto result = krn::make<MiniFilter::Filter>(DriverObject, [](krn::unique_ptr<Event::Event>& event) -> NTSTATUS {
-                return GlobalQueue->Push(event);
+            auto result = krn::make<MiniFilter::Filter>(DriverObject, [](krn::unique_ptr<Event::Event>& evt) -> NTSTATUS {
+                return GlobalQueue->Push(evt);
             });
             status = result.status();
             if (status != STATUS_SUCCESS)
@@ -116,6 +117,21 @@ public:
             _port = result.release();
         }
         defer{ if (status != STATUS_SUCCESS) { delete _port; _port = nullptr; } };
+
+        // Initialize Process Monitor
+        {
+            auto result = krn::make<Process::Monitor>([](krn::unique_ptr<Event::Event>& evt) -> NTSTATUS {
+                return GlobalQueue->Push(evt);
+            });
+            status = result.status();
+            if (status != STATUS_SUCCESS)
+            {
+                TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Initialized Process Monitor -> status: %!STATUS!", status);
+                return;
+            }
+            _monitor = result.release();
+        }
+        defer{ if (status != STATUS_SUCCESS) { delete _monitor; _monitor = nullptr; } };
     }
 
     ~Driver()
@@ -126,6 +142,7 @@ public:
         delete _port;   // Stop accepting new connections
         delete _worker; // Stop worker thread and cleanup existing connection
         delete _filter; // Close the filter => stop accepting new events
+        delete _monitor; // Stop monitoring processes
         delete _queue;  // Cleanup event queue
     }
 };

@@ -26,7 +26,6 @@ namespace MiniFilter
     {
         friend class MiniFilter::Port;
     public:
-        using EventNotifyCallback = NTSTATUS(*)(krn::unique_ptr<Event::Event>&);
 
     private:
         PFLT_FILTER _filter = NULL;
@@ -36,13 +35,14 @@ namespace MiniFilter
 
         /// @brief Sets up the filter and starts filtering.
         /// @param DriverObject 
+        /// @param Callback The callback function that will be called when an event is captured by the filter.
         /// @remarks On success, status() will be STATUS_SUCCESS.
         /// @remarks On failure, status() will be set to the error code, rewind any partial initialization.
         _IRQL_requires_(PASSIVE_LEVEL)
         _IRQL_requires_same_
         Filter(
             _In_ DRIVER_OBJECT* DriverObject,
-            _In_ EventNotifyCallback Callback
+            _In_ Event::EventNotifyCallback Callback
         );
         
         _IRQL_requires_(PASSIVE_LEVEL)

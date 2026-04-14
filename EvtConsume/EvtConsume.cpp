@@ -22,6 +22,7 @@ static const LPCWSTR COMPORT_NAME = L"\\EvtDrvPort";
 constexpr ULONG SERIALIZED_BUFFER_SIZE = 512 * 1024; // must match kernel serialized buffer size
 
 #pragma warning(disable : 4200)
+#pragma warning(disable : 4996)
 namespace
 {
     struct PackageHeader
@@ -146,23 +147,15 @@ public:
     {
         bool success = false;
 
-        _cancel = CreateEventW(
-            NULL,
-            TRUE,
-            FALSE,
-            NULL);
+        _cancel = CreateEventW(NULL, TRUE, FALSE, NULL);
         if (_cancel == NULL)
             throw std::runtime_error("Failed to create cancellation event, error: " + std::to_string(GetLastError()));
         defer{ if (!success) CloseHandle(_cancel); };
 
-        _ov.hEvent = CreateEventW(
-            NULL,
-            TRUE,
-            FALSE,
-            NULL);
+        _ov.hEvent = CreateEventW(NULL, TRUE, FALSE, NULL);
         if (_ov.hEvent == NULL)
             throw std::runtime_error("Failed to create overlapped event, error: " + std::to_string(GetLastError()));
-        defer{ if (!success) CloseHandle(_cancel); };
+        defer{ if (!success) CloseHandle(_ov.hEvent); };
 
         _worker = std::thread([&]() { work(); });
 
@@ -203,15 +196,18 @@ int wmain(int argc, wchar_t* argv[])
                 {
                     Event::FileOpenEvent event;
                     ptr += event.Deserialize(ptr, end_ptr - ptr);
-
-                    std::wcout
-                        << L"    FileOpen Event" << std::endl
-                        << L"        Time: " << std::chrono::system_clock::to_time_t(event.TimeStamp) << std::endl
-                        << L"        Process ID: " << event.ProcessId << std::endl
-                        << L"        File Path: " << event.FileName << std::endl
-                        << std::endl;
+                    time_t event_time = std::chrono::system_clock::to_time_t(event.TimeStamp);
+                    printf("FileOpen: Time: %.24s, ProcessId: %6lu, FileName: %ls\n", ctime(&event_time), event.ProcessId, event.FileName.c_str());
+                    break;
                 }
-                break;
+                case Event::ProcessOpen:
+                {
+                    Event::ProcessOpenEvent event;
+                    ptr += event.Deserialize(ptr, end_ptr - ptr);
+                    time_t event_time = std::chrono::system_clock::to_time_t(event.TimeStamp);
+                    printf("ProcessOpen: Time: %.24s, ProcessId: %6lu, TargetProcessId: %6lu, DesiredAccess: 0x%08X\n", ctime(&event_time), event.ProcessId, event.TargetProcessId, event.DesiredAccess);
+                    break;
+                }
                 
                 default:
                     printf("unknown event type %d at offset %lld, skip package\n", event_type, ptr - header->Data);

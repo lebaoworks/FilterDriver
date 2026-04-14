@@ -66,10 +66,13 @@ namespace krn
             Length = other.Length;
             MaximumLength = other.MaximumLength;
             Buffer = other.Buffer;
-            // Invalidate the moved-from object
+            failable::_status = other.status();
+
+            // Invalidate the moved-from object-
             other.Length = 0;
             other.MaximumLength = 0;
             other.Buffer = nullptr;
+            other._status = STATUS_SUCCESS;
         }
 
         /// @brief Copy constructor that creates a new string by copying the contents of another.
@@ -93,7 +96,6 @@ namespace krn
                 return;
             }
             RtlCopyMemory(Buffer, other.Buffer, Length);
-            
         }
 
         /// @brief Create a copy of provided UNICODE_STRING.
@@ -147,6 +149,9 @@ namespace krn
 
         ~UnicodeStringBase()
         {
+            if (failable::status() != STATUS_SUCCESS)
+                return;
+
             if (Buffer) alloc_trait::operator delete(Buffer);
         }
     };

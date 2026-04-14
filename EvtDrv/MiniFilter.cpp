@@ -12,7 +12,7 @@
 *     Global Vars    *
 *********************/
 #pragma data_seg("NONPAGED")
-static MiniFilter::Filter::EventNotifyCallback GlobalEventCallback = nullptr;
+static Event::EventNotifyCallback GlobalEventCallback = nullptr;
 #pragma data_seg()
 
 
@@ -168,7 +168,7 @@ namespace MiniFilter
     _IRQL_requires_same_
     Filter::Filter(
         _In_ DRIVER_OBJECT* DriverObject,
-        _In_ EventNotifyCallback Callback)
+        _In_ Event::EventNotifyCallback Callback)
     {
         auto& status = failable::_status;
         GlobalEventCallback = Callback;

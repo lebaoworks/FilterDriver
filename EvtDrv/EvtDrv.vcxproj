@@ -87,10 +87,11 @@
       <WppEnabled>true</WppEnabled>
       <WppScanConfigurationData>trace.h</WppScanConfigurationData>
       <AdditionalIncludeDirectories>$(ProjectDir)Utilities;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(DDK_LIB_PATH)fltMgr.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/INTEGRITYCHECK %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -101,10 +102,11 @@
       <WppEnabled>true</WppEnabled>
       <WppScanConfigurationData>trace.h</WppScanConfigurationData>
       <AdditionalIncludeDirectories>$(ProjectDir)Utilities;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(DDK_LIB_PATH)fltMgr.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/INTEGRITYCHECK %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -116,11 +118,13 @@
   <ItemGroup>
     <ClCompile Include="Entry.cpp" />
     <ClCompile Include="MiniFilter.cpp" />
+    <ClCompile Include="ProcessMonitor.cpp" />
     <ClCompile Include="Worker.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Event.hpp" />
     <ClInclude Include="MiniFilter.hpp" />
+    <ClInclude Include="ProcessMonitor.hpp" />
     <ClInclude Include="trace.h" />
     <ClInclude Include="Utilities\c++\list.hpp" />
     <ClInclude Include="Utilities\c++\mutex.hpp" />

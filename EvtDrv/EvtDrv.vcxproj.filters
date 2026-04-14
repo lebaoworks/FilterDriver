@@ -39,6 +39,9 @@
     <ClCompile Include="Worker.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ProcessMonitor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="trace.h">
@@ -67,6 +70,9 @@
     </ClInclude>
     <ClInclude Include="Utilities\queue.hpp">
       <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="ProcessMonitor.hpp">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

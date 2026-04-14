@@ -8,12 +8,13 @@ namespace Event
     {
         Invalid = 0,
         FileOpen = 1,
+        ProcessOpen = 100,
     };
 
     struct Event
     {
         std::chrono::system_clock::time_point TimeStamp;
-    
+
         size_t Deserialize(
             const byte* Buffer,
             size_t      BufferSize)
@@ -31,7 +32,50 @@ namespace Event
             return 8;
         }
     };
+}
 
+namespace Event
+{
+    struct ProcessOpenEvent : public Event
+    {
+        ULONG ProcessId = 0;
+        ULONG TargetProcessId = 0;
+        ULONG DesiredAccess = 0;
+
+        size_t Deserialize(
+            const byte*  Buffer,
+            size_t       BufferSize,
+            bool         SkipBase = false)
+        {
+            const byte* ptr = Buffer;
+
+            if (!SkipBase)
+                ptr += Event::Deserialize(Buffer, BufferSize);
+
+            // Ensure we have at least ProcessId + TargetProcessId + DesiredAccess available after base
+            size_t consumed = ptr - Buffer;
+            if (BufferSize < consumed + sizeof(UINT32) * 3)
+                throw std::runtime_error("Buffer too small for ProcessOpenEvent deserialization");
+
+            // ProcessId
+            ProcessId = *(UINT32*)(ptr);
+            ptr += sizeof(UINT32);
+
+            // TargetProcessId
+            TargetProcessId = *(UINT32*)(ptr);
+            ptr += sizeof(UINT32);
+
+            // DesiredAccess
+            DesiredAccess = *(UINT32*)(ptr);
+            ptr += sizeof(UINT32);
+
+            return ptr - Buffer;
+        }
+    };
+}
+
+namespace Event
+{
     struct FileOpenEvent : public Event
     {
         ULONG ProcessId = 0;

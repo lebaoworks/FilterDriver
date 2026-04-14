@@ -18,14 +18,24 @@ namespace Event
     enum Types
     {
         Invalid = 0,
+
+        // File related events 1-99
         FileOpen = 1,
+
+        // Process related events 100-199
+        ProcessOpen = 100,
     };
 
-    using String = krn::UnicodeStringBase<krn::tag<'EVT1'>>;
+    struct Event;
 
-    
+    using EventNotifyCallback = NTSTATUS(*)(krn::unique_ptr<Event>&);
+    using String = krn::UnicodeStringBase<krn::tag<'EVT1'>>;
+}
+
+namespace Event
+{
     /* Serialized buffer layout for all events (packed, byte offsets)
-     
+
      +--------+------+----------------------+-----------------------------------+
      | Offset | Size | Field                | Description                       |
      +--------+------+----------------------+-----------------------------------+
@@ -34,7 +44,7 @@ namespace Event
      +--------------------------------------------------------------------------+
      | 9      | n    | Event-specific data  | Varies based on event type        |
      +--------+------+----------------------+-----------------------------------+
-     
+
      Total serialized size = 1 + 8 + event-specific data size
     */
     struct Event : public krn::tag<'EVT1'>
@@ -77,7 +87,11 @@ namespace Event
         virtual NTSTATUS Serialize_(_Inout_ PVOID Buffer, _In_ ULONG BufferSize) const = 0;
         virtual ULONG    SerializedSize_() const = 0;
     };
+}
 
+// File related events
+namespace Event
+{
     /* Serialized buffer layout (packed, byte offsets)
 
      +--------+------+----------------------+-----------------------------+
@@ -127,5 +141,64 @@ namespace Event
         {
             return sizeof(UINT32) + sizeof(UINT16) + FileName.Length;
         }
+    };
+}
+
+
+// Process related events
+namespace Event
+{
+    /* Serialized buffer layout (packed, byte offsets)
+
+     +--------+------+----------------------+---------------------------------+
+     | Offset | Size | Field                | Description                     |
+     +--------+------+----------------------+---------------------------------+
+     |     Event Base Fields (9 bytes) - see Event struct layout above            |
+     +-------------------------------------------------------------------------+
+     | 9      | 4    | ProcessId (U32)      | Originating process id          |
+     | 13     | 4    | TargetProcessId (U32)| Process id being opened         |
+     | 17     | 4    | DesiredAccess (U32)  | Requested access mask           |
+     +--------+------+----------------------+---------------------------------+
+
+     Total serialized size = 1 + 8 + (4 + 4 + 4)
+    */
+    struct ProcessOpenEvent : public Event
+    {
+        ULONG ProcessId = 0;
+        ULONG TargetProcessId = 0;
+        ULONG DesiredAccess = 0;
+
+        ProcessOpenEvent() noexcept { Type = Types::ProcessOpen; }
+
+        virtual ~ProcessOpenEvent() {}
+
+        virtual NTSTATUS Serialize_(
+            _Inout_ PVOID Buffer,
+            _In_ ULONG BufferSize) const override
+        {
+            if (BufferSize < SerializedSize_())
+                return STATUS_BUFFER_TOO_SMALL;
+
+            BYTE* ptr = (BYTE*)Buffer;
+
+            // ProcessId
+            *(UINT32*)ptr = ProcessId;
+            ptr += sizeof(UINT32);
+
+            // TargetProcessId
+            *(UINT32*)ptr = TargetProcessId;
+            ptr += sizeof(UINT32);
+
+            // DesiredAccess
+            *(UINT32*)ptr = DesiredAccess;
+            ptr += sizeof(UINT32);
+
+            return STATUS_SUCCESS;
+        }
+
+        virtual ULONG SerializedSize_() const override
+        {
+            return sizeof(UINT32) * 3;
+        }   
     };
 }
