@@ -200,6 +200,23 @@ int wmain(int argc, wchar_t* argv[])
                     printf("FileOpen: Time: %.24s, ProcessId: %6lu, FileName: %ls\n", ctime(&event_time), event.ProcessId, event.FileName.c_str());
                     break;
                 }
+                case Event::ProcessCreate:
+                {
+                    Event::ProcessCreateEvent event;
+                    ptr += event.Deserialize(ptr, end_ptr - ptr);
+                    time_t event_time = std::chrono::system_clock::to_time_t(event.TimeStamp);
+                    printf("ProcessCreate: Time: %.24s, ProcessId: %6lu, ParentProcessId: %6lu, ImageName: %ls, CommandLine: %ls\n", ctime(&event_time), event.ProcessId, event.ParentProcessId, event.ImageName.c_str(), event.CommandLine.c_str());
+                    break;
+                }
+                case Event::ProcessExit:
+                {
+                    Event::ProcessExitEvent event;
+                    ptr += event.Deserialize(ptr, end_ptr - ptr);
+                    time_t event_time = std::chrono::system_clock::to_time_t(event.TimeStamp);
+                    time_t creation_time = std::chrono::system_clock::to_time_t(event.ProcessCreationTime);
+                    printf("ProcessExit: Time: %.24s, ProcessId: %6lu, ProcessCreationTime: %.24s\n", ctime(&event_time), event.ProcessId, ctime(&creation_time));
+                    break;
+                }
                 case Event::ProcessOpen:
                 {
                     Event::ProcessOpenEvent event;

@@ -70,9 +70,9 @@ For component-level diagrams and sequence flows see `EvtDrv/readme.md`.
     - Registry Value Creation
     - Registry Value Deletion
     - Registry Value Modification
-    - Process Creation
-    - Process Termination
-    - Process Open
+    - ~~Process Creation~~
+    - ~~Process Exit~~
+    - ~~Process Open~~
     - Image Load
     - Network Connection
     - Remote Thread Creation

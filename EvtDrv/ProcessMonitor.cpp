@@ -11,9 +11,9 @@
 /*********************
 *     Global Vars    *
 *********************/
-//#pragma data_seg("NONPAGED")
-//static Event::EventNotifyCallback GlobalEventCallback = nullptr;
-//#pragma data_seg()
+#pragma data_seg("NONPAGED")
+static Event::EventNotifyCallback GlobalEventCallback = nullptr;
+#pragma data_seg()
 
 
 namespace Process
@@ -39,6 +39,8 @@ namespace Process
         _In_ PVOID RegistrationContext,
         _Inout_ POB_PRE_OPERATION_INFORMATION OperationInformation)
     {
+        UNREFERENCED_PARAMETER(RegistrationContext);
+
         ULONG pid = HandleToUlong(PsGetCurrentProcessId());
         ULONG target_pid = HandleToUlong(PsGetProcessId((PEPROCESS)OperationInformation->Object));
         ULONG access = OperationInformation->Parameters->CreateHandleInformation.OriginalDesiredAccess;
@@ -60,7 +62,7 @@ namespace Process
             (access & sensitive_access) == 0)       // Skip handle creations that do not request any sensitive access rights
             return OB_PREOP_SUCCESS;
 
-        //TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DRIVER, "Process: process handle creation: ProcessId: %6lu, TargetProcessId: %6lu, DesiredAccess: 0x%08X",pid, target_pid, access);
+        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DRIVER, "Process: process handle creation: ProcessId: %6lu, TargetProcessId: %6lu, DesiredAccess: 0x%08X",pid, target_pid, access);
 
         auto result = krn::make<Event::ProcessOpenEvent>();
         if (result.status() == STATUS_SUCCESS)
@@ -70,7 +72,7 @@ namespace Process
             event.TargetProcessId = target_pid;
             event.DesiredAccess = access;
             krn::unique_ptr<Event::Event> evt(result.release());
-            reinterpret_cast<Event::EventNotifyCallback>(RegistrationContext)(evt);
+            GlobalEventCallback(evt);
         }
         return OB_PREOP_SUCCESS;
     }
@@ -84,6 +86,7 @@ namespace Process
             .PostOperation = NULL                           // No post-operation callback, we will filter in the pre-operation callback
         }
     };
+
     OB_CALLBACK_REGISTRATION CallbackRegistration = {
         .Version = OB_FLT_REGISTRATION_VERSION,             
         .OperationRegistrationCount = sizeof(OperationRegistration) / sizeof(OperationRegistration[0]),
@@ -92,6 +95,51 @@ namespace Process
         .OperationRegistration = OperationRegistration,
     };
     #pragma data_seg()
+
+
+    VOID CreateProcessNotify(
+        _Inout_ PEPROCESS Process,
+        _In_ HANDLE ProcessId,
+        _Inout_opt_ PPS_CREATE_NOTIFY_INFO CreateInfo)
+    {
+        // If process is being created
+        if (CreateInfo != NULL)
+        {
+            ULONG pid = HandleToUlong(ProcessId);
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DRIVER, "Process: process create: ProcessId: %6lu, ImageName: %wZ", pid, CreateInfo->ImageFileName);
+
+            auto result = krn::make<Event::ProcessCreateEvent>();
+            if (result.status() == STATUS_SUCCESS)
+            {
+                auto& event = result.value();
+                event.TimeStamp.QuadPart = PsGetProcessCreateTimeQuadPart(Process);
+                event.ProcessId = pid;
+                event.ParentProcessId = HandleToUlong(CreateInfo->ParentProcessId);
+                event.ImageName = *CreateInfo->ImageFileName;
+                if (CreateInfo->CommandLine)
+                    event.CommandLine = *CreateInfo->CommandLine;
+
+                krn::unique_ptr<Event::Event> evt(result.release());
+                GlobalEventCallback(evt);
+            }
+        }
+        // If process is being terminated
+        else
+        {
+            ULONG pid = HandleToUlong(ProcessId);
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DRIVER, "Process: process exit: ProcessId: %6lu", pid);
+            auto result = krn::make<Event::ProcessExitEvent>();
+            if (result.status() == STATUS_SUCCESS)
+            {
+                auto& event = result.value();
+                event.ProcessId = pid;
+                event.ProcessCreationTime.QuadPart = PsGetProcessCreateTimeQuadPart(Process);
+
+                krn::unique_ptr<Event::Event> evt(result.release());
+                GlobalEventCallback(evt);
+            }
+        }
+    }
 }
 namespace Process
 {
@@ -99,11 +147,11 @@ namespace Process
     _IRQL_requires_same_
     Monitor::Monitor(_In_ Event::EventNotifyCallback Callback) noexcept
     {
+        GlobalEventCallback = Callback;
         auto& status = failable::_status;
 
         {
             OperationRegistration[0].ObjectType = PsProcessType;   // Set the ObjectType to PsProcessType
-            CallbackRegistration.RegistrationContext = Callback;   // Set the RegistrationContext to the callback
 
             // Register the callbacks
             // [NOTE] If ObRegisterCallbacks return STATUS_ACCESS_DEINED, add flag /INTEGRITYCHECK in linker settings.
@@ -116,6 +164,16 @@ namespace Process
             }
         }
         defer{ if (status != STATUS_SUCCESS) ObUnRegisterCallbacks(_handle); };
+
+        {
+            status = PsSetCreateProcessNotifyRoutineEx(CreateProcessNotify, FALSE);
+            if (status != STATUS_SUCCESS)
+            {
+                TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Register process notify routine failed -> status: %!STATUS!", status);
+                return;
+            }
+        }
+        defer{ if (status != STATUS_SUCCESS) PsSetCreateProcessNotifyRoutineEx(CreateProcessNotify, TRUE); };
     }
 
     _IRQL_requires_(PASSIVE_LEVEL)

@@ -1,14 +1,24 @@
 #pragma once
 
 #include <chrono>
+#include <stdexcept>
+#include <string>
+#include <cstddef>
+#include <cstring>
 
 namespace Event
 {
     enum Types
     {
         Invalid = 0,
+
+        // File related events 1-99
         FileOpen = 1,
-        ProcessOpen = 100,
+
+        // Process related events 100-199
+        ProcessCreate = 100,
+        ProcessExit = 101,
+        ProcessOpen = 102,
     };
 
     struct Event
@@ -36,6 +46,97 @@ namespace Event
 
 namespace Event
 {
+    struct ProcessCreateEvent : public Event
+    {
+        ULONG ProcessId = 0;
+        ULONG ParentProcessId = 0;
+        std::wstring ImageName;
+        std::wstring CommandLine;
+
+        size_t Deserialize(
+            const byte* Buffer,
+            size_t      BufferSize,
+            bool        SkipBase = false)
+        {
+            const byte* ptr = Buffer;
+
+            if (!SkipBase)
+                ptr += Event::Deserialize(Buffer, BufferSize);
+
+            size_t consumed = ptr - Buffer;
+            if (BufferSize < consumed + sizeof(UINT32) * 2 + sizeof(UINT16))
+                throw std::runtime_error("Buffer too small for ProcessCreateEvent deserialization");
+
+            // ProcessId
+            ProcessId = *(UINT32*)(ptr);
+            ptr += sizeof(UINT32);
+
+            // ParentProcessId
+            ParentProcessId = *(UINT32*)(ptr);
+            ptr += sizeof(UINT32);
+
+            // ImageName Length (bytes)
+            UINT16 image_len = *(UINT16*)(ptr);
+            ptr += sizeof(UINT16);
+
+            if (Buffer + BufferSize < ptr + image_len)
+                throw std::runtime_error("Buffer too small for ImageName deserialization");
+
+            ImageName.assign((wchar_t*)ptr, image_len / sizeof(wchar_t));
+            ptr += image_len;
+
+            // CommandLine Length (bytes)
+            if (Buffer + BufferSize < ptr + sizeof(UINT16))
+                throw std::runtime_error("Buffer too small for CommandLine length");
+
+            UINT16 cmd_len = *(UINT16*)(ptr);
+            ptr += sizeof(UINT16);
+
+            if (Buffer + BufferSize < ptr + cmd_len)
+                throw std::runtime_error("Buffer too small for CommandLine deserialization");
+
+            CommandLine.assign((wchar_t*)ptr, cmd_len / sizeof(wchar_t));
+            ptr += cmd_len;
+
+            return ptr - Buffer;
+        }
+    };
+
+    struct ProcessExitEvent : public Event
+    {
+        ULONG ProcessId = 0;
+        std::chrono::system_clock::time_point ProcessCreationTime;
+
+        size_t Deserialize(
+            const byte* Buffer,
+            size_t      BufferSize,
+            bool        SkipBase = false)
+        {
+            const byte* ptr = Buffer;
+
+            if (!SkipBase)
+                ptr += Event::Deserialize(Buffer, BufferSize);
+
+            size_t consumed = ptr - Buffer;
+            if (BufferSize < consumed + sizeof(UINT32) + sizeof(INT64))
+                throw std::runtime_error("Buffer too small for ProcessExitEvent deserialization");
+
+            // ProcessId
+            ProcessId = *(UINT32*)(ptr);
+            ptr += sizeof(UINT32);
+
+            // ProcessCreationTime (INT64 ticks since 1601)
+            INT64 pct = *(INT64*)(ptr);
+            ptr += sizeof(INT64);
+
+            std::chrono::duration<long long, std::ratio<1, 10000000>> ticks(pct);
+            auto unix_ticks = ticks - std::chrono::duration<long long, std::ratio<1, 10000000>>(116444736000000000LL);
+            ProcessCreationTime = std::chrono::system_clock::time_point(std::chrono::duration_cast<std::chrono::system_clock::duration>(unix_ticks));
+
+            return ptr - Buffer;
+        }
+    };
+
     struct ProcessOpenEvent : public Event
     {
         ULONG ProcessId = 0;
@@ -103,9 +204,11 @@ namespace Event
             // FileName Length
             UINT16 file_name_length = *(UINT16*)(ptr);
             ptr += sizeof(UINT16);
+
             if (Buffer + BufferSize < ptr + file_name_length)
-                throw std::runtime_error("Buffer too small for FileName deserialization, got " + std::to_string(BufferSize - (ptr - Buffer)) + ", expected: " + std::to_string(file_name_length));
-            // FileName Buffer
+                throw std::runtime_error("Buffer too small for FileName deserialization");
+
+            // FileName Buffer (UTF-16)
             FileName.assign((wchar_t*)(ptr), file_name_length / sizeof(wchar_t));
             ptr += file_name_length;
 
