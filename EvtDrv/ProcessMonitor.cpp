@@ -96,7 +96,8 @@ namespace Process
     };
     #pragma data_seg()
 
-
+    _IRQL_requires_(PASSIVE_LEVEL)
+    _IRQL_requires_same_
     VOID CreateProcessNotify(
         _Inout_ PEPROCESS Process,
         _In_ HANDLE ProcessId,
@@ -140,6 +141,40 @@ namespace Process
             }
         }
     }
+
+    _IRQL_requires_max_(APC_LEVEL)
+    _IRQL_requires_same_
+    VOID CreateThreadNotify(
+        _In_ HANDLE ProcessId,
+        _In_ HANDLE ThreadId,
+        _In_ BOOLEAN Create)
+    {
+        // Creation only
+        if (Create == FALSE)
+            return;
+
+        // Routine run in the context of the thread that created the new thread
+        
+        // Skip safe thread creations to reduce noise
+        ULONG current_pid = HandleToUlong(PsGetCurrentProcessId());
+        if (current_pid == 4 ||                         // System thread or process's inital thread,
+            current_pid == HandleToULong(ProcessId))    // Skip thread creations to self
+            return;
+
+        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DRIVER, "Process: remote thread create: ProcessId: %6lu, TargetProcessId: %6lu, ThreadId: %6lu", HandleToUlong(PsGetCurrentProcessId()), HandleToUlong(ProcessId), HandleToUlong(ThreadId));
+
+        auto result = krn::make<Event::RemoteThreadCreateEvent>();
+        if (result.status() == STATUS_SUCCESS)
+        {
+            auto& event = result.value();
+            event.ProcessId = current_pid;
+            event.TargetProcessId = HandleToUlong(ProcessId);
+            event.ThreadId = HandleToUlong(ThreadId);
+
+            krn::unique_ptr<Event::Event> evt(result.release());
+            GlobalEventCallback(evt);
+        }
+    }
 }
 namespace Process
 {
@@ -174,6 +209,16 @@ namespace Process
             }
         }
         defer{ if (status != STATUS_SUCCESS) PsSetCreateProcessNotifyRoutineEx(CreateProcessNotify, TRUE); };
+
+        {
+            status = PsSetCreateThreadNotifyRoutine(CreateThreadNotify);
+            if (status != STATUS_SUCCESS)
+            {
+                TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Register thread notify routine failed -> status: %!STATUS!", status);
+                return;
+            }
+        }
+        defer{ if (status != STATUS_SUCCESS) PsRemoveCreateThreadNotifyRoutine(CreateThreadNotify); };
     }
 
     _IRQL_requires_(PASSIVE_LEVEL)
@@ -183,6 +228,8 @@ namespace Process
         if (this->status() != STATUS_SUCCESS)
             return;
 
+        PsRemoveCreateThreadNotifyRoutine(CreateThreadNotify);
+        PsSetCreateProcessNotifyRoutineEx(CreateProcessNotify, TRUE);
         ObUnRegisterCallbacks(_handle);
     }
 }

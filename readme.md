@@ -75,9 +75,11 @@ For component-level diagrams and sequence flows see `EvtDrv/readme.md`.
     - ~~Process Open~~
     - Image Load
     - Network Connection
-    - Remote Thread Creation
+    - ~~Remote Thread Creation~~
     - Access Token Acquisition
 
 - Implement authentication for user-mode clients connecting to the communication port.
 - Implement authentication for unloading the driver
 - Implement authentication events mechanism (e.g., only send events for specific processes or file paths).
+- Improve event data
+    - Remote thread: start function, thread parameters, etc.

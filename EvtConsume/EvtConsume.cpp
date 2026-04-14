@@ -225,7 +225,15 @@ int wmain(int argc, wchar_t* argv[])
                     printf("ProcessOpen: Time: %.24s, ProcessId: %6lu, TargetProcessId: %6lu, DesiredAccess: 0x%08X\n", ctime(&event_time), event.ProcessId, event.TargetProcessId, event.DesiredAccess);
                     break;
                 }
-                
+                case Event::RemoteThreadCreate:
+                {
+                    Event::RemoteThreadCreateEvent event;
+                    ptr += event.Deserialize(ptr, end_ptr - ptr);
+                    time_t event_time = std::chrono::system_clock::to_time_t(event.TimeStamp);
+                    printf("RemoteThreadCreate: Time: %.24s, ProcessId: %6lu, TargetProcessId: %6lu, ThreadId: %6lu\n", ctime(&event_time), event.ProcessId, event.TargetProcessId, event.ThreadId);
+                    break;
+                }
+
                 default:
                     printf("unknown event type %d at offset %lld, skip package\n", event_type, ptr - header->Data);
                     return;

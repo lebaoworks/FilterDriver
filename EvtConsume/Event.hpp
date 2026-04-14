@@ -19,6 +19,7 @@ namespace Event
         ProcessCreate = 100,
         ProcessExit = 101,
         ProcessOpen = 102,
+        RemoteThreadCreate = 103,
     };
 
     struct Event
@@ -173,6 +174,43 @@ namespace Event
             return ptr - Buffer;
         }
     };
+
+    struct RemoteThreadCreateEvent : public Event
+    {
+        ULONG ProcessId = 0;
+        ULONG TargetProcessId = 0;
+        ULONG ThreadId = 0;
+
+        size_t Deserialize(
+            const byte* Buffer,
+            size_t      BufferSize,
+            bool        SkipBase = false)
+        {
+            const byte* ptr = Buffer;
+
+            if (!SkipBase)
+                ptr += Event::Deserialize(Buffer, BufferSize);
+
+            size_t consumed = ptr - Buffer;
+            if (BufferSize < consumed + sizeof(UINT32) * 3)
+                throw std::runtime_error("Buffer too small for RemoteThreadCreateEvent deserialization");
+
+            // ProcessId
+            ProcessId = *(UINT32*)(ptr);
+            ptr += sizeof(UINT32);
+
+            // TargetProcessId
+            TargetProcessId = *(UINT32*)(ptr);
+            ptr += sizeof(UINT32);
+
+            // ThreadId
+            ThreadId = *(UINT32*)(ptr);
+            ptr += sizeof(UINT32);
+
+            return ptr - Buffer;
+        }
+    };
+
 }
 
 namespace Event

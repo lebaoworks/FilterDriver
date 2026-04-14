@@ -26,12 +26,16 @@ namespace Event
         ProcessCreate = 100,
         ProcessExit = 101,
         ProcessOpen = 102,
+        RemoteThreadCreate = 103,
 
     };
 
     struct Event;
 
+    _IRQL_requires_max_(APC_LEVEL)
+    _IRQL_requires_same_
     using EventNotifyCallback = NTSTATUS(*)(krn::unique_ptr<Event>&);
+
     using String = krn::UnicodeStringBase<krn::tag<'EVT1'>>;
 }
 
@@ -39,14 +43,14 @@ namespace Event
 {
     /* Serialized buffer layout for all events (packed, byte offsets)
 
-     +--------+------+------------------------------+-----------------------------------------------+
-     | Offset | Size | Field                        | Description                                   |
-     +--------+------+------------------------------+-----------------------------------------------+
-     | 0      | 1    | Type (BYTE)                  | Event::Type                                   |
-     | 1      | 8    | TimeStamp (I64)              | 100-ns intervals since 1601-01-01             |
-     +----------------------------------------------------------------------------------------------+
-     | 9      | n    | Event-specific data          | Varies based on event type                    |
-     +--------+------+------------------------------+-----------------------------------------------+
+    +--------+------+------------------------------+-----------------------------------------------+
+    | Offset | Size | Field                        | Description                                   |
+    +--------+------+------------------------------+-----------------------------------------------+
+    | 0      | 1    | Type (BYTE)                  | Event::Type                                   |
+    | 1      | 8    | TimeStamp (I64)              | 100-ns intervals since 1601-01-01             |
+    +----------------------------------------------------------------------------------------------+
+    | 9      | n    | Event-specific data          | Varies based on event type                    |
+    +--------+------+------------------------------+-----------------------------------------------+
     */
     struct Event : public krn::tag<'EVT1'>
     {
@@ -95,15 +99,15 @@ namespace Event
 {
     /* Serialized buffer layout (packed, byte offsets)
 
-     +--------+------+------------------------------+-----------------------------------------------+
-     | Offset | Size | Field                        | Description                                   |
-     +--------+------+------------------------------+-----------------------------------------------+
-     |     Event Base Fields (9 bytes) - see Event struct layout above                              |
-     +----------------------------------------------------------------------------------------------+
-     | 9      | 4    | ProcessId (U32)              | FileOpenEvent-specific                        |
-     | 13     | 2    | FileName.Length (U16)        | Length in bytes (Unicode)                     |
-     | 15     | n    | FileName.Buffer              | FileName.Length bytes                         |
-     +--------+------+------------------------------+-----------------------------------------------+
+    +--------+------+------------------------------+-----------------------------------------------+
+    | Offset | Size | Field                        | Description                                   |
+    +--------+------+------------------------------+-----------------------------------------------+
+    |     Event Base Fields (9 bytes) - see Event struct layout above                              |
+    +----------------------------------------------------------------------------------------------+
+    | 9      | 4    | ProcessId (U32)              | FileOpenEvent-specific                        |
+    | 13     | 2    | FileName.Length (U16)        | Length in bytes (Unicode)                     |
+    | 15     | n    | FileName.Buffer              | FileName.Length bytes                         |
+    +--------+------+------------------------------+-----------------------------------------------+
     */
     struct FileOpenEvent : public Event
     {
@@ -149,18 +153,18 @@ namespace Event
 {
     /* Serialized buffer layout for ProcessCreateEvent (packed, byte offsets)
 
-     +--------+------+------------------------------+-----------------------------------------------+
-     | Offset | Size | Field                        | Description                                   |
-     +--------+------+------------------------------+-----------------------------------------------+
-     |     Event Base Fields (9 bytes) - see Event struct layout above                              |
-     +----------------------------------------------------------------------------------------------+
-     | 9      | 4    | ProcessId (U32)              | Originating process id                        |
-     | 13     | 4    | ParentProcessId (U32)        | Parent process id                             |
-     | 17     | 2    | ImageName.Length (U16)       | Length in bytes (Unicode)                     |
-     | 19     | n    | ImageName.Buffer             | Image name string                             |
-     | 19+n   | 2    | CommandLine.Length (U16)     | Length in bytes (Unicode)                     |
-     | 21+n   | m    | CommandLine.Buffer           | Command line string                           |
-     +--------+------+------------------------------+-----------------------------------------------+
+    +--------+------+------------------------------+-----------------------------------------------+
+    | Offset | Size | Field                        | Description                                   |
+    +--------+------+------------------------------+-----------------------------------------------+
+    |     Event Base Fields (9 bytes) - see Event struct layout above                              |
+    +----------------------------------------------------------------------------------------------+
+    | 9      | 4    | ProcessId (U32)              | Originating process id                        |
+    | 13     | 4    | ParentProcessId (U32)        | Parent process id                             |
+    | 17     | 2    | ImageName.Length (U16)       | Length in bytes (Unicode)                     |
+    | 19     | n    | ImageName.Buffer             | Image name string                             |
+    | 19+n   | 2    | CommandLine.Length (U16)     | Length in bytes (Unicode)                     |
+    | 21+n   | m    | CommandLine.Buffer           | Command line string                           |
+    +--------+------+------------------------------+-----------------------------------------------+
     */
     struct ProcessCreateEvent : public Event
     {
@@ -265,15 +269,15 @@ namespace Event
 
     /* Serialized buffer layout (packed, byte offsets)
 
-     +--------+------+------------------------------+-----------------------------------------------+
-     | Offset | Size | Field                        | Description                                   |
-     +--------+------+------------------------------+-----------------------------------------------+
-     |     Event Base Fields (9 bytes) - see Event struct layout above                              |
-     +----------------------------------------------------------------------------------------------+
-     | 9      | 4    | ProcessId (U32)              | Originating process id                        |
-     | 13     | 4    | TargetProcessId (U32)        | Process id being opened                       |
-     | 17     | 4    | DesiredAccess (U32)          | Requested access mask                         |
-     +--------+------+------------------------------+-----------------------------------------------+
+    +--------+------+------------------------------+-----------------------------------------------+
+    | Offset | Size | Field                        | Description                                   |
+    +--------+------+------------------------------+-----------------------------------------------+
+    |     Event Base Fields (9 bytes) - see Event struct layout above                              |
+    +----------------------------------------------------------------------------------------------+
+    | 9      | 4    | ProcessId (U32)              | Originating process id                        |
+    | 13     | 4    | TargetProcessId (U32)        | Process id being opened                       |
+    | 17     | 4    | DesiredAccess (U32)          | Requested access mask                         |
+    +--------+------+------------------------------+-----------------------------------------------+
     */
     struct ProcessOpenEvent : public Event
     {
@@ -314,4 +318,58 @@ namespace Event
             return sizeof(UINT32) * 3;
         }   
     };
+
+
+    /* Serialized buffer layout (packed, byte offsets)
+    
+    +--------+------+------------------------------+-----------------------------------------------+
+    | Offset | Size | Field                        | Description                                   |
+    +--------+------+------------------------------+-----------------------------------------------+
+    |     Event Base Fields (9 bytes) - see Event struct layout above                              |
+    +----------------------------------------------------------------------------------------------+
+    | 9      | 4    | ProcessId (U32)              | Originating process id                        |
+    | 13     | 4    | TargetProcessId (U32)        | Process id in which thread is being created   |
+    | 17     | 4    | ThreadId (U32)               | Created thread id                             |
+    +--------+------+------------------------------+-----------------------------------------------+
+    */
+    struct RemoteThreadCreateEvent : public Event
+    {
+        ULONG ProcessId = 0;
+        ULONG TargetProcessId = 0;
+        ULONG ThreadId = 0;
+
+        RemoteThreadCreateEvent() noexcept { Type = Types::RemoteThreadCreate; }
+        
+        virtual ~RemoteThreadCreateEvent() {}
+        
+        virtual NTSTATUS Serialize_(
+            _Inout_ PVOID Buffer,
+            _In_ ULONG BufferSize) const override
+        {
+            if (BufferSize < SerializedSize_())
+                return STATUS_BUFFER_TOO_SMALL;
+
+            BYTE* ptr = (BYTE*)Buffer;
+
+            // ProcessId
+            *(UINT32*)ptr = ProcessId;
+            ptr += sizeof(UINT32);
+
+            // TargetProcessId
+            *(UINT32*)ptr = TargetProcessId;
+            ptr += sizeof(UINT32);
+
+            // ThreadId
+            *(UINT32*)ptr = ThreadId;
+            ptr += sizeof(UINT32);
+
+            return STATUS_SUCCESS;
+        }
+        
+        virtual ULONG SerializedSize_() const override
+        {
+            return sizeof(UINT32) * 3;
+        }
+    };
+
 }
