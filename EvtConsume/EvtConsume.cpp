@@ -87,7 +87,7 @@ private:
             if (result != HRESULT_FROM_WIN32(ERROR_IO_PENDING))
             {
                 printf("Unexpected result from FilterGetMessage -> HRESULT: %08X", result);
-                break;
+                return false;
             }
 
             // Wait for either a message to be received or cancellation, cancel first to avoid race condition
