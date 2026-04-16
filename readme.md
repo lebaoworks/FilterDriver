@@ -42,6 +42,7 @@ flowchart LR
 | **Process Creation** | ✅ Done | <ul><li>ProcessId</li><li>TargetProcessId</li><li>Image</li><li>CommandLine</li></ul> | |
 | **Process Exit** | ✅ Done | <ul><li>ProcessId</li><li>ProcessCreationTime</li></ul> | |
 | **Process Open** | ✅ Done | <ul><li>ProcessId</li><li>TargetProcessId</li><li>DesiredAccess</li></ul> | |
+| **Process Exist** | ✅ Done | <ul><li>ProcessId</li><li>ProcessCreationTime</li><li>Image</li></ul> | Gathering existing process info; missed by Process Creation event. |
 | **Image Load** | ❌ Not Started | | |
 | **Network Connection** | ❌ Not Started | | |
 | **Remote Thread Creation** | ✅ Done | <ul><li>ProcessId</li><li>TargetProcessId</li><li>ThreadId</li></ul> | ⌛ Pending start function |
