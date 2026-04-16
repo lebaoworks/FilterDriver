@@ -4,7 +4,7 @@
 
 #include "krn.hpp"
 
-// Logging vie tracing
+// Logging via tracing
 #include "trace.h"
 #include "Entry.tmh"
 

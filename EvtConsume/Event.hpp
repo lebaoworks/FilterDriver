@@ -17,10 +17,19 @@ namespace Event
 
         // Process related events 100-199
         ProcessCreate = 100,
-        ProcessExit = 101,
-        ProcessOpen = 102,
-        RemoteThreadCreate = 103,
+        ProcessExit,
+        ProcessOpen,
+        ProcessExist,
+        RemoteThreadCreate,
     };
+
+    static inline std::chrono::system_clock::time_point ticks_to_time_point(INT64 ticks)
+    {
+        // Convert into Unix Epoch (1970)
+        auto unix_ticks = std::chrono::duration<long long, std::ratio<1, 10000000>>(ticks) - std::chrono::duration<long long, std::ratio<1, 10000000>>(116444736000000000LL);
+        // Convert to system_clock to get the current system time
+        return std::chrono::system_clock::time_point(std::chrono::duration_cast<std::chrono::system_clock::duration>(unix_ticks));
+    }
 
     struct Event
     {
@@ -33,12 +42,9 @@ namespace Event
             if (BufferSize < 8)
                 throw std::runtime_error("Buffer too small for deserialization");
 
-            // Get TimeStamp (INT64 ticks since 1601-01-01)
-            std::chrono::duration<long long, std::ratio<1, 10000000>> ticks(*(INT64*)Buffer);
-            // Convert into Unix Epoch (1970)
-            auto unix_ticks = ticks - std::chrono::duration<long long, std::ratio<1, 10000000>>(116444736000000000LL);
-            // Convert to system_clock to get the current system time
-            TimeStamp = std::chrono::system_clock::time_point(std::chrono::duration_cast<std::chrono::system_clock::duration>(unix_ticks));
+            // TimeStamp (INT64 ticks since 1601)
+            INT64 ts = *(INT64*)Buffer;
+            TimeStamp = ticks_to_time_point(ts);
 
             return 8;
         }
@@ -170,6 +176,47 @@ namespace Event
             // DesiredAccess
             DesiredAccess = *(UINT32*)(ptr);
             ptr += sizeof(UINT32);
+
+            return ptr - Buffer;
+        }
+    };
+
+    struct ProcessExistEvent : public Event
+    {
+        ULONG ProcessId = 0;
+        std::chrono::system_clock::time_point ProcessCreationTime;
+        std::wstring Image;
+
+        size_t Deserialize(
+            const byte* Buffer,
+            size_t      BufferSize,
+            bool        SkipBase = false)
+        {
+            const byte* ptr = Buffer;
+
+            if (!SkipBase)
+                ptr += Event::Deserialize(Buffer, BufferSize);
+
+            size_t consumed = ptr - Buffer;
+            if (BufferSize < consumed + sizeof(UINT32) + sizeof(INT64) + sizeof(UINT16))
+                throw std::runtime_error("Buffer too small for ProcessExistEvent deserialization");
+
+            // ProcessId
+            ProcessId = *(UINT32*)(ptr);
+            ptr += sizeof(UINT32);
+
+            // ProcessCreationTime (INT64 ticks since 1601)
+            INT64 pct = *(INT64*)(ptr);
+            ptr += sizeof(INT64);
+            ProcessCreationTime = ticks_to_time_point(pct);
+            
+            // Image Length (bytes)
+            UINT16 image_len = *(UINT16*)(ptr);
+            ptr += sizeof(UINT16);
+            if (Buffer + BufferSize < ptr + image_len)
+                throw std::runtime_error("Buffer too small for Image deserialization");
+            Image.assign((wchar_t*)ptr, image_len / sizeof(wchar_t));
+            ptr += image_len;
 
             return ptr - Buffer;
         }

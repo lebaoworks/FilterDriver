@@ -4,7 +4,7 @@
 
 #include "MiniFilter.hpp"
 
-// Logging vie tracing
+// Logging via tracing
 #include "trace.h"
 #include "MiniFilter.tmh"
 

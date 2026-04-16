@@ -4,9 +4,17 @@
 
 #include "ProcessMonitor.hpp"
 
-// Logging vie tracing
+// Logging via tracing
 #include "trace.h"
 #include "ProcessMonitor.tmh"
+
+// Undocumented APIs for listing existing processes at monitor initialization
+#include <undocumented.hpp>
+
+/*********************
+*    Declarations    *
+*********************/
+static void ListExistingProcesses(Event::EventNotifyCallback callback);
 
 /*********************
 *     Global Vars    *
@@ -185,6 +193,9 @@ namespace Process
         GlobalEventCallback = Callback;
         auto& status = failable::_status;
 
+        // List existing processes
+        ListExistingProcesses(Callback);
+
         {
             OperationRegistration[0].ObjectType = PsProcessType;   // Set the ObjectType to PsProcessType
 
@@ -231,5 +242,80 @@ namespace Process
         PsRemoveCreateThreadNotifyRoutine(CreateThreadNotify);
         PsSetCreateProcessNotifyRoutineEx(CreateProcessNotify, TRUE);
         ObUnRegisterCallbacks(_handle);
+    }
+}
+
+void ListExistingProcesses(Event::EventNotifyCallback callback)
+{
+    // Query the required buffer size for ZwQuerySystemInformation with SystemProcessInformation class
+    ULONG buffer_size = 0;
+    auto status = ZwQuerySystemInformation(SystemProcessInformation, NULL, 0, &buffer_size);
+    if (status != STATUS_INFO_LENGTH_MISMATCH)
+    {
+        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Process: query existing sizefailed -> status: %!STATUS!", status);
+        return;
+    }
+
+    // Allocate the required buffer with some extra for new processes created during the query
+    void* buffer = krn::tag<'evt0'>::operator new(buffer_size + 0x1000);
+    if (buffer == nullptr)
+    {
+        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Process: failed to allocate memory for existing processes");
+        return;
+    }
+    defer{ krn::tag<'evt0'>::operator delete(buffer); };
+
+    // Query the process information
+    status = ZwQuerySystemInformation(SystemProcessInformation, buffer, buffer_size, &buffer_size);
+    if (status != STATUS_SUCCESS)
+    {
+        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Process: query existing processes failed -> status: %!STATUS!", status);
+        return;
+    }
+    if (buffer_size == 0)
+    {
+        TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "Process: no existing process found");
+        return;
+    }
+
+    // Process the information in buffer...
+    PSYSTEM_PROCESS_INFORMATION ptr = (PSYSTEM_PROCESS_INFORMATION)buffer;
+    while (TRUE)
+    {
+        auto event_result = krn::make<Event::ProcessExistEvent>();
+        if (event_result.status() == STATUS_SUCCESS)
+        {
+            auto& event = event_result.value();
+            event.ProcessId = HandleToUlong(ptr->UniqueProcessId);
+            event.ProcessCreationTime = ptr->CreateTime;
+
+            // Query image path for better visibility, since the ImageName field in SYSTEM_PROCESS_INFORMATION is often truncated and not reliable
+            PEPROCESS proc;
+            status = PsLookupProcessByProcessId(ptr->UniqueProcessId, &proc);
+            if (status == STATUS_SUCCESS)
+            {
+                defer{ ObDereferenceObject(proc); };
+
+                PUNICODE_STRING image_path = NULL;
+                status = SeLocateProcessImageName(proc, &image_path);
+                if (status == STATUS_SUCCESS)
+                {
+                    defer{ ExFreePool(image_path); };
+                    event.Image = *image_path;
+                }
+            }
+
+            if (event.Image.Length == 0 && event.ProcessId != 0 && event.ProcessId != 4) // Exclude System process
+                TraceEvents(TRACE_LEVEL_WARNING, TRACE_DRIVER, "Process: found existing process with empty name, ProcessID: %lld", (LONGLONG)ptr->UniqueProcessId);
+            else
+                TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DRIVER, "Process: found existing process, Creation Time: %lld, ProcessID: %6lu, ImageName: %wZ", (LONGLONG)ptr->CreateTime.QuadPart, HandleToUlong(ptr->UniqueProcessId), &event.Image);
+
+            krn::unique_ptr<Event::Event> evt(event_result.release());
+            callback(evt);
+        }
+
+        if (ptr->NextEntryOffset == 0)
+            break;
+        ptr = (PSYSTEM_PROCESS_INFORMATION)((PUCHAR)ptr + ptr->NextEntryOffset);
     }
 }

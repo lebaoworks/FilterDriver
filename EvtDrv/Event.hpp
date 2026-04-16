@@ -24,9 +24,10 @@ namespace Event
 
         // Process related events 100-199
         ProcessCreate = 100,
-        ProcessExit = 101,
-        ProcessOpen = 102,
-        RemoteThreadCreate = 103,
+        ProcessExit,
+        ProcessOpen,
+        ProcessExist,
+        RemoteThreadCreate,
 
     };
 
@@ -317,6 +318,63 @@ namespace Event
         {
             return sizeof(UINT32) * 3;
         }   
+    };
+
+    /* Serialized buffer layout (packed, byte offsets)
+    
+    +--------+------+------------------------------+-----------------------------------------------+
+    | Offset | Size | Field                        | Description                                   |
+    +--------+------+------------------------------+-----------------------------------------------+
+    |     Event Base Fields (9 bytes) - see Event struct layout above                              |
+    +----------------------------------------------------------------------------------------------+
+    | 9      | 4    | ProcessId (U32)              | Originating process id                        |
+    | 13     | 8    | ProcessCreationTime (I64)    | 100-ns intervals since 1601-01-01             |
+    | 21     | 2    | Image.Length (U16)           | Length in bytes (Unicode)                     |
+    | 23     | n    | Image.Buffer                 | Image name string                             |
+    +--------+------+------------------------------+-----------------------------------------------+
+    */
+    struct ProcessExistEvent : public Event
+    {
+        ULONG ProcessId = 0;
+        LARGE_INTEGER ProcessCreationTime;
+        String Image;
+
+        ProcessExistEvent() noexcept { Type = Types::ProcessExist; }
+
+        virtual ~ProcessExistEvent() {}
+
+        virtual NTSTATUS Serialize_(
+            _Inout_ PVOID Buffer,
+            _In_ ULONG BufferSize) const override
+        {
+            if (BufferSize < SerializedSize_())
+                return STATUS_BUFFER_TOO_SMALL;
+
+            BYTE* ptr = (BYTE*)Buffer;
+
+            // ProcessId
+            *(UINT32*)ptr = ProcessId;
+            ptr += sizeof(UINT32);
+
+            // ProcessCreationTime
+            INT64 pct = ProcessCreationTime.QuadPart;
+            RtlCopyMemory(ptr, &pct, sizeof(pct));
+            ptr += sizeof(pct);
+
+            // Image Length (bytes)
+            *(UINT16*)ptr = Image.Length;
+            ptr += sizeof(UINT16);
+
+            // Image Buffer
+            RtlCopyMemory(ptr, Image.Buffer, Image.Length);
+
+            return STATUS_SUCCESS;
+        }
+
+        virtual ULONG SerializedSize_() const override
+        {
+            return sizeof(UINT32) + sizeof(INT64) + sizeof(UINT16) + Image.Length;
+        }
     };
 
 

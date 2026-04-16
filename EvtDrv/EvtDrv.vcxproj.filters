@@ -74,6 +74,9 @@
     <ClInclude Include="ProcessMonitor.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Utilities\undocumented.hpp">
+      <Filter>Utilities</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="readme.md" />

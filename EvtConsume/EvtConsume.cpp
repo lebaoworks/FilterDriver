@@ -2,20 +2,16 @@
 #include <Fltuser.h>
 
 #include <iostream>
+#include <format>
 #include <string>
 #include <vector>
-#include <cstring>
-
 #include <thread>
-
 #include <utility>
 #include <functional>
 #include <chrono>
 
 #include "utility.hpp"
 #include "Event.hpp"
-
-#include <fstream>
 
 static const LPCWSTR COMPORT_NAME = L"\\EvtDrvPort";
 
@@ -70,7 +66,8 @@ private:
                 return;
 
             printf("Something went wrong from port, retrying connection...\n");
-            std::this_thread::sleep_for(std::chrono::seconds(5));
+            if (WaitForSingleObject(_cancel, 5000) == WAIT_OBJECT_0) // Wait for cancellation or timeout before retrying connection to avoid tight loop on failure
+                return;
         }
     }
 
@@ -196,41 +193,50 @@ int wmain(int argc, wchar_t* argv[])
                 {
                     Event::FileOpenEvent event;
                     ptr += event.Deserialize(ptr, end_ptr - ptr);
-                    time_t event_time = std::chrono::system_clock::to_time_t(event.TimeStamp);
-                    printf("FileOpen: Time: %.24s, ProcessId: %6lu, FileName: %ls\n", ctime(&event_time), event.ProcessId, event.FileName.c_str());
+                    std::wstring event_time_str = std::format(L"{:%Y-%m-%d %H:%M:%S}", event.TimeStamp);
+                    printf("FileOpen: Time: %ls, ProcessId: %6lu, FileName: %ls\n", event_time_str.c_str(), event.ProcessId, event.FileName.c_str());
                     break;
                 }
                 case Event::ProcessCreate:
                 {
                     Event::ProcessCreateEvent event;
                     ptr += event.Deserialize(ptr, end_ptr - ptr);
-                    time_t event_time = std::chrono::system_clock::to_time_t(event.TimeStamp);
-                    printf("ProcessCreate: Time: %.24s, ProcessId: %6lu, ParentProcessId: %6lu, ImageName: %ls, CommandLine: %ls\n", ctime(&event_time), event.ProcessId, event.ParentProcessId, event.ImageName.c_str(), event.CommandLine.c_str());
+                    std::wstring event_time_str = std::format(L"{:%Y-%m-%d %H:%M:%S}", event.TimeStamp);
+                    printf("ProcessCreate: Time: %ls, ProcessId: %6lu, ParentProcessId: %6lu, ImageName: %ls, CommandLine: %ls\n", event_time_str.c_str(), event.ProcessId, event.ParentProcessId, event.ImageName.c_str(), event.CommandLine.c_str());
                     break;
                 }
                 case Event::ProcessExit:
                 {
                     Event::ProcessExitEvent event;
                     ptr += event.Deserialize(ptr, end_ptr - ptr);
-                    time_t event_time = std::chrono::system_clock::to_time_t(event.TimeStamp);
-                    time_t creation_time = std::chrono::system_clock::to_time_t(event.ProcessCreationTime);
-                    printf("ProcessExit: Time: %.24s, ProcessId: %6lu, ProcessCreationTime: %.24s\n", ctime(&event_time), event.ProcessId, ctime(&creation_time));
+                    std::wstring event_time_str = std::format(L"{:%Y-%m-%d %H:%M:%S}", event.TimeStamp);
+                    std::wstring creation_time_str = std::format(L"{:%Y-%m-%d %H:%M:%S}", event.ProcessCreationTime);
+                    printf("ProcessExit: Time: %ls, ProcessId: %6lu, ProcessCreationTime: %ls\n", event_time_str.c_str(), event.ProcessId, creation_time_str.c_str());
                     break;
                 }
                 case Event::ProcessOpen:
                 {
                     Event::ProcessOpenEvent event;
                     ptr += event.Deserialize(ptr, end_ptr - ptr);
-                    time_t event_time = std::chrono::system_clock::to_time_t(event.TimeStamp);
-                    printf("ProcessOpen: Time: %.24s, ProcessId: %6lu, TargetProcessId: %6lu, DesiredAccess: 0x%08X\n", ctime(&event_time), event.ProcessId, event.TargetProcessId, event.DesiredAccess);
+                    std::wstring event_time_str = std::format(L"{:%Y-%m-%d %H:%M:%S}", event.TimeStamp);
+                    printf("ProcessOpen: Time: %ls, ProcessId: %6lu, TargetProcessId: %6lu, DesiredAccess: 0x%08X\n", event_time_str.c_str(), event.ProcessId, event.TargetProcessId, event.DesiredAccess);
+                    break;
+                }
+                case Event::ProcessExist:
+                {
+                    Event::ProcessExistEvent event;
+                    ptr += event.Deserialize(ptr, end_ptr - ptr);
+                    std::wstring event_time_str = std::format(L"{:%Y-%m-%d %H:%M:%S}", event.TimeStamp);
+                    std::wstring creation_time_str = std::format(L"{:%Y-%m-%d %H:%M:%S}", event.ProcessCreationTime);
+                    printf("ProcessExist: Time: %ls, ProcessId: %6lu, ProcessCreationTime: %ls, Image: %ls\n", event_time_str.c_str(), event.ProcessId, creation_time_str.c_str(), event.Image.c_str());
                     break;
                 }
                 case Event::RemoteThreadCreate:
                 {
                     Event::RemoteThreadCreateEvent event;
                     ptr += event.Deserialize(ptr, end_ptr - ptr);
-                    time_t event_time = std::chrono::system_clock::to_time_t(event.TimeStamp);
-                    printf("RemoteThreadCreate: Time: %.24s, ProcessId: %6lu, TargetProcessId: %6lu, ThreadId: %6lu\n", ctime(&event_time), event.ProcessId, event.TargetProcessId, event.ThreadId);
+                    std::wstring event_time_str = std::format(L"{:%Y-%m-%d %H:%M:%S}", event.TimeStamp);
+                    printf("RemoteThreadCreate: Time: %ls, ProcessId: %6lu, TargetProcessId: %6lu, ThreadId: %6lu\n", event_time_str.c_str(), event.ProcessId, event.TargetProcessId, event.ThreadId);
                     break;
                 }
 
