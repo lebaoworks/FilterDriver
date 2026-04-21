@@ -12,6 +12,7 @@
 #include "MiniFilter.hpp"
 #include "Worker.hpp"
 #include "ProcessMonitor.hpp"
+#include "Network.hpp"
 
 /*********************
 *    Declarations    *
@@ -53,6 +54,7 @@ private:
     Worker::Queue*      _queue  = nullptr;
     Worker::Worker*     _worker = nullptr;
     Process::Monitor*   _monitor = nullptr;
+    WPF::Monitor*       _netmon = nullptr;
 
 public:
     Driver(DRIVER_OBJECT* DriverObject) noexcept
@@ -132,6 +134,21 @@ public:
             _monitor = result.release();
         }
         defer{ if (status != STATUS_SUCCESS) { delete _monitor; _monitor = nullptr; } };
+
+        // Initialize Network Monitor
+        {
+            auto result = krn::make<WPF::Monitor>(DriverObject, [](krn::unique_ptr<Event::Event>& evt) -> NTSTATUS {
+                return GlobalQueue->Push(evt);
+                });
+            status = result.status();
+            if (status != STATUS_SUCCESS)
+            {
+                TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Initialized Network Monitor -> status: %!STATUS!", status);
+                return;
+            }
+            _netmon = result.release();
+        }
+        defer{ if (status != STATUS_SUCCESS) { delete _netmon; _netmon = nullptr; } };
     }
 
     ~Driver()
@@ -143,6 +160,7 @@ public:
         delete _worker; // Stop worker thread and cleanup existing connection
         delete _filter; // Close the filter => stop accepting new events
         delete _monitor; // Stop monitoring processes
+        delete _netmon; // Stop monitoring network events
         delete _queue;  // Cleanup event queue
     }
 };

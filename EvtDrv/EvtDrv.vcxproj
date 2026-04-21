@@ -92,7 +92,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(DDK_LIB_PATH)fltMgr.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(DDK_LIB_PATH)fltMgr.lib;Fwpkclnt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/INTEGRITYCHECK %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
@@ -107,7 +107,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(DDK_LIB_PATH)fltMgr.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(DDK_LIB_PATH)fltMgr.lib;Fwpkclnt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/INTEGRITYCHECK %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
@@ -120,12 +120,14 @@
   <ItemGroup>
     <ClCompile Include="Entry.cpp" />
     <ClCompile Include="MiniFilter.cpp" />
+    <ClCompile Include="Network.cpp" />
     <ClCompile Include="ProcessMonitor.cpp" />
     <ClCompile Include="Worker.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Event.hpp" />
     <ClInclude Include="MiniFilter.hpp" />
+    <ClInclude Include="Network.hpp" />
     <ClInclude Include="ProcessMonitor.hpp" />
     <ClInclude Include="trace.h" />
     <ClInclude Include="Utilities\c++\list.hpp" />
