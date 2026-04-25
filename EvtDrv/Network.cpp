@@ -109,12 +109,12 @@ namespace WPF
         UINT16 remotePort = inFixedValues->incomingValue[FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_REMOTE_PORT].value.uint16;
 
         // Process ID from Metadata
-        ULONG pid = 0;
+        UINT64 pid = 0;
         if (FWPS_IS_METADATA_FIELD_PRESENT(inMetaValues, FWPS_METADATA_FIELD_PROCESS_ID)) {
             pid = inMetaValues->processId;
         }
 
-        TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "Connection attempt: PID=%6lu -> Remote: %u.%u.%u.%u:%hu",
+        TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "Connection attempt: PID=%6llu -> Remote: %u.%u.%u.%u:%hu",
             pid,
             (remoteIp >> 24) & 0xFF, (remoteIp >> 16) & 0xFF,
             (remoteIp >> 8) & 0xFF, remoteIp & 0xFF,
