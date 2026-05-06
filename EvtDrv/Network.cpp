@@ -54,7 +54,8 @@ namespace WPF
 *********************/
 #pragma data_seg("NONPAGED")
 static HANDLE EngineHandle = NULL;
-static UINT32 CalloutId = 0;
+static UINT32 FwpsCalloutId = 0;
+static UINT32 FwpmCalloutId = 0;
 static UINT64 FilterId = 0;
 
 static const FWPS_CALLOUT0 SCallOut = {
@@ -84,6 +85,10 @@ static const FWPM_FILTER0 MFilter = {
 static Event::EventNotifyCallback GlobalEventCallback = nullptr;
 #pragma data_seg()
 
+
+/*********************
+*   Implementations  *
+*********************/
 namespace WPF
 {
     _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -172,21 +177,22 @@ namespace WPF
         }
         defer{ if (status != STATUS_SUCCESS) FwpmEngineClose0(EngineHandle); };
 
-        status = FwpsCalloutRegister0(DriverObject, &SCallOut, &CalloutId);
+        status = FwpsCalloutRegister0(DriverObject, &SCallOut, &FwpsCalloutId);
         if (status != STATUS_SUCCESS)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Network: Failed to register callout with Fwps -> status: %!STATUS!", status);
             return;
         }
-        defer{ if (status != STATUS_SUCCESS) FwpsCalloutUnregisterById0(CalloutId); };
+        defer{ if (status != STATUS_SUCCESS) FwpsCalloutUnregisterById0(FwpsCalloutId); };
 
         // Add Callout to Management Engine (Fwpm)
-        status = FwpmCalloutAdd0(EngineHandle, &MCallOut, NULL, NULL);
+        status = FwpmCalloutAdd0(EngineHandle, &MCallOut, NULL, &FwpmCalloutId);
         if (status != STATUS_SUCCESS)
         {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Network: Failed to add callout to management engine -> status: %!STATUS!", status);
             return;
         }
+        defer{ if (status != STATUS_SUCCESS) FwpmCalloutDeleteById0(EngineHandle, FwpmCalloutId); };
 
         // Add Filter to activate Callout
         status = FwpmFilterAdd0(EngineHandle, &MFilter, NULL, &FilterId);
@@ -195,6 +201,7 @@ namespace WPF
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Network: Failed to add filter to management engine -> status: %!STATUS!", status);
             return;
         }
+        defer{ if (status != STATUS_SUCCESS) FwpmFilterDeleteById0(EngineHandle, FilterId); };
     }
 
     _IRQL_requires_(PASSIVE_LEVEL)
@@ -205,8 +212,8 @@ namespace WPF
             return;
 
         FwpmFilterDeleteById0(EngineHandle, FilterId);
-        FwpmCalloutDeleteById0(EngineHandle, CalloutId);
-        FwpsCalloutUnregisterById0(CalloutId);
+        FwpmCalloutDeleteById0(EngineHandle, FwpmCalloutId);
+        FwpsCalloutUnregisterById0(FwpsCalloutId);
         FwpmEngineClose0(EngineHandle);
     }
 }

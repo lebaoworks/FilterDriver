@@ -23,7 +23,9 @@ static void ListExistingProcesses(Event::EventNotifyCallback callback);
 static Event::EventNotifyCallback GlobalEventCallback = nullptr;
 #pragma data_seg()
 
-
+/*********************
+*   Implementations  *
+*********************/
 namespace Process
 {
     #define PROCESS_TERMINATE                  (0x0001)  

@@ -44,11 +44,21 @@ flowchart LR
 | **Process Open** | ✅ Done | <ul><li>ProcessId</li><li>TargetProcessId</li><li>DesiredAccess</li></ul> | |
 | **Process Exist** | ✅ Done | <ul><li>ProcessId</li><li>ProcessCreationTime</li><li>Image</li></ul> | Gathering existing process info; missed by Process Creation event. |
 | **Image Load** | ❌ Not Started | | |
-| **Network Connection** | ❌ Not Started | | |
+| **Network Connection** | ⌛ In Progress | | |
 | **Remote Thread Creation** | ✅ Done | <ul><li>ProcessId</li><li>TargetProcessId</li><li>ThreadId</li></ul> | ⌛ Pending start function |
 | **Access Token Acquisition** | ❌ Not Started | | |
 
 ---
+
+# TODO
+
+| Task | Implement Status | Note |
+| :--- | :---: | :--- |
+| Implement the queue event allocation function to merge the node and event structures into a single allocation, reducing allocation overhead | ❌ Not Started | |
+| Allow batch pushing of multiple events to avoid redundant locking | ❌ Not Started | |
+
+---
+
 
 Build & test notes
 - Requires Visual Studio + Windows Driver Kit (WDK).
