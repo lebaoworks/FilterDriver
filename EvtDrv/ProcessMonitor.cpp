@@ -20,6 +20,7 @@
 *********************/
 #pragma data_seg("NONPAGED")
 static Event::EventNotifyCallback GlobalEventCallback = nullptr;
+static const UNICODE_STRING LsassSuffix = RTL_CONSTANT_STRING(L"\\lsass.exe");
 #pragma data_seg()
 
 /*********************
@@ -49,8 +50,60 @@ namespace Process
         _Inout_ POB_PRE_OPERATION_INFORMATION OperationInformation)
     {
         UNREFERENCED_PARAMETER(RegistrationContext);
-        UNREFERENCED_PARAMETER(OperationInformation);
 
+        ULONG pid = HandleToUlong(PsGetCurrentProcessId());
+        ULONG target_pid = HandleToUlong(PsGetProcessId((PEPROCESS)OperationInformation->Object));
+        ULONG access = OperationInformation->Parameters->CreateHandleInformation.OriginalDesiredAccess;
+
+        constexpr ULONG sensitive_access = PROCESS_TERMINATE |
+            PROCESS_CREATE_THREAD |
+            PROCESS_VM_OPERATION |
+            PROCESS_VM_READ |
+            PROCESS_VM_WRITE |
+            PROCESS_DUP_HANDLE |
+            PROCESS_CREATE_PROCESS |
+            PROCESS_SET_QUOTA |
+            PROCESS_SET_INFORMATION |
+            PROCESS_SUSPEND_RESUME |
+            PROCESS_SET_LIMITED_INFORMATION;
+
+        // Filter out handle creations to reduce noise
+        if ((pid == target_pid) ||                  // Skip handle creations to self
+            (access & sensitive_access) == 0)       // Skip handle creations that do not request any sensitive access rights
+            return OB_PREOP_SUCCESS;
+
+        // Only monitor handle creations to lsass.exe
+        PUNICODE_STRING image_path = NULL;
+        NTSTATUS status = SeLocateProcessImageName((PEPROCESS)OperationInformation->Object, &image_path);
+        if (status != STATUS_SUCCESS)
+            return OB_PREOP_SUCCESS;
+        defer{ ExFreePool(image_path); };
+
+        if (image_path->Length >= LsassSuffix.Length)
+        {
+            USHORT offset = image_path->Length - LsassSuffix.Length;
+
+            UNICODE_STRING sub;
+            sub.Length = LsassSuffix.Length;
+            sub.MaximumLength = LsassSuffix.Length;
+            sub.Buffer = (PWCH)((BYTE*)image_path->Buffer + offset);
+
+            if (RtlCompareUnicodeString(&sub, &LsassSuffix, TRUE) == 0)
+            {
+                TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DRIVER, "Process: process handle creation: ProcessId: %6lu, TargetProcessId: %6lu, DesiredAccess: 0x%08X", pid, target_pid, access);
+
+                auto result = krn::make<Event::ProcessOpenEvent>();
+                if (result.status() == STATUS_SUCCESS)
+                {
+                    auto& event = result.value();
+                    event.ProcessId = pid;
+                    event.TargetProcessId = target_pid;
+                    event.DesiredAccess = access;
+                    krn::unique_ptr<Event::Event> evt(result.release());
+                    GlobalEventCallback(evt);
+                }
+            }
+        }
         return OB_PREOP_SUCCESS;
     }
 
