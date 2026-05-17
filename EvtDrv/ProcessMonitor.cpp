@@ -14,15 +14,13 @@
 /*********************
 *    Declarations    *
 *********************/
-static void ScanExistingProcesses();
 
 /*********************
 *     Global Vars    *
 *********************/
 #pragma data_seg("NONPAGED")
 static Event::EventNotifyCallback GlobalEventCallback = nullptr;
-static volatile ULONG LsassPid = 0;
-static UNICODE_STRING LsassSuffix = RTL_CONSTANT_STRING(L"\\lsass.exe");
+static const UNICODE_STRING LsassSuffix = RTL_CONSTANT_STRING(L"\\lsass.exe");
 #pragma data_seg()
 
 /*********************
@@ -75,42 +73,36 @@ namespace Process
             return OB_PREOP_SUCCESS;
 
         // Only monitor handle creations to lsass.exe
-        bool matches_lsass = target_pid == LsassPid;
-        if (LsassPid == 0)
+        PUNICODE_STRING image_path = NULL;
+        NTSTATUS status = SeLocateProcessImageName((PEPROCESS)OperationInformation->Object, &image_path);
+        if (status != STATUS_SUCCESS)
+            return OB_PREOP_SUCCESS;
+        defer{ ExFreePool(image_path); };
+
+        if (image_path->Length >= LsassSuffix.Length)
         {
-            PUNICODE_STRING image_path = NULL;
-            NTSTATUS status = SeLocateProcessImageName((PEPROCESS)OperationInformation->Object, &image_path);
-            if (status == STATUS_SUCCESS)
+            USHORT offset = image_path->Length - LsassSuffix.Length;
+
+            UNICODE_STRING sub;
+            sub.Length = LsassSuffix.Length;
+            sub.MaximumLength = LsassSuffix.Length;
+            sub.Buffer = (PWCH)((BYTE*)image_path->Buffer + offset);
+
+            if (RtlCompareUnicodeString(&sub, &LsassSuffix, TRUE) == 0)
             {
-                defer{ ExFreePool(image_path); };
-                if (image_path->Length >= LsassSuffix.Length)
+                TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DRIVER, "Process: process handle creation: ProcessId: %6lu, TargetProcessId: %6lu, DesiredAccess: 0x%08X", pid, target_pid, access);
+
+                auto result = krn::make<Event::ProcessOpenEvent>();
+                if (result.status() == STATUS_SUCCESS)
                 {
-                    USHORT offset = image_path->Length - LsassSuffix.Length;
-
-                    UNICODE_STRING sub;
-                    sub.Length = LsassSuffix.Length;
-                    sub.MaximumLength = LsassSuffix.Length;
-                    sub.Buffer = (PWCH)((BYTE*)image_path->Buffer + offset);
-
-                    if (RtlCompareUnicodeString(&sub, &LsassSuffix, TRUE) == 0)
-                        matches_lsass = true;
+                    auto& event = result.value();
+                    event.ProcessId = pid;
+                    event.TargetProcessId = target_pid;
+                    event.DesiredAccess = access;
+                    krn::unique_ptr<Event::Event> evt(result.release());
+                    GlobalEventCallback(evt);
                 }
             }
-        }
-        if (!matches_lsass)
-            return OB_PREOP_SUCCESS;
-
-        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_DRIVER, "Process: process handle creation: ProcessId: %6lu, TargetProcessId: %6lu, DesiredAccess: 0x%08X",pid, target_pid, access);
-
-        auto result = krn::make<Event::ProcessOpenEvent>();
-        if (result.status() == STATUS_SUCCESS)
-        {
-            auto& event = result.value();
-            event.ProcessId = pid;
-            event.TargetProcessId = target_pid;
-            event.DesiredAccess = access;
-            krn::unique_ptr<Event::Event> evt(result.release());
-            GlobalEventCallback(evt);
         }
         return OB_PREOP_SUCCESS;
     }
@@ -160,23 +152,6 @@ namespace Process
 
                 krn::unique_ptr<Event::Event> evt(result.release());
                 GlobalEventCallback(evt);
-            }
-
-            if (LsassPid == 0)
-            {
-                // Cache lsass.exe PID for handle creation monitoring
-                if (CreateInfo->ImageFileName->Length >= LsassSuffix.Length)
-                {
-                    USHORT offset = CreateInfo->ImageFileName->Length - LsassSuffix.Length;
-
-                    UNICODE_STRING sub;
-                    sub.Length = LsassSuffix.Length;
-                    sub.MaximumLength = LsassSuffix.Length;
-                    sub.Buffer = (PWCH)((BYTE*)CreateInfo->ImageFileName->Buffer + offset);
-
-                    if (RtlCompareUnicodeString(&sub, &LsassSuffix, TRUE) == 0)
-                        InterlockedCompareExchange((volatile LONG*)&LsassPid, (LONG)pid, 0); // Bug 3: use atomic compare-exchange to avoid race
-                }
             }
         }
         // If process is being terminated
@@ -240,9 +215,6 @@ namespace Process
         GlobalEventCallback = Callback;
         auto& status = failable::_status;
 
-        // Scan existing processes
-        ScanExistingProcesses();
-
         {
             OperationRegistration[0].ObjectType = PsProcessType;   // Set the ObjectType to PsProcessType
 
@@ -290,67 +262,4 @@ namespace Process
         PsSetCreateProcessNotifyRoutineEx(CreateProcessNotify, TRUE);
         ObUnRegisterCallbacks(_handle);
     }
-}
-
-void ScanExistingProcesses()
-{
-    // Query the required buffer size for ZwQuerySystemInformation with SystemProcessInformation class
-    ULONG buffer_size = 0;
-    auto status = ZwQuerySystemInformation(SystemProcessInformation, NULL, 0, &buffer_size);
-    if (status != STATUS_INFO_LENGTH_MISMATCH)
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Process: query existing sizefailed -> status: %!STATUS!", status);
-        return;
-    }
-
-    // Allocate the required buffer with some extra for new processes created during the query
-    void* buffer = krn::tag<'evt0'>::operator new(buffer_size + 0x1000);
-    if (buffer == nullptr)
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Process: failed to allocate memory for existing processes");
-        return;
-    }
-    defer{ krn::tag<'evt0'>::operator delete(buffer); };
-
-    // Query the process information
-    status = ZwQuerySystemInformation(SystemProcessInformation, buffer, buffer_size, &buffer_size);
-    if (status != STATUS_SUCCESS)
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "Process: query existing processes failed -> status: %!STATUS!", status);
-        return;
-    }
-    if (buffer_size == 0)
-    {
-        TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "Process: no existing process found");
-        return;
-    }
-
-    DECLARE_CONST_UNICODE_STRING(LsassFileName, L"lsass.exe");
-    LARGE_INTEGER lsass_create_time = {};
-    lsass_create_time.QuadPart = MAXLONGLONG;
-
-    // Process the information in buffer...
-    PSYSTEM_PROCESS_INFORMATION ptr = (PSYSTEM_PROCESS_INFORMATION)buffer;
-    while (TRUE)
-    {
-        // Check if this process is lsass.exe by its image name
-        if (ptr->ImageName.Length == LsassFileName.Length)
-        {
-            if (RtlCompareUnicodeString(&ptr->ImageName, &LsassFileName, TRUE) == 0)   // Match process with lsass.exe (case-insensitive)
-            {
-                TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "LsassPid: %6lu", HandleToUlong(ptr->UniqueProcessId));
-                if (ptr->CreateTime.QuadPart < lsass_create_time.QuadPart)      // In case there are multiple processes with lsass.exe suffix, take the one with the earliest creation time, since the real lsass.exe should be the parent of all other fake ones
-                {
-                    lsass_create_time = ptr->CreateTime;
-                    LsassPid = HandleToUlong(ptr->UniqueProcessId);
-                }
-            }
-        }
-
-        if (ptr->NextEntryOffset == 0)
-            break;
-        ptr = (PSYSTEM_PROCESS_INFORMATION)((PUCHAR)ptr + ptr->NextEntryOffset);
-    }
-
-    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "Final LsassPid: %6lu", LsassPid);
 }
