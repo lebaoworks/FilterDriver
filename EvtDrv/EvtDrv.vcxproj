@@ -139,6 +139,7 @@
     <ClInclude Include="Worker.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="ProcessMonitor.md" />
     <None Include="readme.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
