@@ -86,5 +86,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="readme.md" />
+    <None Include="ProcessMonitor.md" />
   </ItemGroup>
 </Project>
