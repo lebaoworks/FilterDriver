@@ -18,9 +18,14 @@
 *    Declarations    *
 *********************/
 
+// DO NOT CHANGE!
+// FWPM_LAYER_ALE_AUTH_CONNECT_V4 = {c38d57d1-05a7-4c33-904f-7fbceee60e82}
+constexpr GUID LAYER_ALE_AUTH_CONNECT_V4_K =
+{ 0xc38d57d1, 0x05a7, 0x4c33, {0x90, 0x4f, 0x7f, 0xbc, 0xee, 0xe6, 0x0e, 0x82} };
+
 // {335111A6-D3E4-4558-A252-85EA32BCDA2E}
-DEFINE_GUID(MY_CONNECT_CALLOUT_V4,
-    0x335111a6, 0xd3e4, 0x4558, 0xa2, 0x52, 0x85, 0xea, 0x32, 0xbc, 0xda, 0x2e);
+constexpr GUID MY_CONNECT_CALLOUT_V4 =
+{ 0x335111a6, 0xd3e4, 0x4558, {0xa2, 0x52, 0x85, 0xea, 0x32, 0xbc, 0xda, 0x2e} };
 
 namespace WPF
 {
@@ -69,13 +74,13 @@ static const FWPM_CALLOUT0 MCallOut = {
     .displayData = {
         .name = const_cast<LPWSTR>(L"Evt Network Monitor Callout"),
     },
-    .applicableLayer = FWPM_LAYER_ALE_AUTH_CONNECT_V4,
+    .applicableLayer = LAYER_ALE_AUTH_CONNECT_V4_K,
 };
 static const FWPM_FILTER0 MFilter = {
     .displayData = {
         .name = const_cast<LPWSTR>(L"Evt Network Monitor Filter"),
     },
-    .layerKey = FWPM_LAYER_ALE_AUTH_CONNECT_V4,
+    .layerKey = LAYER_ALE_AUTH_CONNECT_V4_K,
     .action = {
         .type = FWP_ACTION_CALLOUT_UNKNOWN,
         .calloutKey = MY_CONNECT_CALLOUT_V4,
