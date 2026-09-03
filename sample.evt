@@ -1,0 +1,23 @@
+# op=<op> <field>="<value>" <field>="<value>" ...
+
+# matches drop_and_run.drop (image.path~~"*.exe")
+op=file_create image.path="C:\evil\dropper.exe"
+
+# matches dump_lsass.read (image.path="lsass.exe")
+op=process_open image.path="lsass.exe"
+
+# matches suspicious_registry_write group 0: BOTH key_path (glob) AND
+# value_name (exact) present -> full AND satisfied
+op=registry_set key_path="HKLM\SYSTEM\CurrentControlSet\Services\Evil" value_name="ImagePath"
+
+# same key_path as above but value_name missing -> group 0's AND is
+# NOT satisfied (only 1 of 2 required fields present); doesn't match
+# group 1 either (different key_path) -> expect no match
+op=registry_set key_path="HKLM\SYSTEM\CurrentControlSet\Services\Evil"
+
+# matches suspicious_registry_write group 1 (the `or` alternative,
+# single condition, no value_name needed)
+op=registry_set key_path="HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
+
+# unrelated op/value entirely -> no match
+op=file_create image.path="C:\Users\bao\Desktop\notes.txt"

@@ -1,0 +1,16 @@
+[package]
+name = "kfilter-cli"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "kfilter-cli"
+path = "src/main.rs"
+
+[dependencies]
+# Default features (no "kernel"): plain std-linkable Ruleset, no
+# kernel FFI compiled in. The kernel build (`--features kernel`) is
+# only ever invoked separately, directly on kfilter-lib, by
+# driver/driver/driver.vcxproj.
+kfilter_lib = { path = "../kfilter-lib" }
+kfilter-compiler = { path = "../kfilter-compiler" }

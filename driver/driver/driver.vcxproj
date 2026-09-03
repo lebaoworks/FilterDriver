@@ -33,10 +33,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <!-- Points at kfilter-core's cargo output. If you change the cargo
-         profile (dev vs release), update the "release" segment below to
-         match, or point this at "debug" while iterating. -->
-    <KfilterCoreLibDir>$(SolutionDir)..\kfilter-runtime\target\x86_64-pc-windows-msvc\release</KfilterCoreLibDir>
+    <!-- Points at kfilter-lib's cargo output, built with the "kernel"
+         feature enabled (see BUILD.md for the exact cargo command).
+         If you change the cargo profile (dev vs release), update the
+         "release" segment below too, or point this at "debug" while
+         iterating. -->
+    <KfilterCoreLibDir>$(SolutionDir)..\kfilter-lib\target\x86_64-pc-windows-msvc\release</KfilterCoreLibDir>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
@@ -45,7 +47,7 @@
     </ClCompile>
     <Link>
       <!-- wdmsec.lib: IoCreateDeviceSecure / SDDL_DEVOBJ_SYS_ALL_ADM_ALL -->
-      <AdditionalDependencies>kfilter_core.lib;wdmsec.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kfilter_lib.lib;wdmsec.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(KfilterCoreLibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>

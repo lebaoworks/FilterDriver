@@ -3,6 +3,10 @@ name = "kfilter-compiler"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "kfilter_compiler"
+path = "src/lib.rs"
+
 [[bin]]
 name = "kfilter-compiler"
 path = "src/main.rs"

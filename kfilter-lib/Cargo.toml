@@ -1,0 +1,33 @@
+[package]
+name = "kfilter_lib"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "kfilter_lib"
+crate-type = ["staticlib", "rlib"]
+
+# Portable core (Ruleset::from_bytes / match_state) has no allocator and
+# no OS dependency either way -- same regex-automata feature set
+# regardless of the `kernel` feature.
+[dependencies]
+regex-automata = { version = "0.4", default-features = false, features = ["dfa-search"] }
+
+# Default (no features): plain `std`-linkable rlib, used directly by
+# kfilter-cli for simulation/testing -- no kernel FFI compiled in.
+#
+# `kernel`: `#![no_std]`, adds the pool-allocated refcounted-slot
+# scheme + extern "system" exports (kfilter_init/kfilter_load/
+# kfilter_match/kfilter_unload) the WDM driver links against. This is
+# how driver/driver/driver.vcxproj must build it:
+#   cargo build --release --features kernel
+[features]
+default = []
+kernel = []
+
+[profile.release]
+panic = "abort"
+lto = true
+
+[profile.dev]
+panic = "abort"

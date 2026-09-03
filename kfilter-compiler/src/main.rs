@@ -1,23 +1,10 @@
-//! Part 1 of the split: parses a `.rules` file, compiles each step's
-//! field conditions into a ruleset blob (line-number table + sparse
-//! DFA), and sends it to the running kfilter driver over
-//! IOCTL_KFILTER_LOAD_RULES. Also writes a local copy for inspection.
-//!
-//! Grammar covered (see README.md R1-R12):
-//!   pattern <name> [scope=<value>]
-//!       step <label> op=<operation> [<field><op>"<value>" ...]
-//!   end
-//! Operators: `=` exact, `~~` glob, `~` contains, `=~` regex passthrough.
-//!
-//! What's intentionally NOT compiled here (skipped with a warning,
-//! never a hard error -- the kernel filter's scope is prefiltering,
-//! not correlation):
-//!   - `$step.field` references (cross-step comparison; needs runtime
-//!     state, not a static regex).
-//!   - Steps with zero field conditions (would need per-op dispatch to
-//!     express "matches whenever this op fires", not implemented yet).
+//! CLI: parses a `.rules` file (via the `kfilter_compiler` library),
+//! compiles it into one DFA per (op, field), writes `kfilter_rules.dfa`
+//! (the packed multi-entry blob) + `kfilter_state_map.json` locally,
+//! and sends the packed blob to a running kfilter driver over
+//! IOCTL_KFILTER_LOAD_RULES.
 
-use regex_automata::dfa::dense;
+use kfilter_compiler::{compile_ruleset, parse_rules_file, serialize_entries, CompiledRuleset};
 use std::env;
 use std::ffi::c_void;
 use std::fs;
@@ -35,254 +22,6 @@ use windows_sys::Win32::System::IO::DeviceIoControl;
 // CTL_CODE(FILE_DEVICE_UNKNOWN=0x22, function=0x800, METHOD_BUFFERED=0, FILE_ANY_ACCESS=0)
 const IOCTL_KFILTER_LOAD_RULES: u32 = 0x0022_2000;
 const DEVICE_PATH: &str = r"\\.\KFilter";
-
-// Wire format sent to the driver, must match kfilter-runtime/src/lib.rs:
-//   [magic: u32 LE][version: u32 LE][pattern_count: u32 LE]
-//   [line_numbers: pattern_count * u32 LE]
-//   [sparse DFA bytes: rest]
-const WIRE_MAGIC: u32 = 0x4B46524C; // "KFRL"
-const WIRE_VERSION: u32 = 1;
-
-// ---- .rules parsing ---------------------------------------------------
-
-#[derive(Clone, Copy)]
-enum CondOp {
-    Exact,
-    Glob,
-    Contains,
-    Regex,
-}
-
-struct Condition {
-    #[allow(dead_code)]
-    field: String,
-    op: CondOp,
-    value: String,
-}
-
-struct Step {
-    line: u32,
-    // Kept for future diagnostics (e.g. a verbose/--map mode); the
-    // compiled ruleset blob only needs `line` (see WIRE_MAGIC format).
-    #[allow(dead_code)]
-    pattern_name: String,
-    #[allow(dead_code)]
-    label: String,
-    conditions: Vec<Condition>,
-}
-
-fn unescape(s: &str) -> String {
-    let mut out = String::with_capacity(s.len());
-    let mut chars = s.chars();
-    while let Some(c) = chars.next() {
-        if c == '\\' {
-            match chars.next() {
-                Some('\\') => out.push('\\'),
-                Some('"') => out.push('"'),
-                Some(other) => {
-                    out.push('\\');
-                    out.push(other);
-                }
-                None => out.push('\\'),
-            }
-        } else {
-            out.push(c);
-        }
-    }
-    out
-}
-
-fn regex_escape(s: &str) -> String {
-    let mut out = String::new();
-    for c in s.chars() {
-        if "\\.+*?()|[]{}^$".contains(c) {
-            out.push('\\');
-        }
-        out.push(c);
-    }
-    out
-}
-
-/// rule `~~` operator: glob wildcard, anchored full match.
-fn glob_to_regex(glob: &str) -> String {
-    let mut re = String::from("^");
-    for c in glob.chars() {
-        match c {
-            '*' => re.push_str(".*"),
-            '?' => re.push('.'),
-            _ => re.push_str(&regex_escape(&c.to_string())),
-        }
-    }
-    re.push('$');
-    re
-}
-
-/// rule `=` operator: exact match, anchored.
-fn exact_to_regex(s: &str) -> String {
-    format!("^{}$", regex_escape(s))
-}
-
-/// rule `~` operator: substring match, unanchored.
-fn contains_to_regex(s: &str) -> String {
-    regex_escape(s)
-}
-
-fn compile_condition(c: &Condition) -> String {
-    match c.op {
-        CondOp::Exact => exact_to_regex(&c.value),
-        CondOp::Glob => glob_to_regex(&c.value),
-        CondOp::Contains => contains_to_regex(&c.value),
-        CondOp::Regex => c.value.clone(),
-    }
-}
-
-/// Parses the condition text after `op=<value>` on a `step` line,
-/// respecting quoted values that may contain spaces and `\\`/`\"`
-/// escapes. Returns `None` if the text can't be statically compiled
-/// (unknown operator, malformed field, or an unquoted/`$ref` value).
-fn parse_conditions(rest: &str) -> Option<Vec<Condition>> {
-    let chars: Vec<char> = rest.chars().collect();
-    let n = chars.len();
-    let mut i = 0;
-    let mut conditions = Vec::new();
-
-    while i < n {
-        while i < n && chars[i].is_whitespace() {
-            i += 1;
-        }
-        if i >= n {
-            break;
-        }
-
-        let field_start = i;
-        while i < n && (chars[i].is_alphanumeric() || chars[i] == '_' || chars[i] == '.') {
-            i += 1;
-        }
-        if i == field_start {
-            return None;
-        }
-        let field: String = chars[field_start..i].iter().collect();
-
-        let op = if chars[i..].starts_with(&['=', '~']) {
-            i += 2;
-            CondOp::Regex
-        } else if chars[i..].starts_with(&['~', '~']) {
-            i += 2;
-            CondOp::Glob
-        } else if i < n && chars[i] == '~' {
-            i += 1;
-            CondOp::Contains
-        } else if i < n && chars[i] == '=' {
-            i += 1;
-            CondOp::Exact
-        } else {
-            return None;
-        };
-
-        if i >= n || chars[i] != '"' {
-            // Bareword value (e.g. `$drop.image`) -- not statically
-            // compilable.
-            return None;
-        }
-        i += 1;
-        let value_start = i;
-        let mut closed = false;
-        while i < n {
-            if chars[i] == '\\' && i + 1 < n {
-                i += 2;
-            } else if chars[i] == '"' {
-                closed = true;
-                break;
-            } else {
-                i += 1;
-            }
-        }
-        if !closed {
-            return None;
-        }
-        let raw_value: String = chars[value_start..i].iter().collect();
-        i += 1; // consume closing quote
-
-        conditions.push(Condition {
-            field,
-            op,
-            value: unescape(&raw_value),
-        });
-    }
-
-    Some(conditions)
-}
-
-fn parse_rules_file(path: &str) -> Vec<Step> {
-    let content = fs::read_to_string(path).unwrap_or_else(|e| {
-        eprintln!("failed to read {path}: {e}");
-        std::process::exit(1);
-    });
-
-    let mut steps = Vec::new();
-    let mut current_pattern: Option<String> = None;
-
-    for (idx, raw_line) in content.lines().enumerate() {
-        let line_no = (idx + 1) as u32;
-        let line = raw_line.trim();
-        let line = match line.find('#') {
-            Some(pos) => line[..pos].trim_end(),
-            None => line,
-        };
-        if line.is_empty() {
-            continue;
-        }
-
-        if let Some(rest) = line.strip_prefix("pattern ") {
-            let name = rest.split_whitespace().next().unwrap_or("").to_string();
-            current_pattern = Some(name);
-        } else if line == "end" {
-            current_pattern = None;
-        } else if let Some(rest) = line.strip_prefix("step ") {
-            let Some(pattern_name) = current_pattern.clone() else {
-                eprintln!("{path}:{line_no}: `step` outside of a `pattern` block, skipping");
-                continue;
-            };
-            let rest = rest.trim_start();
-            let mut parts = rest.splitn(2, char::is_whitespace);
-            let label = parts.next().unwrap_or("").to_string();
-            let remainder = parts.next().unwrap_or("").trim_start();
-
-            let Some(op_rest) = remainder.strip_prefix("op=") else {
-                eprintln!("{path}:{line_no}: step '{pattern_name}.{label}' missing `op=`, skipping");
-                continue;
-            };
-            let mut op_parts = op_rest.splitn(2, char::is_whitespace);
-            let _op_name = op_parts.next().unwrap_or("");
-            let cond_text = op_parts.next().unwrap_or("");
-
-            match parse_conditions(cond_text) {
-                Some(conditions) if !conditions.is_empty() => {
-                    steps.push(Step {
-                        line: line_no,
-                        pattern_name,
-                        label,
-                        conditions,
-                    });
-                }
-                Some(_) => {
-                    eprintln!(
-                        "{path}:{line_no}: step '{pattern_name}.{label}' has no field conditions -- skipping (needs per-op dispatch, not implemented yet)"
-                    );
-                }
-                None => {
-                    eprintln!(
-                        "{path}:{line_no}: step '{pattern_name}.{label}' has an unsupported condition (e.g. $ref) -- skipping"
-                    );
-                }
-            }
-        }
-    }
-
-    steps
-}
-
-// ---- driver IOCTL delivery --------------------------------------------
 
 fn to_wide(s: &str) -> Vec<u16> {
     std::ffi::OsStr::new(s)
@@ -334,6 +73,50 @@ fn send_to_driver(bytes: &[u8]) -> Result<(), String> {
     }
 }
 
+fn write_state_map_json(rules_path: &str, compiled: &CompiledRuleset) {
+    let mut out = String::new();
+    out.push_str("{\n");
+    out.push_str(&format!("  \"rules_file\": \"{}\",\n", rules_path.replace('\\', "\\\\")));
+    out.push_str("  \"entries\": [\n");
+    let n_entries = compiled.entries.len();
+    for (ei, entry) in compiled.entries.iter().enumerate() {
+        out.push_str(&format!(
+            "    {{\"op\": \"{}\", \"field\": \"{}\", \"dfa_bytes\": {}, \"states\": {{\n",
+            entry.op,
+            entry.field,
+            entry.dfa_bytes.len()
+        ));
+        let n_states = entry.state_map.len();
+        for (i, (state_id, infos)) in entry.state_map.iter().enumerate() {
+            out.push_str(&format!("      \"{state_id}\": ["));
+            for (j, info) in infos.iter().enumerate() {
+                out.push_str(&format!(
+                    "{{\"line\": {}, \"group\": {}, \"pattern\": \"{}\", \"step\": \"{}\"}}",
+                    info.line, info.group, info.pattern_name, info.step
+                ));
+                if j + 1 < infos.len() {
+                    out.push_str(", ");
+                }
+            }
+            out.push(']');
+            if i + 1 < n_states {
+                out.push(',');
+            }
+            out.push('\n');
+        }
+        out.push_str("    }}");
+        if ei + 1 < n_entries {
+            out.push(',');
+        }
+        out.push('\n');
+    }
+    out.push_str("  ]\n");
+    out.push_str("}\n");
+
+    fs::write("kfilter_state_map.json", &out).expect("failed to write kfilter_state_map.json");
+    println!("wrote kfilter_state_map.json ({} bytes)", out.len());
+}
+
 fn main() {
     let path = env::args().nth(1).unwrap_or_else(|| {
         eprintln!("usage: kfilter-compiler <rules-file>");
@@ -341,50 +124,32 @@ fn main() {
     });
 
     let steps = parse_rules_file(&path);
-
-    let mut patterns: Vec<String> = Vec::new();
-    let mut line_numbers: Vec<u32> = Vec::new();
-    for step in &steps {
-        for cond in &step.conditions {
-            patterns.push(compile_condition(cond));
-            line_numbers.push(step.line);
-        }
-    }
-
+    let compilable: usize = steps.iter().flat_map(|s| &s.groups).map(Vec::len).sum();
     println!(
-        "{path}: {} step(s) with compilable conditions -> {} pattern(s)",
-        steps.len(),
-        patterns.len()
+        "{path}: {} step(s) with compilable conditions -> {compilable} pattern(s)",
+        steps.len()
     );
 
-    if patterns.is_empty() {
-        eprintln!("no compilable patterns found in {path}, nothing to send");
-        std::process::exit(1);
-    }
-
-    let dfa = dense::Builder::new().build_many(&patterns).unwrap_or_else(|e| {
-        eprintln!("failed to build DFA: {e}");
+    let compiled = compile_ruleset(&steps).unwrap_or_else(|e| {
+        eprintln!("{e}");
         std::process::exit(1);
     });
-    let sparse = dfa.to_sparse().expect("failed to convert to sparse DFA");
-    let dfa_bytes = sparse.to_bytes_native_endian();
-
-    let mut blob = Vec::with_capacity(12 + line_numbers.len() * 4 + dfa_bytes.len());
-    blob.extend_from_slice(&WIRE_MAGIC.to_le_bytes());
-    blob.extend_from_slice(&WIRE_VERSION.to_le_bytes());
-    blob.extend_from_slice(&(line_numbers.len() as u32).to_le_bytes());
-    for ln in &line_numbers {
-        blob.extend_from_slice(&ln.to_le_bytes());
+    println!("compiled into {} DFA(s), one per (op, field):", compiled.entries.len());
+    for entry in &compiled.entries {
+        println!(
+            "  op={:16} field={:16} {} bytes, {} match state(s)",
+            entry.op,
+            entry.field,
+            entry.dfa_bytes.len(),
+            entry.state_map.len()
+        );
     }
-    blob.extend_from_slice(&dfa_bytes);
 
+    let blob = serialize_entries(&compiled.entries);
     fs::write("kfilter_rules.dfa", &blob).expect("failed to write kfilter_rules.dfa");
-    println!(
-        "wrote kfilter_rules.dfa ({} bytes total: {} header/line-map + {} DFA)",
-        blob.len(),
-        12 + line_numbers.len() * 4,
-        dfa_bytes.len()
-    );
+    println!("wrote kfilter_rules.dfa ({} bytes, packed multi-DFA blob)", blob.len());
+
+    write_state_map_json(&path, &compiled);
 
     match send_to_driver(&blob) {
         Ok(()) => println!("sent to {DEVICE_PATH}: driver ruleset updated"),

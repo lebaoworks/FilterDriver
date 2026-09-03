@@ -1,0 +1,6 @@
+# op=<op> <field>="<value>" <field>="<value>" ...
+
+op=registry_set key_path="HKLM\SYSTEM\CurrentControlSet\Control\Lsa\OSConfig\Security Packages"
+op=registry_set key_path="HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
+op=registry_set key_path="HKLM\SYSTEM\CurrentControlSet\Services\WinSock2\Parameters"
+op=registry_set key_path="C:\this\is\not\a\registry\key"

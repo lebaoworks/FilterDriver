@@ -7,3 +7,7 @@ pattern dump_lsass scope=related_actors
     step read op=process_open image.path="lsass.exe"
     step dump op=file_create
 end
+
+pattern suspicious_registry_write
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Services\\*" and value_name="ImagePath" or key_path~~"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"
+end
