@@ -1,0 +1,23 @@
+[package]
+name = "kfilter_core"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "kfilter_core"
+crate-type = ["staticlib"]
+
+# no_std, no alloc: rule data arrives at runtime via kfilter_load (IOCTL,
+# driven by the driver) and is deserialized with regex-automata's
+# alloc-free dfa-search path. Pool memory for the received bytes is
+# managed by hand (ExAllocatePool2/ExFreePoolWithTag FFI in lib.rs), not
+# through Rust's `alloc` crate, so we don't need a #[global_allocator].
+[dependencies]
+regex-automata = { version = "0.4", default-features = false, features = ["dfa-search"] }
+
+[profile.release]
+panic = "abort"
+lto = true
+
+[profile.dev]
+panic = "abort"

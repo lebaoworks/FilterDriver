@@ -1,0 +1,15 @@
+# Rust build output
+target/
+
+# Visual Studio / MSBuild driver build output
+x64/
+x86/
+.vs/
+*.pdb
+*.obj
+*.sys
+*.cer
+*.log
+
+# Generated ruleset blobs (rebuild via kfilter-compiler)
+*.dfa

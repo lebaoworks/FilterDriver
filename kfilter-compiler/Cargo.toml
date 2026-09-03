@@ -1,0 +1,17 @@
+[package]
+name = "kfilter-compiler"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "kfilter-compiler"
+path = "src/main.rs"
+
+[dependencies]
+regex-automata = { version = "0.4", default-features = false, features = ["std", "syntax", "dfa-build"] }
+windows-sys = { version = "0.59", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_Storage_FileSystem",
+    "Win32_System_IO",
+] }

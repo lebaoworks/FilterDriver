@@ -1,0 +1,9 @@
+pattern drop_and_run
+    step drop op=file_create image.path~~"*.exe"
+    step exec op=process_create image=$drop.image
+end
+
+pattern dump_lsass scope=related_actors
+    step read op=process_open image.path="lsass.exe"
+    step dump op=file_create
+end

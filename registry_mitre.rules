@@ -1,0 +1,717 @@
+# Auto-generated from MITRE ATT&CK (Enterprise) registry-related techniques.
+# Source: attack-stix-data enterprise-attack.json -- techniques whose detection
+# strategies reference a Windows Registry Key Access/Creation/Deletion/Modification
+# data component, cross-referenced with well-known registry artifacts per technique.
+# 178 rules across 47 techniques.
+
+pattern t1003_001_0  # T1003.001 LSASS Memory
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa\\OSConfig\\Security Packages"
+end
+
+pattern t1003_001_1  # T1003.001 LSASS Memory
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa\\Security Packages"
+end
+
+pattern t1003_001_2  # T1003.001 LSASS Memory
+    step set op=registry_set key_path~~"SYSTEM\\CurrentControlSet\\Control\\Lsa\\OSConfig\\Security Packages"
+end
+
+pattern t1003_001_3  # T1003.001 LSASS Memory
+    step set op=registry_set key_path~~"SYSTEM\\CurrentControlSet\\Control\\Lsa\\Security Packages"
+end
+
+pattern t1070_007_0  # T1070.007 Clear Network Connection History and Configurations
+    step set op=registry_set key_path~~"HKEY_CURRENT_USER\\Software\\Microsoft\\Terminal Server Client"
+end
+
+pattern t1070_007_1  # T1070.007 Clear Network Connection History and Configurations
+    step set op=registry_set key_path~~"HKEY_CURRENT_USER\\Software\\Microsoft\\Terminal Server Client\\Servers"
+end
+
+pattern t1070_007_2  # T1070.007 Clear Network Connection History and Configurations
+    step set op=registry_set key_path~~"Software\\Microsoft\\Terminal Server Client"
+end
+
+pattern t1070_007_3  # T1070.007 Clear Network Connection History and Configurations
+    step set op=registry_set key_path~~"Software\\Microsoft\\Terminal Server Client\\Servers"
+end
+
+pattern t1112_0  # T1112 Modify Registry
+    step set op=registry_set key_path~~"HKCU\\SOFTWARE\\*" value_name~~"*"
+end
+
+pattern t1112_1  # T1112 Modify Registry
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\*" value_name~~"*"
+end
+
+pattern t1137_002_0  # T1137.002 Office Test
+    step set op=registry_set key_path~~"HKEY_CURRENT_USER\\Software\\Microsoft\\Office test\\Special\\Perf"
+end
+
+pattern t1137_002_1  # T1137.002 Office Test
+    step set op=registry_set key_path~~"HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Office test\\Special\\Perf"
+end
+
+pattern t1137_002_2  # T1137.002 Office Test
+    step set op=registry_set key_path~~"Software\\Microsoft\\Office test\\Special\\Perf"
+end
+
+pattern t1218_002_0  # T1218.002 Control Panel
+    step set op=registry_set key_path~~"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Control Panel\\Cpls"
+end
+
+pattern t1218_002_1  # T1218.002 Control Panel
+    step set op=registry_set key_path~~"Software\\Microsoft\\Windows\\CurrentVersion\\Control Panel\\Cpls"
+end
+
+pattern t1490_0  # T1490 Inhibit System Recovery
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\WindowsRE" value_name="DisableSetupInPop"
+end
+
+pattern t1490_1  # T1490 Inhibit System Recovery
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Services\\VSS" value_name="Start"
+end
+
+pattern t1505_005_0  # T1505.005 Terminal Services DLL
+    step set op=registry_set key_path~~"HKLM\\System\\CurrentControlSet\\services\\TermService\\Parameters"
+end
+
+pattern t1505_005_1  # T1505.005 Terminal Services DLL
+    step set op=registry_set key_path~~"System\\CurrentControlSet\\services\\TermService\\Parameters"
+end
+
+pattern t1543_003_0  # T1543.003 Windows Service
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Services\\*" value_name="ImagePath"
+end
+
+pattern t1543_003_1  # T1543.003 Windows Service
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Services\\*" value_name="Start"
+end
+
+pattern t1543_003_2  # T1543.003 Windows Service
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Services\\*" value_name="ServiceDll" value_data~~"*.dll"
+end
+
+pattern t1543_003_3  # T1543.003 Windows Service
+    step set op=registry_set key_path~~"HKLM\\System\\CurrentControlSet\\Services"
+end
+
+pattern t1543_003_4  # T1543.003 Windows Service
+    step set op=registry_set key_path~~"System\\CurrentControlSet\\Services"
+end
+
+pattern t1546_001_0  # T1546.001 Change Default File Association
+    step set op=registry_set key_path~~"HKCU\\SOFTWARE\\Classes\\*\\shell\\open\\command"
+end
+
+pattern t1546_001_1  # T1546.001 Change Default File Association
+    step set op=registry_set key_path~~"HKEY_CLASSES_ROOT\\.txt"
+end
+
+pattern t1546_001_2  # T1546.001 Change Default File Association
+    step set op=registry_set key_path~~"HKEY_CLASSES_ROOT\\txtfile\\shell\\open\\command"
+end
+
+pattern t1546_001_3  # T1546.001 Change Default File Association
+    step set op=registry_set key_path~~"HKEY_CLASSES_ROOT\\txtfile\\shell\\print\\command"
+end
+
+pattern t1546_001_4  # T1546.001 Change Default File Association
+    step set op=registry_set key_path~~"HKEY_CLASSES_ROOT\\txtfile\\shell\\printto\\command"
+end
+
+pattern t1546_001_5  # T1546.001 Change Default File Association
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Classes\\*\\shell\\open\\command"
+end
+
+pattern t1546_002_0  # T1546.002 Screensaver
+    step set op=registry_set key_path~~"HKCU\\Control Panel\\Desktop"
+end
+
+pattern t1546_002_1  # T1546.002 Screensaver
+    step set op=registry_set key_path~~"HKCU\\Control Panel\\Desktop" value_name="SCRNSAVE.EXE" value_data~~"*.scr"
+end
+
+pattern t1546_002_2  # T1546.002 Screensaver
+    step set op=registry_set key_path~~"HKCU\\Control Panel\\Desktop" value_name="ScreenSaveActive"
+end
+
+pattern t1546_007_0  # T1546.007 Netsh Helper DLL
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Netsh"
+end
+
+pattern t1546_007_1  # T1546.007 Netsh Helper DLL
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Netsh" value_data~~"*.dll"
+end
+
+pattern t1546_007_2  # T1546.007 Netsh Helper DLL
+    step set op=registry_set key_path~~"SOFTWARE\\Microsoft\\Netsh"
+end
+
+pattern t1546_008_0  # T1546.008 Accessibility Features
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\DisplaySwitch.exe" value_name="Debugger"
+end
+
+pattern t1546_008_1  # T1546.008 Accessibility Features
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\Magnify.exe" value_name="Debugger"
+end
+
+pattern t1546_008_2  # T1546.008 Accessibility Features
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\Narrator.exe" value_name="Debugger"
+end
+
+pattern t1546_008_3  # T1546.008 Accessibility Features
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\osk.exe" value_name="Debugger"
+end
+
+pattern t1546_008_4  # T1546.008 Accessibility Features
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\sethc.exe" value_name="Debugger"
+end
+
+pattern t1546_008_5  # T1546.008 Accessibility Features
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\utilman.exe" value_name="Debugger"
+end
+
+pattern t1546_009_0  # T1546.009 AppCert DLLs
+    step set op=registry_set key_path~~"HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\Session Manager"
+end
+
+pattern t1546_009_1  # T1546.009 AppCert DLLs
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager" value_name="AppCertDLLs" value_data~~"*.dll"
+end
+
+pattern t1546_009_2  # T1546.009 AppCert DLLs
+    step set op=registry_set key_path~~"System\\CurrentControlSet\\Control\\Session Manager"
+end
+
+pattern t1546_010_0  # T1546.010 AppInit DLLs
+    step set op=registry_set key_path~~"HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows"
+end
+
+pattern t1546_010_1  # T1546.010 AppInit DLLs
+    step set op=registry_set key_path~~"HKEY_LOCAL_MACHINE\\Software\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Windows"
+end
+
+pattern t1546_010_2  # T1546.010 AppInit DLLs
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows" value_name="AppInit_DLLs" value_data~~"*.dll"
+end
+
+pattern t1546_010_3  # T1546.010 AppInit DLLs
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows" value_name="LoadAppInit_DLLs"
+end
+
+pattern t1546_010_4  # T1546.010 AppInit DLLs
+    step set op=registry_set key_path~~"Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows"
+end
+
+pattern t1546_010_5  # T1546.010 AppInit DLLs
+    step set op=registry_set key_path~~"Software\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Windows"
+end
+
+pattern t1546_011_0  # T1546.011 Application Shimming
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Custom\\*"
+end
+
+pattern t1546_011_1  # T1546.011 Application Shimming
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\InstalledSDB\\*"
+end
+
+pattern t1546_011_2  # T1546.011 Application Shimming
+    step set op=registry_set key_path~~"software\\microsoft\\windows nt\\currentversion\\appcompatflags\\custom"
+end
+
+pattern t1546_011_3  # T1546.011 Application Shimming
+    step set op=registry_set key_path~~"software\\microsoft\\windows nt\\currentversion\\appcompatflags\\installedsdb"
+end
+
+pattern t1546_012_0  # T1546.012 Image File Execution Options Injection
+    step set op=registry_set key_path~~"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\SilentProcessExit"
+end
+
+pattern t1546_012_1  # T1546.012 Image File Execution Options Injection
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\*" value_name="Debugger"
+end
+
+pattern t1546_012_2  # T1546.012 Image File Execution Options Injection
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\*" value_name="GlobalFlag"
+end
+
+pattern t1546_012_3  # T1546.012 Image File Execution Options Injection
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE{\\Wow6432Node}\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options"
+end
+
+pattern t1546_012_4  # T1546.012 Image File Execution Options Injection
+    step set op=registry_set key_path~~"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\SilentProcessExit"
+end
+
+pattern t1546_015_0  # T1546.015 Component Object Model Hijacking
+    step set op=registry_set key_path~~"HKCU\\SOFTWARE\\Classes\\CLSID\\*\\InprocServer32" value_data~~"*.dll"
+end
+
+pattern t1546_015_1  # T1546.015 Component Object Model Hijacking
+    step set op=registry_set key_path~~"HKEY_CURRENT_USER\\Software\\Classes\\CLSID"
+end
+
+pattern t1546_015_2  # T1546.015 Component Object Model Hijacking
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Classes\\CLSID\\*\\InprocServer32" value_data~~"*.dll"
+end
+
+pattern t1546_015_3  # T1546.015 Component Object Model Hijacking
+    step set op=registry_set key_path~~"Software\\Classes\\CLSID"
+end
+
+pattern t1547_001_0  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"
+end
+
+pattern t1547_001_1  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce"
+end
+
+pattern t1547_001_2  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows"
+end
+
+pattern t1547_001_3  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders"
+end
+
+pattern t1547_001_4  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders"
+end
+
+pattern t1547_001_5  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run"
+end
+
+pattern t1547_001_6  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"
+end
+
+pattern t1547_001_7  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce"
+end
+
+pattern t1547_001_8  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\RunServices"
+end
+
+pattern t1547_001_9  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\RunServicesOnce"
+end
+
+pattern t1547_001_10  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders"
+end
+
+pattern t1547_001_11  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders"
+end
+
+pattern t1547_001_12  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run"
+end
+
+pattern t1547_001_13  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"
+end
+
+pattern t1547_001_14  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce"
+end
+
+pattern t1547_001_15  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\RunOnceEx"
+end
+
+pattern t1547_001_16  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\RunServices"
+end
+
+pattern t1547_001_17  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\RunServicesOnce"
+end
+
+pattern t1547_001_18  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\Session Manager"
+end
+
+pattern t1547_001_19  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"
+end
+
+pattern t1547_001_20  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce"
+end
+
+pattern t1547_001_21  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnceEx\\0001\\Depend"
+end
+
+pattern t1547_001_22  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunServices"
+end
+
+pattern t1547_001_23  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunServicesOnce"
+end
+
+pattern t1547_001_24  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders"
+end
+
+pattern t1547_001_25  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders"
+end
+
+pattern t1547_001_26  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnceEx\\0001\\Depend"
+end
+
+pattern t1547_001_27  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows"
+end
+
+pattern t1547_001_28  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders"
+end
+
+pattern t1547_001_29  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders"
+end
+
+pattern t1547_001_30  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run"
+end
+
+pattern t1547_001_31  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"Software\\Microsoft\\Windows\\CurrentVersion\\Run"
+end
+
+pattern t1547_001_32  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce"
+end
+
+pattern t1547_001_33  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"Software\\Microsoft\\Windows\\CurrentVersion\\RunOnceEx"
+end
+
+pattern t1547_001_34  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"Software\\Microsoft\\Windows\\CurrentVersion\\RunServices"
+end
+
+pattern t1547_001_35  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"Software\\Microsoft\\Windows\\CurrentVersion\\RunServicesOnce"
+end
+
+pattern t1547_001_36  # T1547.001 Registry Run Keys / Startup Folder
+    step set op=registry_set key_path~~"System\\CurrentControlSet\\Control\\Session Manager"
+end
+
+pattern t1547_002_0  # T1547.002 Authentication Package
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa"
+end
+
+pattern t1547_002_1  # T1547.002 Authentication Package
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa" value_name="Authentication Packages" value_data~~"*.dll"
+end
+
+pattern t1547_002_2  # T1547.002 Authentication Package
+    step set op=registry_set key_path~~"SYSTEM\\CurrentControlSet\\Control\\Lsa"
+end
+
+pattern t1547_003_0  # T1547.003 Time Providers
+    step set op=registry_set key_path~~"HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Services\\W32Time\\TimeProviders"
+end
+
+pattern t1547_003_1  # T1547.003 Time Providers
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Services\\W32Time\\TimeProviders\\*" value_name="DllName" value_data~~"*.dll"
+end
+
+pattern t1547_003_2  # T1547.003 Time Providers
+    step set op=registry_set key_path~~"System\\CurrentControlSet\\Services\\W32Time\\TimeProviders"
+end
+
+pattern t1547_004_0  # T1547.004 Winlogon Helper DLL
+    step set op=registry_set key_path~~"HKCU\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon"
+end
+
+pattern t1547_004_1  # T1547.004 Winlogon Helper DLL
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" value_name="Shell"
+end
+
+pattern t1547_004_2  # T1547.004 Winlogon Helper DLL
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" value_name="Userinit"
+end
+
+pattern t1547_004_3  # T1547.004 Winlogon Helper DLL
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" value_name="Notify"
+end
+
+pattern t1547_004_4  # T1547.004 Winlogon Helper DLL
+    step set op=registry_set key_path~~"Software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon"
+end
+
+pattern t1547_005_0  # T1547.005 Security Support Provider
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa" value_name="Security Packages" value_data~~"*.dll"
+end
+
+pattern t1547_005_1  # T1547.005 Security Support Provider
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa\\OSConfig" value_name="Security Packages" value_data~~"*.dll"
+end
+
+pattern t1547_005_2  # T1547.005 Security Support Provider
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa\\OSConfig\\Security Packages"
+end
+
+pattern t1547_005_3  # T1547.005 Security Support Provider
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa\\Security Packages"
+end
+
+pattern t1547_005_4  # T1547.005 Security Support Provider
+    step set op=registry_set key_path~~"SYSTEM\\CurrentControlSet\\Control\\Lsa\\OSConfig\\Security Packages"
+end
+
+pattern t1547_005_5  # T1547.005 Security Support Provider
+    step set op=registry_set key_path~~"SYSTEM\\CurrentControlSet\\Control\\Lsa\\Security Packages"
+end
+
+pattern t1547_008_0  # T1547.008 LSASS Driver
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Services\\*" value_name="ImagePath" value_data~~"*.sys"
+end
+
+pattern t1547_010_0  # T1547.010 Port Monitors
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Print\\Monitors"
+end
+
+pattern t1547_010_1  # T1547.010 Port Monitors
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Print\\Monitors\\*" value_name="Driver" value_data~~"*.dll"
+end
+
+pattern t1547_010_2  # T1547.010 Port Monitors
+    step set op=registry_set key_path~~"SYSTEM\\CurrentControlSet\\Control\\Print\\Monitors"
+end
+
+pattern t1547_012_0  # T1547.012 Print Processors
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Print\\Environments\\*\\Print Processors\\*" value_name="Driver" value_data~~"*.dll"
+end
+
+pattern t1547_014_0  # T1547.014 Active Setup
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Active Setup\\Installed Components"
+end
+
+pattern t1547_014_1  # T1547.014 Active Setup
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Active Setup\\Installed Components\\*" value_name="StubPath"
+end
+
+pattern t1547_014_2  # T1547.014 Active Setup
+    step set op=registry_set key_path~~"SOFTWARE\\Microsoft\\Active Setup\\Installed Components"
+end
+
+pattern t1548_002_0  # T1548.002 Bypass User Account Control
+    step set op=registry_set key_path~~"HKCU\\SOFTWARE\\Classes\\ms-settings\\shell\\open\\command"
+end
+
+pattern t1548_002_1  # T1548.002 Bypass User Account Control
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System" value_name="EnableLUA"
+end
+
+pattern t1548_002_2  # T1548.002 Bypass User Account Control
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System" value_name="ConsentPromptBehaviorAdmin"
+end
+
+pattern t1552_002_0  # T1552.002 Credentials in Registry
+    step set op=registry_set key_path~~"HKCU\\SOFTWARE\\SimonTatham\\PuTTY\\Sessions\\*" value_name="Proxy Password"
+end
+
+pattern t1552_002_1  # T1552.002 Credentials in Registry
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\RealVNC\\WinVNC4" value_name="Password"
+end
+
+pattern t1552_002_2  # T1552.002 Credentials in Registry
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Services\\SNMP\\Parameters\\ValidCommunities"
+end
+
+pattern t1553_003_0  # T1553.003 SIP and Trust Provider Hijacking
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Cryptography\\OID\\EncodingType 0\\CryptSIPDllGetSignedDataMsg\\*" value_name="Dll" value_data~~"*.dll"
+end
+
+pattern t1553_004_0  # T1553.004 Install Root Certificate
+    step set op=registry_set key_path~~"HKCU\\SOFTWARE\\Microsoft\\SystemCertificates\\ROOT\\Certificates\\*"
+end
+
+pattern t1553_004_1  # T1553.004 Install Root Certificate
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\SystemCertificates\\ROOT\\Certificates\\*"
+end
+
+pattern t1553_006_0  # T1553.006 Code Signing Policy Modification
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Control\\CI\\Policy" value_name="VerifiedAndReputablePolicyState"
+end
+
+pattern t1556_002_0  # T1556.002 Password Filter DLL
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa" value_name="Notification Packages" value_data~~"*.dll"
+end
+
+pattern t1556_008_0  # T1556.008 Network Provider DLL
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Control\\NetworkProvider\\Order" value_name="ProviderOrder"
+end
+
+pattern t1556_008_1  # T1556.008 Network Provider DLL
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Services\\*\\NetworkProvider" value_name="ProviderPath" value_data~~"*.dll"
+end
+
+pattern t1557_001_0  # T1557.001 Name Resolution Poisoning and SMB Relay
+    step set op=registry_set key_path~~"HKLM\\Software\\Policies\\Microsoft\\Windows NT\\DNSClient\\EnableMulticast"
+end
+
+pattern t1557_001_1  # T1557.001 Name Resolution Poisoning and SMB Relay
+    step set op=registry_set key_path~~"Software\\Policies\\Microsoft\\Windows NT\\DNSClient\\EnableMulticast"
+end
+
+pattern t1559_002_0  # T1559.002 Dynamic Data Exchange
+    step set op=registry_set key_path~~"HKCU\\SOFTWARE\\Microsoft\\Office\\*\\Excel\\Security" value_name="DDEUpdate"
+end
+
+pattern t1559_002_1  # T1559.002 Dynamic Data Exchange
+    step set op=registry_set key_path~~"HKCU\\SOFTWARE\\Microsoft\\Office\\*\\Word\\Options" value_name="DontUpdateLinks"
+end
+
+pattern t1564_002_0  # T1564.002 Hidden Users
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\SpecialAccounts\\UserList"
+end
+
+pattern t1564_002_1  # T1564.002 Hidden Users
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\SpecialAccounts\\UserList" value_name~~"*"
+end
+
+pattern t1564_002_2  # T1564.002 Hidden Users
+    step set op=registry_set key_path~~"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\SpecialAccounts\\UserList"
+end
+
+pattern t1564_003_0  # T1564.003 Hidden Window
+    step set op=registry_set key_path~~"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" value_name="Hidden"
+end
+
+pattern t1564_003_1  # T1564.003 Hidden Window
+    step set op=registry_set key_path~~"HKEY_CURRENT_USER\\Console\\%SystemRoot%_System32_WindowsPowerShell_v1.0_PowerShell.exe"
+end
+
+pattern t1574_001_0  # T1574.001 DLL
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\KnownDLLs" value_name~~"*" value_data~~"*.dll"
+end
+
+pattern t1574_007_0  # T1574.007 Path Interception by PATH Environment Variable
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment" value_name="Path"
+end
+
+pattern t1574_011_0  # T1574.011 Services Registry Permissions Weakness
+    step set op=registry_set key_path~~"HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\WinSock2\\Parameters"
+end
+
+pattern t1574_011_1  # T1574.011 Services Registry Permissions Weakness
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Services"
+end
+
+pattern t1574_011_2  # T1574.011 Services Registry Permissions Weakness
+    step set op=registry_set key_path~~"SYSTEM\\CurrentControlSet\\Services"
+end
+
+pattern t1574_011_3  # T1574.011 Services Registry Permissions Weakness
+    step set op=registry_set key_path~~"SYSTEM\\CurrentControlSet\\Services\\WinSock2\\Parameters"
+end
+
+pattern t1574_012_0  # T1574.012 COR_PROFILER
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\.NETFramework" value_name="COR_ENABLE_PROFILING"
+end
+
+pattern t1574_012_1  # T1574.012 COR_PROFILER
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\.NETFramework" value_name="COR_PROFILER"
+end
+
+pattern t1574_012_2  # T1574.012 COR_PROFILER
+    step set op=registry_set key_path~~"HKLM\\SOFTWARE\\Microsoft\\.NETFramework" value_name="COR_PROFILER_PATH" value_data~~"*.dll"
+end
+
+pattern t1614_001_0  # T1614.001 System Language Discovery
+    step set op=registry_set key_path~~"HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Nls\\Language"
+end
+
+pattern t1614_001_1  # T1614.001 System Language Discovery
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Nls\\Language"
+end
+
+pattern t1614_001_2  # T1614.001 System Language Discovery
+    step set op=registry_set key_path~~"SYSTEM\\CurrentControlSet\\Control\\Nls\\Language"
+end
+
+pattern t1652_0  # T1652 Device Driver Discovery
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Services"
+end
+
+pattern t1652_1  # T1652 Device Driver Discovery
+    step set op=registry_set key_path~~"SYSTEM\\CurrentControlSet\\Services"
+end
+
+pattern t1685_001_0  # T1685.001 Disable or Modify Windows Event Log
+    step set op=registry_set key_path~~"HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\WMI\\Autologger\\EventLog-Application"
+end
+
+pattern t1685_001_1  # T1685.001 Disable or Modify Windows Event Log
+    step set op=registry_set key_path~~"HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\WMI\\Autologger\\EventLog-Security"
+end
+
+pattern t1685_001_2  # T1685.001 Disable or Modify Windows Event Log
+    step set op=registry_set key_path~~"HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\WMI\\Autologger\\EventLog-System"
+end
+
+pattern t1685_001_3  # T1685.001 Disable or Modify Windows Event Log
+    step set op=registry_set key_path~~"HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\EventLog"
+end
+
+pattern t1685_001_4  # T1685.001 Disable or Modify Windows Event Log
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Services\\EventLog\\*" value_name="Enabled"
+end
+
+pattern t1685_001_5  # T1685.001 Disable or Modify Windows Event Log
+    step set op=registry_set key_path~~"SYSTEM\\CurrentControlSet\\Control\\WMI\\Autologger\\EventLog-Application"
+end
+
+pattern t1685_001_6  # T1685.001 Disable or Modify Windows Event Log
+    step set op=registry_set key_path~~"SYSTEM\\CurrentControlSet\\Control\\WMI\\Autologger\\EventLog-Security"
+end
+
+pattern t1685_001_7  # T1685.001 Disable or Modify Windows Event Log
+    step set op=registry_set key_path~~"SYSTEM\\CurrentControlSet\\Control\\WMI\\Autologger\\EventLog-System"
+end
+
+pattern t1685_001_8  # T1685.001 Disable or Modify Windows Event Log
+    step set op=registry_set key_path~~"SYSTEM\\CurrentControlSet\\Services\\EventLog"
+end
+
+pattern t1686_0  # T1686 Disable or Modify System Firewall
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy"
+end
+
+pattern t1686_1  # T1686 Disable or Modify System Firewall
+    step set op=registry_set key_path~~"SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy"
+end
+
+pattern t1686_003_0  # T1686.003 Windows Host Firewall
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\DomainProfile" value_name="EnableFirewall"
+end
+
+pattern t1686_003_1  # T1686.003 Windows Host Firewall
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\StandardProfile" value_name="EnableFirewall"
+end
+
+pattern t1688_0  # T1688 Safe Mode Boot
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Control\\SafeBoot\\Minimal\\*"
+end
+
+pattern t1688_1  # T1688 Safe Mode Boot
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Control\\SafeBoot\\Network\\*"
+end
+
+pattern t1688_2  # T1688 Safe Mode Boot
+    step set op=registry_set key_path~~"HKLM\\SYSTEM\\CurrentControlSet\\Control\\SafeBoot\\Option" value_name="OptionValue"
+end

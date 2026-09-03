@@ -1,0 +1,1604 @@
+[
+  {
+    "attack_id": "T1003.001",
+    "name": "LSASS Memory",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa\\OSConfig\\Security Packages",
+    "key_name": "Security Packages",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1003.001",
+    "name": "LSASS Memory",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa\\Security Packages",
+    "key_name": "Security Packages",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1003.001",
+    "name": "LSASS Memory",
+    "key_path": "SYSTEM\\CurrentControlSet\\Control\\Lsa\\OSConfig\\Security Packages",
+    "key_name": "Security Packages",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1003.001",
+    "name": "LSASS Memory",
+    "key_path": "SYSTEM\\CurrentControlSet\\Control\\Lsa\\Security Packages",
+    "key_name": "Security Packages",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1070.007",
+    "name": "Clear Network Connection History and Configurations",
+    "key_path": "HKEY_CURRENT_USER\\Software\\Microsoft\\Terminal Server Client",
+    "key_name": "Terminal Server Client",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1070.007",
+    "name": "Clear Network Connection History and Configurations",
+    "key_path": "HKEY_CURRENT_USER\\Software\\Microsoft\\Terminal Server Client\\Servers",
+    "key_name": "Servers",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1070.007",
+    "name": "Clear Network Connection History and Configurations",
+    "key_path": "Software\\Microsoft\\Terminal Server Client",
+    "key_name": "Terminal Server Client",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1070.007",
+    "name": "Clear Network Connection History and Configurations",
+    "key_path": "Software\\Microsoft\\Terminal Server Client\\Servers",
+    "key_name": "Servers",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1112",
+    "name": "Modify Registry",
+    "key_path": "HKCU\\SOFTWARE\\*",
+    "key_name": "*",
+    "value_name": "*",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1112",
+    "name": "Modify Registry",
+    "key_path": "HKLM\\SOFTWARE\\*",
+    "key_name": "*",
+    "value_name": "*",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1137.002",
+    "name": "Office Test",
+    "key_path": "HKEY_CURRENT_USER\\Software\\Microsoft\\Office test\\Special\\Perf",
+    "key_name": "Perf",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1137.002",
+    "name": "Office Test",
+    "key_path": "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Office test\\Special\\Perf",
+    "key_name": "Perf",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1137.002",
+    "name": "Office Test",
+    "key_path": "Software\\Microsoft\\Office test\\Special\\Perf",
+    "key_name": "Perf",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1218.002",
+    "name": "Control Panel",
+    "key_path": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Control Panel\\Cpls",
+    "key_name": "Cpls",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1218.002",
+    "name": "Control Panel",
+    "key_path": "Software\\Microsoft\\Windows\\CurrentVersion\\Control Panel\\Cpls",
+    "key_name": "Cpls",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1490",
+    "name": "Inhibit System Recovery",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\WindowsRE",
+    "key_name": "WindowsRE",
+    "value_name": "DisableSetupInPop",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1490",
+    "name": "Inhibit System Recovery",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Services\\VSS",
+    "key_name": "VSS",
+    "value_name": "Start",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1505.005",
+    "name": "Terminal Services DLL",
+    "key_path": "HKLM\\System\\CurrentControlSet\\services\\TermService\\Parameters",
+    "key_name": "Parameters",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1505.005",
+    "name": "Terminal Services DLL",
+    "key_path": "System\\CurrentControlSet\\services\\TermService\\Parameters",
+    "key_name": "Parameters",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1543.003",
+    "name": "Windows Service",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Services\\*",
+    "key_name": "*",
+    "value_name": "ImagePath",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1543.003",
+    "name": "Windows Service",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Services\\*",
+    "key_name": "*",
+    "value_name": "Start",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1543.003",
+    "name": "Windows Service",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Services\\*",
+    "key_name": "*",
+    "value_name": "ServiceDll",
+    "value_data": "*.dll",
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1543.003",
+    "name": "Windows Service",
+    "key_path": "HKLM\\System\\CurrentControlSet\\Services",
+    "key_name": "Services",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1543.003",
+    "name": "Windows Service",
+    "key_path": "System\\CurrentControlSet\\Services",
+    "key_name": "Services",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1546.001",
+    "name": "Change Default File Association",
+    "key_path": "HKCU\\SOFTWARE\\Classes\\*\\shell\\open\\command",
+    "key_name": "command",
+    "value_name": null,
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1546.001",
+    "name": "Change Default File Association",
+    "key_path": "HKEY_CLASSES_ROOT\\.txt",
+    "key_name": ".txt",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1546.001",
+    "name": "Change Default File Association",
+    "key_path": "HKEY_CLASSES_ROOT\\txtfile\\shell\\open\\command",
+    "key_name": "command",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1546.001",
+    "name": "Change Default File Association",
+    "key_path": "HKEY_CLASSES_ROOT\\txtfile\\shell\\print\\command",
+    "key_name": "command",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1546.001",
+    "name": "Change Default File Association",
+    "key_path": "HKEY_CLASSES_ROOT\\txtfile\\shell\\printto\\command",
+    "key_name": "command",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1546.001",
+    "name": "Change Default File Association",
+    "key_path": "HKLM\\SOFTWARE\\Classes\\*\\shell\\open\\command",
+    "key_name": "command",
+    "value_name": null,
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1546.002",
+    "name": "Screensaver",
+    "key_path": "HKCU\\Control Panel\\Desktop",
+    "key_name": "Desktop",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1546.002",
+    "name": "Screensaver",
+    "key_path": "HKCU\\Control Panel\\Desktop",
+    "key_name": "Desktop",
+    "value_name": "SCRNSAVE.EXE",
+    "value_data": "*.scr",
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1546.002",
+    "name": "Screensaver",
+    "key_path": "HKCU\\Control Panel\\Desktop",
+    "key_name": "Desktop",
+    "value_name": "ScreenSaveActive",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1546.007",
+    "name": "Netsh Helper DLL",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Netsh",
+    "key_name": "Netsh",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1546.007",
+    "name": "Netsh Helper DLL",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Netsh",
+    "key_name": "Netsh",
+    "value_name": null,
+    "value_data": "*.dll",
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1546.007",
+    "name": "Netsh Helper DLL",
+    "key_path": "SOFTWARE\\Microsoft\\Netsh",
+    "key_name": "Netsh",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1546.008",
+    "name": "Accessibility Features",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\DisplaySwitch.exe",
+    "key_name": "DisplaySwitch.exe",
+    "value_name": "Debugger",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1546.008",
+    "name": "Accessibility Features",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\Magnify.exe",
+    "key_name": "Magnify.exe",
+    "value_name": "Debugger",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1546.008",
+    "name": "Accessibility Features",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\Narrator.exe",
+    "key_name": "Narrator.exe",
+    "value_name": "Debugger",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1546.008",
+    "name": "Accessibility Features",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\osk.exe",
+    "key_name": "osk.exe",
+    "value_name": "Debugger",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1546.008",
+    "name": "Accessibility Features",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\sethc.exe",
+    "key_name": "sethc.exe",
+    "value_name": "Debugger",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1546.008",
+    "name": "Accessibility Features",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\utilman.exe",
+    "key_name": "utilman.exe",
+    "value_name": "Debugger",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1546.009",
+    "name": "AppCert DLLs",
+    "key_path": "HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\Session Manager",
+    "key_name": "Session Manager",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1546.009",
+    "name": "AppCert DLLs",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager",
+    "key_name": "Session Manager",
+    "value_name": "AppCertDLLs",
+    "value_data": "*.dll",
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1546.009",
+    "name": "AppCert DLLs",
+    "key_path": "System\\CurrentControlSet\\Control\\Session Manager",
+    "key_name": "Session Manager",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1546.010",
+    "name": "AppInit DLLs",
+    "key_path": "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows",
+    "key_name": "Windows",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1546.010",
+    "name": "AppInit DLLs",
+    "key_path": "HKEY_LOCAL_MACHINE\\Software\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Windows",
+    "key_name": "Windows",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1546.010",
+    "name": "AppInit DLLs",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows",
+    "key_name": "Windows",
+    "value_name": "AppInit_DLLs",
+    "value_data": "*.dll",
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1546.010",
+    "name": "AppInit DLLs",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows",
+    "key_name": "Windows",
+    "value_name": "LoadAppInit_DLLs",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1546.010",
+    "name": "AppInit DLLs",
+    "key_path": "Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows",
+    "key_name": "Windows",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1546.010",
+    "name": "AppInit DLLs",
+    "key_path": "Software\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Windows",
+    "key_name": "Windows",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1546.011",
+    "name": "Application Shimming",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Custom\\*",
+    "key_name": "*",
+    "value_name": null,
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1546.011",
+    "name": "Application Shimming",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\InstalledSDB\\*",
+    "key_name": "*",
+    "value_name": null,
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1546.011",
+    "name": "Application Shimming",
+    "key_path": "software\\microsoft\\windows nt\\currentversion\\appcompatflags\\custom",
+    "key_name": "custom",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1546.011",
+    "name": "Application Shimming",
+    "key_path": "software\\microsoft\\windows nt\\currentversion\\appcompatflags\\installedsdb",
+    "key_name": "installedsdb",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1546.012",
+    "name": "Image File Execution Options Injection",
+    "key_path": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\SilentProcessExit",
+    "key_name": "SilentProcessExit",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1546.012",
+    "name": "Image File Execution Options Injection",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\*",
+    "key_name": "*",
+    "value_name": "Debugger",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1546.012",
+    "name": "Image File Execution Options Injection",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\*",
+    "key_name": "*",
+    "value_name": "GlobalFlag",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1546.012",
+    "name": "Image File Execution Options Injection",
+    "key_path": "HKLM\\SOFTWARE{\\Wow6432Node}\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options",
+    "key_name": "Image File Execution Options",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1546.012",
+    "name": "Image File Execution Options Injection",
+    "key_path": "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\SilentProcessExit",
+    "key_name": "SilentProcessExit",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1546.015",
+    "name": "Component Object Model Hijacking",
+    "key_path": "HKCU\\SOFTWARE\\Classes\\CLSID\\*\\InprocServer32",
+    "key_name": "InprocServer32",
+    "value_name": null,
+    "value_data": "*.dll",
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1546.015",
+    "name": "Component Object Model Hijacking",
+    "key_path": "HKEY_CURRENT_USER\\Software\\Classes\\CLSID",
+    "key_name": "CLSID",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1546.015",
+    "name": "Component Object Model Hijacking",
+    "key_path": "HKLM\\SOFTWARE\\Classes\\CLSID\\*\\InprocServer32",
+    "key_name": "InprocServer32",
+    "value_name": null,
+    "value_data": "*.dll",
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1546.015",
+    "name": "Component Object Model Hijacking",
+    "key_path": "Software\\Classes\\CLSID",
+    "key_name": "CLSID",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+    "key_name": "Run",
+    "value_name": null,
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce",
+    "key_name": "RunOnce",
+    "value_name": null,
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows",
+    "key_name": "Windows",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders",
+    "key_name": "Shell Folders",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders",
+    "key_name": "User Shell Folders",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run",
+    "key_name": "Run",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+    "key_name": "Run",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce",
+    "key_name": "RunOnce",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\RunServices",
+    "key_name": "RunServices",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\RunServicesOnce",
+    "key_name": "RunServicesOnce",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders",
+    "key_name": "Shell Folders",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders",
+    "key_name": "User Shell Folders",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run",
+    "key_name": "Run",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+    "key_name": "Run",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce",
+    "key_name": "RunOnce",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\RunOnceEx",
+    "key_name": "RunOnceEx",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\RunServices",
+    "key_name": "RunServices",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\RunServicesOnce",
+    "key_name": "RunServicesOnce",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\Session Manager",
+    "key_name": "Session Manager",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+    "key_name": "Run",
+    "value_name": null,
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce",
+    "key_name": "RunOnce",
+    "value_name": null,
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnceEx\\0001\\Depend",
+    "key_name": "Depend",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunServices",
+    "key_name": "RunServices",
+    "value_name": null,
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunServicesOnce",
+    "key_name": "RunServicesOnce",
+    "value_name": null,
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders",
+    "key_name": "Shell Folders",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders",
+    "key_name": "User Shell Folders",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnceEx\\0001\\Depend",
+    "key_name": "Depend",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows",
+    "key_name": "Windows",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders",
+    "key_name": "Shell Folders",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders",
+    "key_name": "User Shell Folders",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run",
+    "key_name": "Run",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+    "key_name": "Run",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce",
+    "key_name": "RunOnce",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "Software\\Microsoft\\Windows\\CurrentVersion\\RunOnceEx",
+    "key_name": "RunOnceEx",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "Software\\Microsoft\\Windows\\CurrentVersion\\RunServices",
+    "key_name": "RunServices",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "Software\\Microsoft\\Windows\\CurrentVersion\\RunServicesOnce",
+    "key_name": "RunServicesOnce",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.001",
+    "name": "Registry Run Keys / Startup Folder",
+    "key_path": "System\\CurrentControlSet\\Control\\Session Manager",
+    "key_name": "Session Manager",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.002",
+    "name": "Authentication Package",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa",
+    "key_name": "Lsa",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.002",
+    "name": "Authentication Package",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa",
+    "key_name": "Lsa",
+    "value_name": "Authentication Packages",
+    "value_data": "*.dll",
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1547.002",
+    "name": "Authentication Package",
+    "key_path": "SYSTEM\\CurrentControlSet\\Control\\Lsa",
+    "key_name": "Lsa",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.003",
+    "name": "Time Providers",
+    "key_path": "HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Services\\W32Time\\TimeProviders",
+    "key_name": "TimeProviders",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.003",
+    "name": "Time Providers",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Services\\W32Time\\TimeProviders\\*",
+    "key_name": "*",
+    "value_name": "DllName",
+    "value_data": "*.dll",
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1547.003",
+    "name": "Time Providers",
+    "key_path": "System\\CurrentControlSet\\Services\\W32Time\\TimeProviders",
+    "key_name": "TimeProviders",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.004",
+    "name": "Winlogon Helper DLL",
+    "key_path": "HKCU\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon",
+    "key_name": "Winlogon",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.004",
+    "name": "Winlogon Helper DLL",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon",
+    "key_name": "Winlogon",
+    "value_name": "Shell",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1547.004",
+    "name": "Winlogon Helper DLL",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon",
+    "key_name": "Winlogon",
+    "value_name": "Userinit",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1547.004",
+    "name": "Winlogon Helper DLL",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon",
+    "key_name": "Winlogon",
+    "value_name": "Notify",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1547.004",
+    "name": "Winlogon Helper DLL",
+    "key_path": "Software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon",
+    "key_name": "Winlogon",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.005",
+    "name": "Security Support Provider",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa",
+    "key_name": "Lsa",
+    "value_name": "Security Packages",
+    "value_data": "*.dll",
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1547.005",
+    "name": "Security Support Provider",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa\\OSConfig",
+    "key_name": "OSConfig",
+    "value_name": "Security Packages",
+    "value_data": "*.dll",
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1547.005",
+    "name": "Security Support Provider",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa\\OSConfig\\Security Packages",
+    "key_name": "Security Packages",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.005",
+    "name": "Security Support Provider",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa\\Security Packages",
+    "key_name": "Security Packages",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.005",
+    "name": "Security Support Provider",
+    "key_path": "SYSTEM\\CurrentControlSet\\Control\\Lsa\\OSConfig\\Security Packages",
+    "key_name": "Security Packages",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.005",
+    "name": "Security Support Provider",
+    "key_path": "SYSTEM\\CurrentControlSet\\Control\\Lsa\\Security Packages",
+    "key_name": "Security Packages",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.008",
+    "name": "LSASS Driver",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Services\\*",
+    "key_name": "*",
+    "value_name": "ImagePath",
+    "value_data": "*.sys",
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1547.010",
+    "name": "Port Monitors",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Print\\Monitors",
+    "key_name": "Monitors",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.010",
+    "name": "Port Monitors",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Print\\Monitors\\*",
+    "key_name": "*",
+    "value_name": "Driver",
+    "value_data": "*.dll",
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1547.010",
+    "name": "Port Monitors",
+    "key_path": "SYSTEM\\CurrentControlSet\\Control\\Print\\Monitors",
+    "key_name": "Monitors",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.012",
+    "name": "Print Processors",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Print\\Environments\\*\\Print Processors\\*",
+    "key_name": "*",
+    "value_name": "Driver",
+    "value_data": "*.dll",
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1547.014",
+    "name": "Active Setup",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Active Setup\\Installed Components",
+    "key_name": "Installed Components",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1547.014",
+    "name": "Active Setup",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Active Setup\\Installed Components\\*",
+    "key_name": "*",
+    "value_name": "StubPath",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1547.014",
+    "name": "Active Setup",
+    "key_path": "SOFTWARE\\Microsoft\\Active Setup\\Installed Components",
+    "key_name": "Installed Components",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1548.002",
+    "name": "Bypass User Account Control",
+    "key_path": "HKCU\\SOFTWARE\\Classes\\ms-settings\\shell\\open\\command",
+    "key_name": "command",
+    "value_name": null,
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1548.002",
+    "name": "Bypass User Account Control",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System",
+    "key_name": "System",
+    "value_name": "EnableLUA",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1548.002",
+    "name": "Bypass User Account Control",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System",
+    "key_name": "System",
+    "value_name": "ConsentPromptBehaviorAdmin",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1552.002",
+    "name": "Credentials in Registry",
+    "key_path": "HKCU\\SOFTWARE\\SimonTatham\\PuTTY\\Sessions\\*",
+    "key_name": "*",
+    "value_name": "Proxy Password",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1552.002",
+    "name": "Credentials in Registry",
+    "key_path": "HKLM\\SOFTWARE\\RealVNC\\WinVNC4",
+    "key_name": "WinVNC4",
+    "value_name": "Password",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1552.002",
+    "name": "Credentials in Registry",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Services\\SNMP\\Parameters\\ValidCommunities",
+    "key_name": "ValidCommunities",
+    "value_name": null,
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1553.003",
+    "name": "SIP and Trust Provider Hijacking",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Cryptography\\OID\\EncodingType 0\\CryptSIPDllGetSignedDataMsg\\*",
+    "key_name": "*",
+    "value_name": "Dll",
+    "value_data": "*.dll",
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1553.004",
+    "name": "Install Root Certificate",
+    "key_path": "HKCU\\SOFTWARE\\Microsoft\\SystemCertificates\\ROOT\\Certificates\\*",
+    "key_name": "*",
+    "value_name": null,
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1553.004",
+    "name": "Install Root Certificate",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\SystemCertificates\\ROOT\\Certificates\\*",
+    "key_name": "*",
+    "value_name": null,
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1553.006",
+    "name": "Code Signing Policy Modification",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\CI\\Policy",
+    "key_name": "Policy",
+    "value_name": "VerifiedAndReputablePolicyState",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1556.002",
+    "name": "Password Filter DLL",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa",
+    "key_name": "Lsa",
+    "value_name": "Notification Packages",
+    "value_data": "*.dll",
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1556.008",
+    "name": "Network Provider DLL",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\NetworkProvider\\Order",
+    "key_name": "Order",
+    "value_name": "ProviderOrder",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1556.008",
+    "name": "Network Provider DLL",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Services\\*\\NetworkProvider",
+    "key_name": "NetworkProvider",
+    "value_name": "ProviderPath",
+    "value_data": "*.dll",
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1557.001",
+    "name": "Name Resolution Poisoning and SMB Relay",
+    "key_path": "HKLM\\Software\\Policies\\Microsoft\\Windows NT\\DNSClient\\EnableMulticast",
+    "key_name": "EnableMulticast",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1557.001",
+    "name": "Name Resolution Poisoning and SMB Relay",
+    "key_path": "Software\\Policies\\Microsoft\\Windows NT\\DNSClient\\EnableMulticast",
+    "key_name": "EnableMulticast",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1559.002",
+    "name": "Dynamic Data Exchange",
+    "key_path": "HKCU\\SOFTWARE\\Microsoft\\Office\\*\\Excel\\Security",
+    "key_name": "Security",
+    "value_name": "DDEUpdate",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1559.002",
+    "name": "Dynamic Data Exchange",
+    "key_path": "HKCU\\SOFTWARE\\Microsoft\\Office\\*\\Word\\Options",
+    "key_name": "Options",
+    "value_name": "DontUpdateLinks",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1564.002",
+    "name": "Hidden Users",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\SpecialAccounts\\UserList",
+    "key_name": "UserList",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1564.002",
+    "name": "Hidden Users",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\SpecialAccounts\\UserList",
+    "key_name": "UserList",
+    "value_name": "*",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1564.002",
+    "name": "Hidden Users",
+    "key_path": "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\SpecialAccounts\\UserList",
+    "key_name": "UserList",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1564.003",
+    "name": "Hidden Window",
+    "key_path": "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+    "key_name": "Advanced",
+    "value_name": "Hidden",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1564.003",
+    "name": "Hidden Window",
+    "key_path": "HKEY_CURRENT_USER\\Console\\%SystemRoot%_System32_WindowsPowerShell_v1.0_PowerShell.exe",
+    "key_name": "%SystemRoot%_System32_WindowsPowerShell_v1.0_PowerShell.exe",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1574.001",
+    "name": "DLL",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\KnownDLLs",
+    "key_name": "KnownDLLs",
+    "value_name": "*",
+    "value_data": "*.dll",
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1574.007",
+    "name": "Path Interception by PATH Environment Variable",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment",
+    "key_name": "Environment",
+    "value_name": "Path",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1574.011",
+    "name": "Services Registry Permissions Weakness",
+    "key_path": "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\WinSock2\\Parameters",
+    "key_name": "Parameters",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1574.011",
+    "name": "Services Registry Permissions Weakness",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Services",
+    "key_name": "Services",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1574.011",
+    "name": "Services Registry Permissions Weakness",
+    "key_path": "SYSTEM\\CurrentControlSet\\Services",
+    "key_name": "Services",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1574.011",
+    "name": "Services Registry Permissions Weakness",
+    "key_path": "SYSTEM\\CurrentControlSet\\Services\\WinSock2\\Parameters",
+    "key_name": "Parameters",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1574.012",
+    "name": "COR_PROFILER",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\.NETFramework",
+    "key_name": ".NETFramework",
+    "value_name": "COR_ENABLE_PROFILING",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1574.012",
+    "name": "COR_PROFILER",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\.NETFramework",
+    "key_name": ".NETFramework",
+    "value_name": "COR_PROFILER",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1574.012",
+    "name": "COR_PROFILER",
+    "key_path": "HKLM\\SOFTWARE\\Microsoft\\.NETFramework",
+    "key_name": ".NETFramework",
+    "value_name": "COR_PROFILER_PATH",
+    "value_data": "*.dll",
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1614.001",
+    "name": "System Language Discovery",
+    "key_path": "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Nls\\Language",
+    "key_name": "Language",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1614.001",
+    "name": "System Language Discovery",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Nls\\Language",
+    "key_name": "Language",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1614.001",
+    "name": "System Language Discovery",
+    "key_path": "SYSTEM\\CurrentControlSet\\Control\\Nls\\Language",
+    "key_name": "Language",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1652",
+    "name": "Device Driver Discovery",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Services",
+    "key_name": "Services",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1652",
+    "name": "Device Driver Discovery",
+    "key_path": "SYSTEM\\CurrentControlSet\\Services",
+    "key_name": "Services",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1685.001",
+    "name": "Disable or Modify Windows Event Log",
+    "key_path": "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\WMI\\Autologger\\EventLog-Application",
+    "key_name": "EventLog-Application",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1685.001",
+    "name": "Disable or Modify Windows Event Log",
+    "key_path": "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\WMI\\Autologger\\EventLog-Security",
+    "key_name": "EventLog-Security",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1685.001",
+    "name": "Disable or Modify Windows Event Log",
+    "key_path": "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\WMI\\Autologger\\EventLog-System",
+    "key_name": "EventLog-System",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1685.001",
+    "name": "Disable or Modify Windows Event Log",
+    "key_path": "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\EventLog",
+    "key_name": "EventLog",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1685.001",
+    "name": "Disable or Modify Windows Event Log",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Services\\EventLog\\*",
+    "key_name": "*",
+    "value_name": "Enabled",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1685.001",
+    "name": "Disable or Modify Windows Event Log",
+    "key_path": "SYSTEM\\CurrentControlSet\\Control\\WMI\\Autologger\\EventLog-Application",
+    "key_name": "EventLog-Application",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1685.001",
+    "name": "Disable or Modify Windows Event Log",
+    "key_path": "SYSTEM\\CurrentControlSet\\Control\\WMI\\Autologger\\EventLog-Security",
+    "key_name": "EventLog-Security",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1685.001",
+    "name": "Disable or Modify Windows Event Log",
+    "key_path": "SYSTEM\\CurrentControlSet\\Control\\WMI\\Autologger\\EventLog-System",
+    "key_name": "EventLog-System",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1685.001",
+    "name": "Disable or Modify Windows Event Log",
+    "key_path": "SYSTEM\\CurrentControlSet\\Services\\EventLog",
+    "key_name": "EventLog",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1686",
+    "name": "Disable or Modify System Firewall",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy",
+    "key_name": "FirewallPolicy",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1686",
+    "name": "Disable or Modify System Firewall",
+    "key_path": "SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy",
+    "key_name": "FirewallPolicy",
+    "value_name": null,
+    "value_data": null,
+    "source": "mitre"
+  },
+  {
+    "attack_id": "T1686.003",
+    "name": "Windows Host Firewall",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\DomainProfile",
+    "key_name": "DomainProfile",
+    "value_name": "EnableFirewall",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1686.003",
+    "name": "Windows Host Firewall",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\StandardProfile",
+    "key_name": "StandardProfile",
+    "value_name": "EnableFirewall",
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1688",
+    "name": "Safe Mode Boot",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\SafeBoot\\Minimal\\*",
+    "key_name": "*",
+    "value_name": null,
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1688",
+    "name": "Safe Mode Boot",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\SafeBoot\\Network\\*",
+    "key_name": "*",
+    "value_name": null,
+    "value_data": null,
+    "source": "curated"
+  },
+  {
+    "attack_id": "T1688",
+    "name": "Safe Mode Boot",
+    "key_path": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\SafeBoot\\Option",
+    "key_name": "Option",
+    "value_name": "OptionValue",
+    "value_data": null,
+    "source": "curated"
+  }
+]
