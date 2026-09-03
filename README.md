@@ -96,17 +96,17 @@ với mỗi ((op, field), patterns) trong groups:
     entries.push(RulesetEntry{op, field, dfa_bytes: sparse, state_map: ...})   # xem 1.4
 ```
 
-**Không phải 1 DFA phẳng dùng chung** như thiết kế trước — mỗi `(op, field)` có DFA riêng.
-`MatchKind::All` vẫn bắt buộc cho mỗi DFA (mặc định `LeftmostFirst` chỉ giữ 1 pattern "thắng" mỗi
-state, xoá mất thông tin cần cho bước 1.4).
+Mỗi `(op, field)` có DFA riêng — không dùng 1 DFA phẳng chung cho mọi field. `MatchKind::All` vẫn
+bắt buộc cho mỗi DFA (mặc định `LeftmostFirst` chỉ giữ 1 pattern "thắng" mỗi state, xoá mất thông
+tin cần cho bước 1.4).
 
 **Đo thật trên `registry_mitre.rules`** (250 pattern, gom thành 3 nhóm: `key_path`, `value_name`,
 `value_data`, đều `op=registry_set`): tách theo (op,field) cho **DFA nhỏ hơn** (162,225 so với
-390,956 bytes tổng — giảm 58.5%), **build nhanh hơn** (29.8ms so với 241.7ms — nhanh ~8x), và
-**match nhanh hơn** (331ns so với 441ns/lần gọi — nhanh ~25%) so với 1 DFA phẳng chứa cả 250
-pattern. Không phải đánh đổi hiệu năng lấy độ đơn giản — tách ra thắng ở cả 3 mặt, vì DFA phẳng
-phải giữ thêm state chỉ để phân biệt tổ hợp pattern giữa các field không liên quan, việc không bao
-giờ thực sự cần thiết (1 field chỉ bao giờ đem test với pattern của đúng field đó).
+390,956 bytes nếu gộp chung 1 DFA — giảm 58.5%), **build nhanh hơn** (29.8ms so với 241.7ms — nhanh
+~8x), và **match nhanh hơn** (331ns so với 441ns/lần gọi — nhanh ~25%). Không phải đánh đổi hiệu
+năng lấy độ đơn giản — tách ra thắng ở cả 3 mặt, vì 1 DFA gộp chung phải giữ thêm state chỉ để
+phân biệt tổ hợp pattern giữa các field không liên quan, việc không bao giờ thực sự cần thiết
+(1 field chỉ bao giờ đem test với pattern của đúng field đó).
 
 ### 1.4. Xây bảng `state_id -> (line, group)` cho từng entry (BFS, `build_state_line_map`)
 
@@ -128,18 +128,19 @@ while queue không rỗng:
         map[eoi] = dedup(owned)
 ```
 
-Không cần giữ `op`/`field` trong bảng nữa như thiết kế trước — DFA của entry đã tự scope đúng 1
-`(op,field)` rồi, chỉ cần `(line, group)`. Đây là duyệt đồ thị trạng thái đầy đủ của 1 DFA (không
+Không cần giữ `op`/`field` trong bảng — DFA của entry đã tự scope đúng 1 `(op,field)` rồi, chỉ cần
+`(line, group)`. Đây là duyệt đồ thị trạng thái đầy đủ của 1 DFA (không
 phải duyệt theo chuỗi input), chạy 1 lần lúc compile. Bảng này **chỉ dùng ở user-mode**
 (`kfilter-cli` hiện tại, hoặc sau này là tầng đọc log từ driver) — kernel không giữ nó, chỉ giữ DFA
-bytes. Mọi entry được đóng gói thành 1 blob qua `serialize_entries`:
-`[magic][version][entry_count]` rồi lặp `[op_len][op][field_len][field][dfa_len][dfa bytes]`.
+bytes. `op`/`field` là enum `#[repr(u32)]` (`Op`/`Field`, vocabulary đóng, không phải chuỗi tuỳ ý) —
+mọi entry được đóng gói thành 1 blob qua `serialize_entries`:
+`[magic][version][entry_count]` rồi lặp `[op: u32][field: u32][dfa_len: u32][dfa bytes]`.
 
 ## 2. Filter: 1 giá trị field → `StateID` (`Ruleset::match_state`, `kfilter-lib/src/lib.rs`)
 
 Đây là phần chạy trong kernel (khi bật feature `kernel`) lẫn trong `kfilter-cli` (khi không bật) —
-**cùng 1 đoạn code**, không phải 2 cài đặt khác nhau, và không đổi so với trước (thay đổi kiến trúc
-per-(op,field) nằm ở việc **chọn DFA nào** để gọi hàm này, không phải ở bản thân hàm):
+**cùng 1 đoạn code**, không phải 2 cài đặt khác nhau. Việc tách theo (op,field) chỉ ảnh hưởng tới
+việc **chọn DFA nào** để gọi hàm này (xem bên dưới), không ảnh hưởng tới bản thân hàm:
 
 ```
 state = dfa.start_state_forward(haystack)
@@ -157,18 +158,25 @@ không heap, không cap cần tinh chỉnh) — bất kể ruleset có bao nhiê
 với (những) pattern/line nào" hoàn toàn nằm ở bảng đã build sẵn tại bước 1.4 (**của đúng entry đang
 dùng**), tra ở tầng gọi bên ngoài (mục 3), không phải việc của hàm này.
 
-Trong kernel (`kfilter-lib` feature `kernel`), `DfaSlot` giữ **1 mảng `Entry{op, field, Ruleset}`**
-(không phải 1 `Ruleset` duy nhất như thiết kế trước) — `kfilter_match` nhận thêm `op`/`field` (byte
-slice) để chọn đúng entry (quét tuyến tính qua mảng entry, số lượng nhỏ nên rẻ) trước khi gọi
-`match_state`. Vẫn giữ nguyên cơ chế refcount + spinlock để tránh tràn stack/đụng độ dữ liệu khi
-nạp rule mới lúc đang chạy — không lặp lại chi tiết ở đây, xem comment trong code.
+Trong kernel (`kfilter-lib` feature `kernel`), `kfilter_match` nhận thêm 1 mảng `entries` cố định
+kích thước `OP_COUNT * MAX_FIELDS_PER_OP` slot (do C++ cấp phát đúng `kfilter_data_size()` byte —
+1 con số "mờ", không biết số slot hay kích thước 1 slot riêng — rồi `kfilter-lib` tự parse nguyên
+blob IOCTL và điền qua `kfilter_install_from_blob`; driver không cần biết layout của blob lẫn của
+`entries`). Chọn đúng
+slot bằng 1 phép tính chỉ số trực tiếp — `index = op * MAX_FIELDS_PER_OP + field_index(op, field)`
+(`field_index` = vị trí của field trong danh sách field riêng của op đó, xem [BUILD.md](BUILD.md)
+mục "Lookup (op, field)") — **O(1) thật, không quét mảng**, trước khi gọi `match_state`. Hàm này
+**hoàn toàn không cấp phát bộ nhớ, không giữ lock nào** — nó tin tưởng rằng bộ nhớ `entries` trỏ
+tới còn hợp lệ suốt lúc gọi. Việc đảm bảo điều đó (cấp phát, và đồng bộ để không free trong lúc còn
+ai đang match) là trách nhiệm tường minh của `Driver.cpp`, dùng `EX_RUNDOWN_REF` (primitive có sẵn
+trong kernel) — xem [BUILD.md](BUILD.md) mục "Quản lý tài nguyên ở Driver.cpp".
 
 ## 3. Tìm pattern/step khớp 1 event (`kfilter-cli/src/main.rs`, hàm `main`)
 
 Input: 1 event có cấu trúc `op=<op> field1="v1" field2="v2" ...` (xem [BUILD.md](BUILD.md) mục
-`kfilter-cli`). Vì mỗi entry đã tự scope đúng 1 `(op,field)` (mục 1.3), **không còn cần lọc
-`op`/`field` sau khi match** như thiết kế trước — DFA của entry không có cách nào trả về kết quả
-thuộc field khác, vì nó chưa từng thấy pattern của field khác:
+`kfilter-cli`). Vì mỗi entry đã tự scope đúng 1 `(op,field)` (mục 1.3), **không cần lọc `op`/`field`
+sau khi match** — DFA của entry không có cách nào trả về kết quả thuộc field khác, vì nó chưa từng
+thấy pattern của field khác:
 
 ```
 hits: Map<(line, group), Set<field_name>> = {}
@@ -191,14 +199,12 @@ với mỗi (line, group), hit_fields trong hits:
 step tổng thể thoả nếu CÓ ÍT NHẤT 1 group thoả (đúng ngữ nghĩa OR giữa các group)
 ```
 
-So với thiết kế trước (1 DFA phẳng + lọc `owner.op`/`owner.field` thủ công sau khi match): **cùng
-kết quả, ít việc hơn** — việc "field nào được phép sinh ra kết quả nào" giờ nằm sẵn trong cấu trúc
-DFA (mục 1.3) thay vì phải kiểm tra lại ở tầng đánh giá. Đã verify thật: hành vi giống hệt thiết kế
-cũ trên cùng bộ test — sự kiện `key_path="C:\this\is\not\a\registry\key"` vẫn báo đúng "không thoả
-rule nào" (thay vì khớp sai 4 rule như bản DFA phẳng ban đầu, trước khi có bất kỳ fix nào).
+Việc "field nào được phép sinh ra kết quả nào" nằm sẵn trong cấu trúc DFA (mục 1.3), không cần
+kiểm tra lại ở tầng đánh giá. Đã verify thật: sự kiện `key_path="C:\this\is\not\a\registry\key"`
+báo đúng "không thoả rule nào" (không bị khớp nhầm sang rule của field khác).
 
 **Độ phức tạp**: với K field trên 1 event, tổng chi phí ≈ K lần tra `entry_index` (O(1)) + K lần
-gọi `match_state` (mục 2, O(độ dài giá trị field) mỗi lần, trên DFA **nhỏ hơn và nhanh hơn** DFA
-phẳng cũ — mục 1.3) + so sánh tập hợp nhỏ (số `(line,group)` mỗi state thường vài chục, không tỉ lệ
-theo tổng số rule trong ruleset). Không phụ thuộc độ phức tạp biểu thức AND/OR của rule — chỉ phụ
-thuộc số field khác nhau mà các rule liên quan đang kiểm tra.
+gọi `match_state` (mục 2, O(độ dài giá trị field) mỗi lần — mục 1.3) + so sánh tập hợp nhỏ (số
+`(line,group)` mỗi state thường vài chục, không tỉ lệ theo tổng số rule trong ruleset). Không phụ
+thuộc độ phức tạp biểu thức AND/OR của rule — chỉ phụ thuộc số field khác nhau mà các rule liên
+quan đang kiểm tra.

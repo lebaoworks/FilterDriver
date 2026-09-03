@@ -12,25 +12,17 @@
 //!
 //! Conditions on a step combine with `and`/`or` (`and` binds tighter,
 //! same precedence as most languages); omitting a keyword between two
-//! conditions defaults to `and` (backward compatible with every
-//! existing `.rules` file, which never uses these keywords). A step's
-//! condition list is therefore stored as **groups**: `Vec<Vec<Condition>>`
-//! in DNF form, i.e. `a and b or c and d` -> `[[a, b], [c, d]]`, and the
-//! step is satisfied when *any* group has *all* of its conditions hold.
+//! conditions defaults to `and`. A step's condition list is stored as
+//! **groups**: `Vec<Vec<Condition>>` in DNF form, i.e.
+//! `a and b or c and d` -> `[[a, b], [c, d]]`, and the step is
+//! satisfied when *any* group has *all* of its conditions hold.
 //!
-//! Compiled output is **one DFA per distinct (op, field) pair**, not
-//! one flat DFA for the whole ruleset: measured on `registry_mitre.rules`
-//! (250 patterns), splitting this way produced *smaller* total DFA
-//! bytes (-58%), *faster* builds (-88%), and *faster* per-call matches
-//! (-25%) than a single shared DFA -- splitting removes states a flat
-//! DFA otherwise needs solely to keep unrelated fields' patterns
-//! distinguishable from each other, even though a real event never
-//! tests two different fields' values against the same string. It
-//! also sidesteps the "wildcard from field A pollutes field B's
-//! matches" correctness issue by construction (a DFA for
-//! `(registry_set, value_name)` simply never contains a `key_path`
-//! pattern), instead of needing the op/field post-filter this crate
-//! used to require of its callers.
+//! Compiled output is one DFA per distinct (op, field) pair, not one
+//! flat DFA for the whole ruleset -- a real event value is only ever
+//! tested against patterns for its own field, so a shared DFA would
+//! carry extra states purely to keep unrelated fields' patterns
+//! distinguishable, and every match would need an op/field post-filter
+//! to avoid cross-field false positives.
 //!
 //! What's intentionally NOT compiled here (skipped with a warning,
 //! never a hard error -- the kernel filter's scope is prefiltering,
@@ -45,6 +37,90 @@ use regex_automata::util::primitives::StateID;
 use regex_automata::{Input, MatchKind};
 use std::collections::{BTreeMap, HashSet, VecDeque};
 
+// ---- op / field: closed, known vocabulary ------------------------------
+//
+// `#[repr(u32)]` with explicit discriminants: these values are the
+// wire format and the FFI ABI shared with kfilter-lib/Driver.cpp
+// (kfilter_core.h's KFILTER_OP/KFILTER_FIELD), so they must never be
+// renumbered once anything depends on them, only appended to.
+
+#[repr(u32)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub enum Op {
+    FileCreate = 0,
+    ProcessCreate = 1,
+    ProcessOpen = 2,
+    RegistrySet = 3,
+}
+
+impl Op {
+    pub const ALL: &'static [Op] = &[Op::FileCreate, Op::ProcessCreate, Op::ProcessOpen, Op::RegistrySet];
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Op::FileCreate => "file_create",
+            Op::ProcessCreate => "process_create",
+            Op::ProcessOpen => "process_open",
+            Op::RegistrySet => "registry_set",
+        }
+    }
+
+    pub fn from_str(s: &str) -> Option<Op> {
+        Self::ALL.iter().copied().find(|op| op.as_str() == s)
+    }
+
+    /// Fields this op's conditions may reference, in the order used
+    /// to compute [`Op::field_index`] (`kfilter-lib` hand-duplicates
+    /// this as `op_field_local_index`).
+    pub fn fields(self) -> &'static [Field] {
+        match self {
+            Op::FileCreate => &[Field::ImagePath],
+            Op::ProcessCreate => &[Field::ImagePath],
+            Op::ProcessOpen => &[Field::ImagePath],
+            Op::RegistrySet => &[Field::KeyPath, Field::ValueName, Field::ValueData],
+        }
+    }
+
+    /// `field`'s position within [`Op::fields`], or `None` if `field`
+    /// isn't valid for this op.
+    pub fn field_index(self, field: Field) -> Option<u32> {
+        self.fields().iter().position(|&f| f == field).map(|i| i as u32)
+    }
+}
+
+/// The largest `Op::fields().len()` across every op -- `kfilter-lib`
+/// sizes its entry table as `OP_COUNT * max_fields_per_op()`, not
+/// `OP_COUNT * (total distinct fields)`.
+pub fn max_fields_per_op() -> u32 {
+    Op::ALL.iter().map(|op| op.fields().len() as u32).max().unwrap_or(0)
+}
+
+#[repr(u32)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub enum Field {
+    ImagePath = 0,
+    KeyPath = 1,
+    ValueName = 2,
+    ValueData = 3,
+}
+
+impl Field {
+    pub const ALL: &'static [Field] = &[Field::ImagePath, Field::KeyPath, Field::ValueName, Field::ValueData];
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Field::ImagePath => "image.path",
+            Field::KeyPath => "key_path",
+            Field::ValueName => "value_name",
+            Field::ValueData => "value_data",
+        }
+    }
+
+    pub fn from_str(s: &str) -> Option<Field> {
+        Self::ALL.iter().copied().find(|field| field.as_str() == s)
+    }
+}
+
 // ---- .rules parsing ---------------------------------------------------
 
 #[derive(Clone, Copy)]
@@ -56,7 +132,7 @@ pub enum CondOp {
 }
 
 pub struct Condition {
-    pub field: String,
+    pub field: Field,
     pub op: CondOp,
     pub value: String,
 }
@@ -65,7 +141,7 @@ pub struct Step {
     pub line: u32,
     pub pattern_name: String,
     pub label: String,
-    pub op: String,
+    pub op: Op,
     /// DNF: `groups[g]` is one AND-group; the step is satisfied when
     /// any group has all of its conditions hold. A step with no
     /// `and`/`or` keywords (the common case, and every existing
@@ -186,7 +262,13 @@ fn parse_conditions(rest: &str) -> Option<Vec<Vec<Condition>>> {
         if i == field_start {
             return None;
         }
-        let field: String = chars[field_start..i].iter().collect();
+        let field_name: String = chars[field_start..i].iter().collect();
+        let Some(field) = Field::from_str(&field_name) else {
+            // Unknown field name -- not in the closed vocabulary (see
+            // Field::ALL). Reject the whole step rather than silently
+            // dropping just this condition, same as the $ref case.
+            return None;
+        };
 
         let op = if chars[i..].starts_with(&['=', '~']) {
             i += 2;
@@ -285,8 +367,15 @@ pub fn parse_rules(path: &str, content: &str) -> Vec<Step> {
                 continue;
             };
             let mut op_parts = op_rest.splitn(2, char::is_whitespace);
-            let op_name = op_parts.next().unwrap_or("").to_string();
+            let op_name = op_parts.next().unwrap_or("");
             let cond_text = op_parts.next().unwrap_or("");
+
+            let Some(op) = Op::from_str(op_name) else {
+                eprintln!(
+                    "{path}:{line_no}: step '{pattern_name}.{label}' has unknown op '{op_name}' -- skipping (not in the closed op vocabulary, see kfilter_compiler::Op)"
+                );
+                continue;
+            };
 
             if cond_text.trim().is_empty() {
                 eprintln!(
@@ -297,11 +386,19 @@ pub fn parse_rules(path: &str, content: &str) -> Vec<Step> {
 
             match parse_conditions(cond_text) {
                 Some(groups) => {
+                    let bad_field = groups.iter().flatten().find(|c| op.field_index(c.field).is_none());
+                    if let Some(cond) = bad_field {
+                        eprintln!(
+                            "{path}:{line_no}: step '{pattern_name}.{label}' uses field '{}' which op '{}' doesn't support -- skipping",
+                            cond.field.as_str(), op.as_str()
+                        );
+                        continue;
+                    }
                     steps.push(Step {
                         line: line_no,
                         pattern_name,
                         label,
-                        op: op_name,
+                        op,
                         groups,
                     });
                 }
@@ -332,19 +429,15 @@ pub fn parse_rules_file(path: &str) -> Vec<Step> {
 
 /// A `.rules` line (and, within it, which OR-group -- see the crate
 /// docs' DNF explanation) a match state resolves to, with rule/step
-/// names for readability. Unlike the earlier single-flat-DFA design,
-/// this no longer needs `op`/`field`: a [`RulesetEntry`] is already
-/// scoped to exactly one (op, field) pair, so any state reached in
-/// its DFA is automatically evidence for that field alone.
+/// names for readability. No `op`/`field` here: a [`RulesetEntry`] is
+/// already scoped to exactly one (op, field) pair, so any state
+/// reached in its DFA is automatically evidence for that field alone.
 pub struct LineInfo {
     pub line: u32,
-    /// Index into `step.groups`. Two conditions with the same `line`
-    /// but different `group` are alternatives (`or`); same `line` and
-    /// `group` means they're `and`-ed together and *all* need to have
-    /// fired (possibly across different [`RulesetEntry`]s, if the
-    /// group spans more than one field) for the step to be satisfied
-    /// -- that correlation is what a caller evaluating a real event
-    /// does with this data (see `kfilter-cli`'s module docs).
+    /// Index into `step.groups`. Same `line` + different `group` are
+    /// `or` alternatives; same `line` + `group` are `and`-ed together
+    /// (possibly across different [`RulesetEntry`]s) -- a caller
+    /// evaluating a real event correlates on this.
     pub group: u32,
     pub pattern_name: String,
     pub step: String,
@@ -354,8 +447,8 @@ pub struct LineInfo {
 /// pair, plus the table to resolve its match states back to `.rules`
 /// lines.
 pub struct RulesetEntry {
-    pub op: String,
-    pub field: String,
+    pub op: Op,
+    pub field: Field,
     /// Serialized sparse DFA, built with `MatchKind::All`. This is
     /// exactly the payload `kfilter_lib::Ruleset::from_bytes` expects
     /// for this entry (see [`serialize_entries`] for how entries are
@@ -376,7 +469,7 @@ pub struct CompiledRuleset {
 /// group's `state_id -> lines` table by walking its match states.
 pub fn compile_ruleset(steps: &[Step]) -> Result<CompiledRuleset, String> {
     // (op, field) -> [(regex pattern, line, group_idx), ...]
-    let mut groups: BTreeMap<(String, String), Vec<(String, u32, u32)>> = BTreeMap::new();
+    let mut groups: BTreeMap<(Op, Field), Vec<(String, u32, u32)>> = BTreeMap::new();
     for step in steps {
         for (group_idx, group) in step.groups.iter().enumerate() {
             for cond in group {
@@ -402,19 +495,16 @@ pub fn compile_ruleset(steps: &[Step]) -> Result<CompiledRuleset, String> {
         let patterns: Vec<String> = items.iter().map(|(p, _, _)| p.clone()).collect();
         let owners: Vec<(u32, u32)> = items.iter().map(|(_, line, g)| (*line, *g)).collect();
 
-        // MatchKind::All: keep every pattern's match info per state
+        // MatchKind::All keeps every pattern's match info per state
         // (not just one "winner") so build_state_line_map can
-        // enumerate them. The kernel-deployed DFA still only ever
-        // returns 1 state id per search -- this only affects what's
-        // *preserved in the DFA*, not what the runtime search API
-        // reports on its own.
+        // enumerate them.
         let dfa = dense::Builder::new()
             .configure(dense::Config::new().match_kind(MatchKind::All))
             .build_many(&patterns)
-            .map_err(|e| format!("failed to build DFA for ({op}, {field}): {e}"))?;
+            .map_err(|e| format!("failed to build DFA for ({}, {}): {e}", op.as_str(), field.as_str()))?;
         let sparse = dfa
             .to_sparse()
-            .map_err(|e| format!("failed to convert ({op}, {field}) DFA to sparse: {e}"))?;
+            .map_err(|e| format!("failed to convert ({}, {}) DFA to sparse: {e}", op.as_str(), field.as_str()))?;
 
         let raw_state_map = build_state_line_map(&sparse, &owners);
         let state_map: BTreeMap<u32, Vec<LineInfo>> = raw_state_map
@@ -443,21 +533,16 @@ pub fn compile_ruleset(steps: &[Step]) -> Result<CompiledRuleset, String> {
     Ok(CompiledRuleset { entries })
 }
 
-/// Walks every state reachable from the DFA's start state (over all
-/// 256 byte values) and, for each one, checks what its "end of
-/// haystack" successor state looks like -- exactly mirroring
-/// `kfilter_lib::Ruleset::match_state`'s own `start_state_forward` /
-/// `next_state` (per byte) / `next_eoi_state` (once, at the end)
-/// sequence. Any such end-of-haystack state that turns out to be a
-/// match state gets recorded as `state_id -> [(line, group), ...]`
-/// (deduplicated, since a state can represent several patterns that
-/// all reduce to the same source line + group -- see the "duplicate
-/// regex text" case discussed for `value_data~~"*.dll"`-style
-/// conditions).
+/// Walks every state reachable from the DFA's start state and records
+/// `state_id -> [(line, group), ...]` for each one whose "end of
+/// haystack" successor is a match state -- mirroring
+/// `kfilter_lib::Ruleset::match_state`'s own traversal exactly.
+/// Deduplicated, since a state can represent several patterns that
+/// reduce to the same line + group.
 ///
-/// Must be run on the exact same `sparse::DFA` object whose bytes get
-/// serialized and shipped -- state ids are only meaningful relative
-/// to one specific compiled DFA.
+/// Must run on the exact same `sparse::DFA` object whose bytes get
+/// shipped -- state ids are only meaningful relative to one specific
+/// compiled DFA.
 fn build_state_line_map(
     dfa: &sparse::DFA<Vec<u8>>,
     owners: &[(u32, u32)],
@@ -505,27 +590,40 @@ fn build_state_line_map(
 
 /// `[magic: u32 LE][version: u32 LE][entry_count: u32 LE]`, followed
 /// by `entry_count` repetitions of
-/// `[op_len: u32 LE][op bytes][field_len: u32 LE][field bytes][dfa_len: u32 LE][dfa bytes]`.
-/// Must match `kfilter-lib`'s `kfilter_load` parser exactly.
+/// `[op: u32 LE][field: u32 LE][dfa_len: u32 LE][dfa bytes]`.
+/// `op`/`field` are the [`Op`]/[`Field`] enum discriminants. Must
+/// match `kfilter-lib`'s blob parser exactly (`kfilter-lib/src/lib.rs`)
+/// -- the driver itself never parses this layout.
 pub const WIRE_MAGIC: u32 = 0x4B46_524D; // "KFRM"
 pub const WIRE_VERSION: u32 = 1;
 
-/// Packs every entry into the blob `kfilter_load` (kernel) expects
-/// over IOCTL_KFILTER_LOAD_RULES.
+/// Packs every entry into the blob the driver expects over
+/// IOCTL_KFILTER_LOAD_RULES.
 pub fn serialize_entries(entries: &[RulesetEntry]) -> Vec<u8> {
     let mut out = Vec::new();
     out.extend_from_slice(&WIRE_MAGIC.to_le_bytes());
     out.extend_from_slice(&WIRE_VERSION.to_le_bytes());
     out.extend_from_slice(&(entries.len() as u32).to_le_bytes());
     for e in entries {
-        let op = e.op.as_bytes();
-        let field = e.field.as_bytes();
-        out.extend_from_slice(&(op.len() as u32).to_le_bytes());
-        out.extend_from_slice(op);
-        out.extend_from_slice(&(field.len() as u32).to_le_bytes());
-        out.extend_from_slice(field);
+        out.extend_from_slice(&(e.op as u32).to_le_bytes());
+        out.extend_from_slice(&(e.field as u32).to_le_bytes());
         out.extend_from_slice(&(e.dfa_bytes.len() as u32).to_le_bytes());
         out.extend_from_slice(&e.dfa_bytes);
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // kfilter-lib/src/lib.rs hand-duplicates OP_COUNT/MAX_FIELDS_PER_OP
+    // and op_field_local_index() as a mirror of Op::ALL/Op::fields()
+    // (separate Cargo project, can't share this code directly) --
+    // this is a canary for that mirror going stale.
+    #[test]
+    fn op_field_table_matches_kfilter_lib() {
+        assert_eq!(Op::ALL.len(), 4);
+        assert_eq!(max_fields_per_op(), 3);
+    }
 }

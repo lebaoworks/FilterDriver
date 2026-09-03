@@ -1,30 +1,22 @@
-//! Simulation/testing harness: compiles a `.rules` file (via the
-//! `kfilter_compiler` library, same code path as the real
-//! `kfilter-compiler` tool) into **one DFA per (op, field)**, loads
-//! each into its own `kfilter_lib::Ruleset` (the exact same matcher
-//! the kernel driver runs, just built without the `kernel` feature so
-//! it links as plain user-mode Rust), runs it over a file of
-//! structured sample events, and evaluates each step's full AND/OR
-//! condition (not just a single field in isolation) -- entirely
-//! offline, no live driver or IOCTL needed.
-//!
-//! Usage: kfilter-cli <rules-file> <events-file>
+//! Simulation/testing harness: compiles a `.rules` file (via
+//! `kfilter_compiler`, the same code path the real CLI uses) into one
+//! DFA per (op, field), loads each into a `kfilter_lib::Ruleset` (the
+//! same matcher the kernel driver runs, minus the `kernel` feature),
+//! and evaluates a file of structured events against each step's full
+//! AND/OR condition -- entirely offline, no driver or IOCTL needed.
 //!
 //! `.evt` format: one event per line,
 //!   op=<op> <field1>="<value1>" <field2>="<value2>" ...
-//! (same quoting/escaping as `.rules` values: `\\` and `\"`). Blank
-//! lines and `#`-comments are skipped.
+//! (same quoting/escaping as `.rules` values). Blank lines and
+//! `#`-comments are skipped.
 //!
-//! Evaluation: for each field present on the event, look up the entry
-//! compiled for `(event.op, field_name)` and run its `Ruleset::match_state`
-//! once (same as the kernel would per-field) -- since that DFA was
-//! only ever built from patterns targeting that exact (op, field),
-//! there's no need to post-filter the result by op/field like the
-//! earlier single-flat-DFA design required. A step's OR-group is
-//! satisfied once every field its conditions require has been hit by
-//! the event; the step overall is satisfied once any one group is.
+//! For each field present on an event, looks up the entry compiled
+//! for `(event.op, field_name)` and runs its `Ruleset::match_state`
+//! once. A step's OR-group is satisfied once every field its
+//! conditions require has been hit; the step overall is satisfied
+//! once any one group is.
 
-use kfilter_compiler::{compile_ruleset, parse_rules_file, Step};
+use kfilter_compiler::{compile_ruleset, parse_rules_file, Field, Op, Step};
 use kfilter_lib::Ruleset;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::env;
@@ -32,7 +24,8 @@ use std::fs;
 
 struct Event {
     line: u32,
-    op: String,
+    op: Op,
+    op_str: String,
     fields: Vec<(String, String)>,
 }
 
@@ -61,7 +54,8 @@ fn unescape(s: &str) -> String {
 fn parse_event_line(line_no: u32, line: &str) -> Option<Event> {
     let rest = line.strip_prefix("op=")?;
     let mut parts = rest.splitn(2, char::is_whitespace);
-    let op = parts.next()?.to_string();
+    let op_str = parts.next()?.to_string();
+    let op = Op::from_str(&op_str)?;
     let remainder = parts.next().unwrap_or("").trim_start();
 
     let chars: Vec<char> = remainder.chars().collect();
@@ -115,7 +109,7 @@ fn parse_event_line(line_no: u32, line: &str) -> Option<Event> {
         fields.push((field, unescape(&raw_value)));
     }
 
-    Some(Event { line: line_no, op, fields })
+    Some(Event { line: line_no, op, op_str, fields })
 }
 
 fn parse_events_file(path: &str) -> Vec<Event> {
@@ -143,12 +137,12 @@ fn parse_events_file(path: &str) -> Vec<Event> {
     events
 }
 
-/// Distinct field names required by `steps[line].groups[group]`.
-fn required_fields(steps_by_line: &HashMap<u32, &Step>, line: u32, group: u32) -> BTreeSet<String> {
+/// Distinct fields required by `steps[line].groups[group]`.
+fn required_fields(steps_by_line: &HashMap<u32, &Step>, line: u32, group: u32) -> BTreeSet<Field> {
     steps_by_line
         .get(&line)
         .and_then(|s| s.groups.get(group as usize))
-        .map(|conds| conds.iter().map(|c| c.field.clone()).collect())
+        .map(|conds| conds.iter().map(|c| c.field).collect())
         .unwrap_or_default()
 }
 
@@ -177,8 +171,8 @@ fn main() {
     for entry in &compiled.entries {
         println!(
             "  op={:16} field={:16} {} bytes, {} match state(s)",
-            entry.op,
-            entry.field,
+            entry.op.as_str(),
+            entry.field.as_str(),
             entry.dfa_bytes.len(),
             entry.state_map.len()
         );
@@ -191,16 +185,16 @@ fn main() {
         .iter()
         .map(|e| {
             Ruleset::from_bytes(&e.dfa_bytes).unwrap_or_else(|err| {
-                eprintln!("failed to load DFA for ({}, {}): {err}", e.op, e.field);
+                eprintln!("failed to load DFA for ({}, {}): {err}", e.op.as_str(), e.field.as_str());
                 std::process::exit(1);
             })
         })
         .collect();
-    let entry_index: HashMap<(&str, &str), usize> = compiled
+    let entry_index: HashMap<(Op, Field), usize> = compiled
         .entries
         .iter()
         .enumerate()
-        .map(|(i, e)| ((e.op.as_str(), e.field.as_str()), i))
+        .map(|(i, e)| ((e.op, e.field), i))
         .collect();
 
     let steps_by_line: HashMap<u32, &Step> = steps.iter().map(|s| (s.line, s)).collect();
@@ -209,12 +203,15 @@ fn main() {
     let mut matched = 0usize;
     println!("\n--- results ---");
     for event in &events {
-        // (line, group) -> set of field names this event satisfied a
+        // (line, group) -> set of fields this event satisfied a
         // condition of that group for.
-        let mut hits: BTreeMap<(u32, u32), BTreeSet<String>> = BTreeMap::new();
+        let mut hits: BTreeMap<(u32, u32), BTreeSet<Field>> = BTreeMap::new();
 
         for (field_name, value) in &event.fields {
-            let Some(&entry_idx) = entry_index.get(&(event.op.as_str(), field_name.as_str())) else {
+            let Some(field) = Field::from_str(field_name) else {
+                continue; // unknown field name, no rule could reference it
+            };
+            let Some(&entry_idx) = entry_index.get(&(event.op, field)) else {
                 continue; // no rule compiled for this (op, field) at all
             };
             let Some(state_id) = rulesets[entry_idx].match_state(value.as_bytes()) else {
@@ -224,9 +221,7 @@ fn main() {
                 continue;
             };
             for info in infos {
-                hits.entry((info.line, info.group))
-                    .or_default()
-                    .insert(field_name.clone());
+                hits.entry((info.line, info.group)).or_default().insert(field);
             }
         }
 
@@ -243,13 +238,13 @@ fn main() {
                 .unwrap_or(("?", "?"));
             println!(
                 "{events_path}:{}: op={} -> {rules_path}:{line} ({pattern_name}.{label}, group {group}) MATCH",
-                event.line, event.op
+                event.line, event.op_str
             );
         }
         if event_matched {
             matched += 1;
         } else {
-            println!("{events_path}:{}: op={} -> no step fully satisfied", event.line, event.op);
+            println!("{events_path}:{}: op={} -> no step fully satisfied", event.line, event.op_str);
         }
     }
 

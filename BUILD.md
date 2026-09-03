@@ -20,8 +20,25 @@ lịch sử: lỗi "duplicate lang item `panic_impl`"). Build riêng từng cái
 nhớ, không phụ thuộc OS** -- nên dùng chung được cho cả 2 nơi:
 
 - **Mặc định** (không feature gì): rlib bình thường, link thẳng `std`. Dùng bởi `kfilter-cli`.
-- **`kernel`**: thêm `#![no_std]` + module FFI (`ExAllocatePool2`-based pool allocator, refcount +
-  spinlock, export `kfilter_init/kfilter_load/kfilter_match/kfilter_unload`). Driver link bản này.
+- **`kernel`**: thêm `#![no_std]` + module FFI xuất 3 hàm thuần logic: `kfilter_data_size`,
+  `kfilter_install_from_blob`, `kfilter_match`. **Không có `ExAllocatePool2`/spinlock/refcount nào ở
+  đây** -- crate này không bao giờ cấp phát hay giải phóng bộ nhớ, không bao giờ giữ lock. Toàn bộ
+  quản lý tài nguyên (cấp phát pool, bảo vệ vòng đời bằng `EX_RUNDOWN_REF`) nằm tường minh ở
+  `Driver.cpp` (xem mục "Quản lý tài nguyên ở Driver.cpp" bên dưới) -- Rust chỉ làm logic thuần
+  (parse blob thành DFA, chạy match), C++ chịu trách nhiệm cho việc bộ nhớ đó sống bao lâu và ai
+  được phép đọc nó lúc nào.
+
+  `kfilter-lib` cũng là nơi **duy nhất** biết layout của blob IOCTL (`[magic][version]
+  [entry_count]` rồi lặp `[op][field][dfa_len][dfa bytes]`, xem mục enum bên dưới) --
+  `kfilter_install_from_blob` tự parse toàn bộ blob và điền `entries`. `Driver.cpp` chỉ truyền
+  nguyên con trỏ blob qua, không tự đọc bất kỳ field nào của nó.
+
+  **`entries` là mảng đặc kích thước cố định, hoàn toàn "mờ" (opaque) với driver**: `Driver.cpp`
+  chỉ gọi đúng 1 hàm `kfilter_data_size()` để biết cấp phát bao nhiêu byte -- không biết số slot,
+  không biết kích thước 1 slot, không tự nhân 2 số đó lại (khỏi cả bước check tràn số nhân từng có
+  ở `LoadRuleset`). `kfilter_match` tra thẳng bằng chỉ số `op * MAX_FIELDS_PER_OP +
+  local_field_index` -- **O(1) thật**, không quét mảng -- xem mục "Lookup (op,field): index trực
+  tiếp, không quét mảng" bên dưới.
 
 ```
 cd kfilter-lib
@@ -45,14 +62,40 @@ của `kfilter-lib`.
 
 Output kernel: `kfilter-lib\target\x86_64-pc-windows-msvc\release\kfilter_lib.lib`
 
-Không còn `build.rs`/dữ liệu nhúng lúc compile. Rule data đến lúc **runtime** qua `kfilter_load`,
-được driver gọi từ IOCTL handler. `kfilter_load` nhận **1 blob đóng gói nhiều DFA** (1 DFA/`(op,
-field)`, xem mục kfilter-compiler ngay dưới) -- tự parse header + từng entry, copy vào pool memory
-bằng `ExAllocatePool2`/`ExFreePoolWithTag` (không dùng `alloc` crate của Rust -- không cần
-`#[global_allocator]`). `DfaSlot` giờ giữ 1 mảng `Entry{op,field,Ruleset}` thay vì 1 `Ruleset` duy
-nhất -- `kfilter_match` nhận thêm `op`/`field` (byte slice) để chọn đúng entry trước khi match. Vẫn
-giữ cơ chế refcount + spinlock để `kfilter_match` không giữ lock trong lúc search, còn `kfilter_load`
-chỉ free ruleset cũ sau khi không còn match nào đang dùng nó.
+## Quản lý tài nguyên ở Driver.cpp: `KFILTER_GENERATION` + `EX_RUNDOWN_REF`
+
+Không còn `build.rs`/dữ liệu nhúng lúc compile. Rule data đến lúc **runtime** qua IOCTL, và toàn bộ
+việc cấp phát/giải phóng/đồng bộ giờ nằm ở `Driver.cpp` (`LoadRuleset`), dùng `EX_RUNDOWN_REF` --
+primitive **có sẵn trong kernel** cho đúng bài toán "nhiều reader đang đọc, 1 writer muốn thay rồi
+free, phải đợi đúng lúc không còn ai đọc mới free" -- thay vì tự viết refcount+spinlock bằng tay
+như thiết kế ban đầu.
+
+- Mỗi lần nạp rule thành công là 1 `KFILTER_GENERATION`: buffer thô (`ExAllocatePool2`'d, copy từ
+  IOCTL input), mảng `entries` (`ExAllocatePool2`'d, kích thước = `kfilter_data_size()` -- **luôn
+  cùng 1 kích thước ở mọi lần load**, không phụ thuộc blob, `Driver.cpp` không biết gì thêm về nội
+  dung bên trong -- điền toàn bộ qua 1 lệnh gọi `kfilter_install_from_blob()`), và **`EX_RUNDOWN_REF`
+  riêng của thế hệ đó** (mỗi generation có ref riêng, dùng đúng 1 lần cho đúng 1 lần retire -- không
+  tái sử dụng qua `ExReInitializeRundownProtection`, tránh hẳn race giữa lúc swap con trỏ và lúc
+  reset ref).
+- `g_ActiveGeneration` được hoán đổi bằng `InterlockedExchangePointer` khi nạp rule mới thành công.
+  `g_LoadMutex` (`FAST_MUTEX`) chỉ tuần tự hoá **2 lần `kfilter_load` chồng nhau** (rundown chỉ lo
+  reader-vs-writer, không lo writer-vs-writer).
+- Reader (`KfilterMatchEvent`, hàm mẫu 1 hook thật sau này sẽ gọi) đọc con trỏ generation hiện có,
+  gọi `ExAcquireRundownProtection` trên **đúng ref của generation đó** trước khi đụng vào
+  `entries` -- nếu thành công, writer chắc chắn không free generation này cho tới khi reader gọi
+  `ExReleaseRundownProtection`. Nếu generation đang bị retire, acquire trả `FALSE`, reader coi như
+  "chưa có rule" (không match), không phải lỗi.
+- Sau khi swap xong, writer gọi `ExWaitForRundownProtectionRelease` trên ref của generation **cũ**
+  (chặn tới khi mọi reader đã acquire trước đó release xong), rồi mới free. Reader nào tới sau lúc
+  wait bắt đầu sẽ tự thấy acquire fail (đã "rundown"), không bao giờ có use-after-free.
+
+`kfilter_match` (Rust) giờ **thuần logic**: nhận sẵn con trỏ `entries` + `op`/`field`/`data`, tìm
+đúng entry rồi chạy `match_state` -- không cấp phát, không khoá, tin tưởng hoàn toàn vào cam kết
+của C++ rằng bộ nhớ còn hợp lệ suốt lúc gọi (đúng như bản chất `EX_RUNDOWN_REF` đảm bảo).
+
+`op`/`field` qua FFI này là `u32` trần (discriminant của `Op`/`Field`, xem mục enum bên dưới) --
+so sánh bằng `==` trực tiếp trong `kfilter_match`, không còn so chuỗi byte-slice như thiết kế
+trước.
 
 ## kfilter-compiler: lib (logic) + bin (CLI gửi IOCTL)
 
@@ -77,11 +120,71 @@ từ những field không liên quan, việc không bao giờ thực sự cần 
 pattern của đúng field đó).
 
 Mỗi entry ghi kèm `state_map: BTreeMap<u32, Vec<LineInfo>>` riêng (không cần `op`/`field` trong
-`LineInfo` nữa như thiết kế trước -- entry đã tự scope theo đúng 1 (op,field), không còn nguy cơ
-field khác lẫn kết quả). `serialize_entries` đóng gói tất cả entry thành 1 blob theo wire-format:
-`[magic][version][entry_count]` rồi lặp lại `[op_len][op][field_len][field][dfa_len][dfa bytes]` --
+`LineInfo` -- entry đã tự scope theo đúng 1 (op,field), không còn nguy cơ field khác lẫn kết quả).
+`serialize_entries` đóng gói tất cả entry thành 1 blob theo wire-format:
+`[magic][version][entry_count]` rồi lặp lại `[op: u32][field: u32][dfa_len: u32][dfa bytes]` --
 gửi qua `DeviceIoControl` tới `\\.\KFilter`, đồng thời ghi `kfilter_rules.dfa` (bản blob này) +
 `kfilter_state_map.json` (lồng theo từng entry) ra đĩa.
+
+`op`/`field` **là enum `#[repr(u32)]`** (`kfilter_compiler::Op`/`Field`), không phải chuỗi tuỳ ý:
+```rust
+#[repr(u32)]
+pub enum Op { FileCreate = 0, ProcessCreate = 1, ProcessOpen = 2, RegistrySet = 3 }
+#[repr(u32)]
+pub enum Field { ImagePath = 0, KeyPath = 1, ValueName = 2, ValueData = 3 }
+```
+Parser (`parse_rules`/`parse_conditions`) tra tên op/field trong `.rules` qua `Op::from_str`/
+`Field::from_str` -- op không nhận diện được thì skip cả step (kèm cảnh báo stderr), field không
+nhận diện được thì skip riêng điều kiện đó. Discriminant này chính là giá trị `u32` đi qua FFI và
+wire format ở trên -- cố định, không tuỳ ý như chuỗi trước đây, nên so sánh trong hot path
+(`kfilter_match`, C++ `Driver.cpp`) chỉ còn là so 2 số nguyên thay vì so byte-slice.
+
+**Đánh đổi đã chấp nhận**: thêm 1 op/field mới giờ cần sửa enum (Rust) + `KFILTER_OP`/`KFILTER_FIELD`
+(C++, `kfilter_core.h`) rồi rebuild cả 2 phía, không còn "chỉ cần thêm text vào `.rules`" như thiết
+kế chuỗi cũ -- đổi lại vocabulary đóng, không có nguy cơ lỗi chính tả tên field lọt qua runtime.
+Hai enum này **phải trùng discriminant tuyệt đối** giữa Rust và C++ (hiện khai trùng tay ở 2 nơi,
+không có cơ chế tự sinh) -- đây là điều cần nhớ khi sửa 1 trong 2 bên.
+
+Mỗi `Op` còn có `fields()`: danh sách field mà op đó chấp nhận, theo đúng thứ tự dùng để tính
+`field_index()` (vị trí của field trong danh sách riêng của op đó):
+```rust
+Op::FileCreate | Op::ProcessCreate | Op::ProcessOpen => &[Field::ImagePath]
+Op::RegistrySet => &[Field::KeyPath, Field::ValueName, Field::ValueData]
+```
+`parse_rules` dùng nó để reject step nào dùng field không hợp lệ cho op của step đó (vd
+`op=file_create key_path=...` bị skip, vì `key_path` không thuộc `Op::FileCreate::fields()`).
+
+## Lookup (op, field): index trực tiếp, không quét mảng
+
+`kfilter_match` **không quét tuyến tính** qua `entries` để tìm đúng `(op, field)` -- đó là thiết kế
+ban đầu, chi phí O(số entry). Thay vào đó, `entries` là **mảng đặc kích thước cố định**
+`OP_COUNT * MAX_FIELDS_PER_OP` slot, và mỗi `(op, field)` được tính thẳng ra 1 chỉ số duy nhất:
+
+```
+index = op * MAX_FIELDS_PER_OP + field_index(op, field)
+```
+
+`MAX_FIELDS_PER_OP` là số field **của op nhiều field nhất** (`kfilter_compiler::max_fields_per_op()`,
+hiện = 3, do `RegistrySet` có `key_path`/`value_name`/`value_data`) -- **không phải** tổng số field
+phân biệt trên toàn vocabulary. Khác biệt này quan trọng khi vocabulary lớn: giả sử 20 op, mỗi op
+chỉ dùng vài field riêng (op nhiều nhất dùng 5), tổng field phân biệt trên toàn hệ thống có thể lên
+tới hàng chục -- nếu lấy tổng đó làm stride, bảng sẽ phình ra `20 * (tổng field)` dù phần lớn ô
+không bao giờ có entry hợp lệ (field của op A không áp dụng cho op B). Lấy `MAX_FIELDS_PER_OP`
+(field_index cục bộ trong từng op) giữ bảng đúng bằng `20 * 5` -- không phụ thuộc vào việc các op
+khác có bao nhiêu field không liên quan.
+
+`field_index(op, field)` (vị trí của `field` trong `Op::fields()`) được **hand-duplicate** ở
+`kfilter-lib` dưới dạng `op_field_local_index(op: u32, field: u32) -> Option<u32>` (crate riêng,
+không import được `kfilter_compiler::Op`) -- test `op_field_table_matches_kfilter_lib` ở
+`kfilter-compiler` là canary để phát hiện khi 2 bản trôi khỏi nhau.
+
+Kết quả: `kfilter_match` là **O(1) thật** (1 phép tính chỉ số + 1 lần đọc mảng), không phụ thuộc số
+entry đã cài hay tổng kích thước vocabulary op/field. Vì kích thước bảng luôn cố định theo
+vocabulary (không theo nội dung blob), `Driver.cpp` không cần đọc header blob hay tự tính
+slot-count × slot-size gì cả -- gọi `kfilter_data_size()` 1 lần để biết cấp phát bao nhiêu byte,
+`entries` với nó là hoàn toàn "mờ" (opaque): không biết số slot, không biết kích thước 1 slot,
+không tự nhân 2 số đó (`kfilter_entry_size`/`kfilter_entry_table_len` cũ đã gộp lại thành đúng 1
+hàm này).
 
 **Điều kiện KHÔNG được biên dịch** (bị skip kèm cảnh báo ra stderr, không phải lỗi cứng -- đúng
 với việc kernel filter chỉ prefilter, không correlate):
@@ -107,16 +210,19 @@ không cần IOCTL -- dùng để test rule nhanh.
 <field2>="<value2>" ...` (cùng kiểu quote/escape `\\`/`\"` như `.rules`). Ví dụ:
 `op=registry_set key_path="HKLM\..." value_name="ImagePath"`.
 
-**Đánh giá AND/OR thật**: với mỗi field của event, tra `(event.op, field_name)` ra đúng entry (1
-`HashMap` lookup, O(1)), chạy `match_state` của entry đó (đúng 1 lần/field, giống hệt kernel sẽ
-làm) rồi tra `state_map` **của riêng entry đó** -- không cần lọc `op`/`field` thủ công sau khi
-match nữa như thiết kế trước, vì entry đã tự scope đúng 1 field rồi (DFA không còn cách nào trả về
-kết quả của field khác). 1 group (AND) coi là thoả khi đã thấy đủ **hết** field mà group đó yêu
-cầu; step thoả khi có ít nhất 1 group thoả (OR).
+**Đánh giá AND/OR thật**: `.evt` vẫn chứa op/field dạng chuỗi thô (`op=registry_set
+key_path="..."`) -- `kfilter-cli` tra `Op::from_str`/`Field::from_str` để đổi thành enum trước, bỏ
+qua (kèm cảnh báo) op/field lạ không nằm trong vocabulary đóng. Với mỗi field enum hoá được, tra
+`(event.op, field)` ra đúng entry (1 `HashMap<(Op,Field), usize>` lookup, O(1)), chạy `match_state`
+của entry đó (đúng 1 lần/field, giống hệt kernel sẽ làm) rồi tra `state_map` **của riêng entry đó**
+-- không cần lọc `op`/`field` thủ công sau khi match, vì entry đã tự scope đúng 1 field rồi (DFA
+không còn cách nào trả về kết quả của field khác). 1 group (AND) coi là thoả khi đã thấy đủ **hết**
+field mà group đó yêu cầu; step thoả khi có ít nhất 1 group thoả (OR).
 
-Test thật xác nhận hành vi **giống hệt** thiết kế lọc thủ công trước đó (đúng như kỳ vọng, vì ngữ
-nghĩa AND/OR không đổi, chỉ đổi cách triển khai): chuỗi hoàn toàn không phải registry path
-(`C:\this\is\not\a\registry\key`) báo đúng "no step fully satisfied"; case AND thiếu 1 field
+Test thật xác nhận hành vi **không đổi** sau khi chuyển `op`/`field` từ chuỗi sang enum (đúng như kỳ
+vọng, vì ngữ nghĩa AND/OR không đổi, chỉ đổi cách biểu diễn): `sample.rules`+`sample.evt` vẫn
+4/6 event khớp, `registry_mitre.rules`+`registry.evt` vẫn 2/4 -- chuỗi hoàn toàn không phải registry
+path (`C:\this\is\not\a\registry\key`) báo đúng "no step fully satisfied"; case AND thiếu 1 field
 (`key_path` có, `value_name` thiếu cho `suspicious_registry_write` group 0) cũng báo đúng không
 thoả thay vì false-positive.
 
@@ -173,6 +279,12 @@ WDK 10.0.26100.0 thật thay vì tin theo trí nhớ:
   `driver.vcxproj`).
 - `-C panic=abort` không tự áp cho `core`/`compiler_builtins` lấy từ sysroot -- cần `-Z build-std`
   (xem mục kfilter-lib ở trên) để tránh `LNK2001: __CxxFrameHandler3`.
+- `EX_RUNDOWN_REF` chỉ là `ULONG_PTR` (đúng như đoán) -- và khác với vụ spinlock, các hàm
+  `ExInitializeRundownProtection`/`ExAcquireRundownProtection`/`ExReleaseRundownProtection`/
+  `ExWaitForRundownProtectionRelease` đều export **thẳng đúng tên đó** trên x64 (không có phiên bản
+  `Kf.../Ke...` lệch tên như spinlock) -- đã confirm qua `dumpbin` trước khi dùng, không phải may
+  rủi. `ExAcquireFastMutex`/`ExReleaseFastMutex` cũng export thẳng, không cần khai báo gì đặc biệt
+  vì gọi từ C++ (có header `wdm.h` khai báo sẵn) -- khác Rust, không cần tự viết `extern` tay.
 
 ## File tham chiếu phát hiện giữa chừng (không phải do phiên này tạo)
 
@@ -187,12 +299,13 @@ xác nhận độc lập logic escape/regex đúng. Không xoá gì, chỉ di ch
 ## Việc chưa làm (ngoài phạm vi lần này)
 
 - Hook thu sự kiện kernel thật (`ObRegisterCallbacks`/minifilter/process-notify) gọi vào
-  `kfilter_match` trên hot path. **Driver (C++) chưa implement logic AND/OR** -- logic đó hiện chỉ
-  có trong `kfilter-cli` (Rust); khi nối hook thật, `Driver.cpp` cần cùng logic (gọi `kfilter_match`
-  đúng op/field cho từng field của event, gom kết quả theo group, so với field group yêu cầu) --
-  hoặc để hẳn ở tầng user-mode nhận log từ driver, tuỳ quyết định kiến trúc lúc đó. Việc lọc
-  op/field bản thân **không còn cần làm thủ công nữa** (đã chuyển vào cấu trúc DFA, xem mục
-  kfilter-compiler/kfilter-lib ở trên).
+  `KfilterMatchEvent` (hàm mẫu trong `Driver.cpp`, hiện chỉ được gọi 1 lần lúc `DriverEntry` làm
+  smoke test) trên hot path. **Driver (C++) chưa implement logic AND/OR** -- logic đó hiện chỉ có
+  trong `kfilter-cli` (Rust); khi nối hook thật, `Driver.cpp` cần cùng logic (gọi
+  `KfilterMatchEvent` đúng op/field cho từng field của event, gom kết quả theo group, so với field
+  group yêu cầu) -- hoặc để hẳn ở tầng user-mode nhận log từ driver, tuỳ quyết định kiến trúc lúc
+  đó. Việc lọc op/field bản thân **không còn cần làm thủ công nữa** (đã chuyển vào cấu trúc DFA,
+  xem mục kfilter-compiler ở trên).
 - Step không có field condition (`step dump op=file_create`, không field nào) vẫn bị skip -- cần
   kiến trúc riêng để biểu diễn "khớp mọi lúc op này xảy ra, không cần check field nào" (có thể tận
   dụng luôn cấu trúc entry theo op hiện có, ví dụ 1 entry đặc biệt "op này luôn khớp").

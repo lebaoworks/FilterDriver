@@ -82,8 +82,8 @@ fn write_state_map_json(rules_path: &str, compiled: &CompiledRuleset) {
     for (ei, entry) in compiled.entries.iter().enumerate() {
         out.push_str(&format!(
             "    {{\"op\": \"{}\", \"field\": \"{}\", \"dfa_bytes\": {}, \"states\": {{\n",
-            entry.op,
-            entry.field,
+            entry.op.as_str(),
+            entry.field.as_str(),
             entry.dfa_bytes.len()
         ));
         let n_states = entry.state_map.len();
@@ -138,8 +138,8 @@ fn main() {
     for entry in &compiled.entries {
         println!(
             "  op={:16} field={:16} {} bytes, {} match state(s)",
-            entry.op,
-            entry.field,
+            entry.op.as_str(),
+            entry.field.as_str(),
             entry.dfa_bytes.len(),
             entry.state_map.len()
         );
